@@ -120,8 +120,8 @@ INSTALLED_APPS = [
     "compliance",
     "data_ingestion",
     "document_handling",
-    "human_review",
-    "imigration_cases",
+    "human_reviews",
+    "immigration_cases",
     "payments",
     "rules_knowledge",
     "users_access",
@@ -197,7 +197,7 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'json': {
-            '()': 'finance.logging_config.CustomJsonFormatter',
+            '()': 'main_system.logging_config.CustomJsonFormatter',
             'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(pathname)s:%(lineno)d %(funcName)s %(message)s'
         }
     },
@@ -224,7 +224,7 @@ LOGGING = {
         },
         'db': {
             'level': 'INFO',
-            'class': 'log_entry.logging_handler.LazyDatabaseLogHandler',
+            'class': 'compliance.handlers.logging_handler.LazyDatabaseLogHandler',
             'formatter': 'json'
         }
     },
@@ -277,12 +277,12 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    'finance.middlewares.prevent_back_button.PreventBackButtonMiddleware',
+    'main_system.middlewares.prevent_back_button.PreventBackButtonMiddleware',
 
     # 4. Custom middleware
-    "finance.middlewares.slash_fix.EnforceTrailingSlashMiddleware",
-    "finance.middlewares.device_access_manager.DeviceSessionRefreshMiddleware",
-    "finance.middlewares.two_factor_auth.TwoFactorAuthMiddleware",
+    "main_system.middlewares.slash_fix.EnforceTrailingSlashMiddleware",
+    "main_system.middlewares.device_access_manager.DeviceSessionRefreshMiddleware",
+    "main_system.middlewares.two_factor_auth.TwoFactorAuthMiddleware",
 
     # 5. Django final middleware
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -293,7 +293,7 @@ MIDDLEWARE = [
 
 
 
-ROOT_URLCONF = "finance.urls"
+ROOT_URLCONF = "main_system.urls"
 
 TEMPLATES = [
     {
@@ -311,7 +311,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "finance.wsgi.application"
+WSGI_APPLICATION = "main_system.wsgi.application"
 
 
 # Database
@@ -375,7 +375,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # REST FRAMEWORK SETTINGS
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("finance.middlewares.cookie_access_only.CookieAccessOnlyTokenAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("main_system.middlewares.cookie_access_only.CookieAccessOnlyTokenAuthentication",),
     # "DEFAULT_AUTHENTICATION_CLASSES": ("knox.auth.TokenAuthentication",),
     "NON_FIELD_ERRORS_KEY": "error",
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend",],
@@ -401,7 +401,8 @@ REST_FRAMEWORK = {
 
 KNOX_TOKEN_MODEL = "knox.AuthToken"
 
-AUTH_USER_MODEL = "users.User"
+
+AUTH_USER_MODEL = "users_access.User"
 
 USE_X_FORWARDED_HOST = True
 
@@ -443,34 +444,6 @@ else:
 
 ENFORCE_2FA_PATHS = [
 ]
-
-
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'Personal Finance Manager API',
-    'DESCRIPTION': 'API documentation for the Personal Finance Manager application',
-    'VERSION': '1.0.0',
-    'OPERATION_ID_BASE_STRATEGY': 'path_and_method',
-    'SCHEMA_PATH_PREFIX': '/api/v1/',
-
-    'OPERATION_ID_SEPARATOR': '_',
-    'TAGS_SORTER': 'alpha',
-    'SERVE_INCLUDE_SCHEMA': False,
-    'COMPONENT_SPLIT_REQUEST': True,
-    'PREPROCESSING_HOOKS': [],
-    'ENUM_NAME_OVERRIDES': {},
-    "DEFAULT_GENERATOR_CLASS": "drf_spectacular.generators.SchemaGenerator",
-    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.TokenAuthentication"],
-    "POSTPROCESSING_HOOKS": [
-        "drf_spectacular.hooks.postprocess_schema_enums"
-    ],
-    "DEFAULT_GENERIC_ERROR_RESPONSE": {
-        "400": {"description": "Bad request"},
-        "401": {"description": "Not authenticated"},
-        "403": {"description": "Permission denied"},
-        "404": {"description": "Not found"},
-        "500": {"description": "Server error"},
-    },
-}
 
 import logging.config
 logging.config.dictConfig(LOGGING)
