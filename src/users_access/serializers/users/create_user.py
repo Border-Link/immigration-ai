@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from .password_validation import PasswordValidation
 from helpers import fields as input_fields
-from ..user import User
-from ..services.user_service import UserService
+from users_access.models.user import User
+from users_access.services.user_service import UserService
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
