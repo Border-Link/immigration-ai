@@ -1,17 +1,17 @@
 version: "3.9"
 
 networks:
-  pfm_network:
-    name: "pfm_network"
+  border_link:
+    name: "border_link"
   web:
     name: "web"
     external: true
 
 volumes:
   postgres_data:
-      name: postgres_data
+      name: border_link_postgres_data
   redis_data:
-      name: redis_data
+      name: border_link_redis_data
 
 services:
   postgres:
@@ -27,7 +27,7 @@ services:
     ports:
         -   "127.0.0.1:5435:5432"
     networks:
-      - pfm_network
+      - border_link
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -46,7 +46,7 @@ services:
     ports:
         -   "127.0.0.1:6379:6379"
     networks:
-      - pfm_network
+      - border_link
     volumes:
       - redis_data:/data
     healthcheck:
@@ -65,9 +65,9 @@ services:
     env_file:
       - .env
     networks:
-      - pfm_network
+      - border_link
       - web
-    command: gunicorn --workers ${GUNICORN_WORKERS:-4} --bind 0.0.0.0:8000 finance.wsgi:application
+    command: gunicorn --workers ${GUNICORN_WORKERS:-4} --bind 0.0.0.0:8000 main_system.wsgi:application
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
       interval: 30s
@@ -105,9 +105,9 @@ services:
     env_file:
       - .env
     networks:
-      - pfm_network
+      - border_link
       - web
-    command: celery -A finance worker --loglevel=info --concurrency=4
+    command: celery -A main_system worker --loglevel=info --concurrency=4
     depends_on:
       redis:
         condition: service_healthy
@@ -122,9 +122,9 @@ services:
     env_file:
       - .env
     networks:
-      - pfm_network
+      - border_link
       - web
-    command: celery -A finance beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: celery -A main_system beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     depends_on:
       redis:
         condition: service_healthy
