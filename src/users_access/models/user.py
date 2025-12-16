@@ -1,7 +1,6 @@
 import uuid
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
 from django.db import models
-from .manager.user_manager import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -49,7 +48,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         db_index=True
     )
 
-    objects = UserManager()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
