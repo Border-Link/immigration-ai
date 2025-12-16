@@ -1,5 +1,4 @@
-from typing import Optional, Tuple
-
+from typing import Optional
 from rest_framework import serializers
 from helpers import fields as input_fields
 
