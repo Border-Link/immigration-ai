@@ -2,7 +2,6 @@ import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from .manager.manager import UserDeviceSessionManager
 
 User = get_user_model()
 
@@ -28,8 +27,6 @@ class UserDeviceSession(models.Model):
     revoked_at = models.DateTimeField(null=True, blank=True)
     device_info = models.JSONField(default=dict, blank=True)
 
-
-    objects = UserDeviceSessionManager()  # custom manager for session operations
 
     class Meta:
         db_table = "user_device_sessions"
