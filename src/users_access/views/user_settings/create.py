@@ -1,8 +1,9 @@
 from rest_framework import status
-from finance.base.auth_api import AuthAPI
-from finance.totp_issuer import QRCodeGenerator
-from ..services.service import UserSettingsService
-from .settings import valid_fields
+from main_system.base.auth_api import AuthAPI
+from main_system.totp_issuer import QRCodeGenerator
+from users_access.services.user_setting_service import UserSettingsService
+from .user_settings import valid_fields
+
 
 
 class UserSettingsToggleAPI(AuthAPI):
