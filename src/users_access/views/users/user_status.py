@@ -1,6 +1,6 @@
 from rest_framework import status
-from finance.base.auth_api import AuthAPI
-from ..serializers.create_user_success import WhoAmISerializer
+from main_system.base.auth_api import AuthAPI
+from users_access.serializers.users.create_user_success import WhoAmISerializer
 
 
 class UserStatusAPI(AuthAPI):
