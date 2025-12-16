@@ -1,7 +1,6 @@
 import uuid
 from django.db import models
 from django.conf import settings
-from otp.manager.manager import OTPManager
 
 
 class OTP(models.Model):
@@ -21,8 +20,6 @@ class OTP(models.Model):
     expires_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    objects = OTPManager()
 
 
     class Meta:
