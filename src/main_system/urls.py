@@ -1,5 +1,5 @@
 """
-URL configuration for finance project.
+URL configuration for Immigration Intelligence Platform project.
 
 The `urlpatterns` list routes URLs to controllers. For more information please see:
     https://docs.djangoproject.com/en/5.0/topics/http/urls/
@@ -26,11 +26,11 @@ API = "api/v1"
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
     path(f"{API}/auth/", include("users_access.urls")),
-    path(f"{API}/accounts/", include("ai_decisions.urls")),
-    path(f"{API}/compliance/", include("compliance.urls")),
+    path(f"{API}/ai-decisions/", include("ai_decisions.urls")),
+    path(f"{API}/compliances/", include("compliance.urls")),
     path(f"{API}/data-ingestion/", include("data_ingestion.urls")),
-    path(f"{API}/human-review/", include("human_reviews.urls")),
-    path(f"{API}/imigration-cases/", include("imigration_cases.urls")),
+    path(f"{API}/human-reviews/", include("human_reviews.urls")),
+    path(f"{API}/imigration-cases/", include("immigration_cases.urls")),
     path(f"{API}/payments/", include("payments.urls")),
     path(f"{API}/rules-knowledge/", include("rules_knowledge.urls")),
 
