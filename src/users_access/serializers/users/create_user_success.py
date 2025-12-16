@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..user import User
+from users_access.models.user import User
 from helpers import fields as input_fields
 
 class UserSerializer(serializers.ModelSerializer):
