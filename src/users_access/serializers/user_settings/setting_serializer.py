@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models import UserSetting
+from users_access.models.user_settings import UserSetting
 
 class UserSettingSerializer(serializers.ModelSerializer):
     class Meta:
