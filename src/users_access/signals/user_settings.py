@@ -1,8 +1,8 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
+from users_access.models.user_settings import UserSetting
 
-from user_settings.models import UserSetting
 
 User = get_user_model()
 
