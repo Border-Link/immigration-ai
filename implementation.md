@@ -29,7 +29,10 @@
 
 ## 1.1 System Purpose
 
-The Immigration Intelligence Platform is a compliance-aware AI system that reduces failed visa applications and accelerates skilled migration through explainable AI and human-in-the-loop workflows. The platform provides decision support, document preparation, and information interpretation—not legal advice—for immigration applicants, particularly targeting UK immigration routes initially.
+The Immigration Intelligence Platform is a compliance-aware AI system that reduces failed visa applications and 
+accelerates skilled migration through explainable AI and human-in-the-loop workflows. The platform provides decision 
+support, document preparation, and information interpretation—not legal advice—for immigration applicants, particularly 
+targeting UK immigration routes initially.
 
 ## 1.2 Value Proposition
 
@@ -1334,7 +1337,9 @@ Text to extract from:
 
 ## 6.1 Hybrid Architecture Overview
 
-The system combines **deterministic rule evaluation** (for hard requirements like salary thresholds) with **AI reasoning** (for nuanced interpretation and explanation). This hybrid approach reduces hallucinations and legal risk.
+The system combines **deterministic rule evaluation** (for hard requirements like salary thresholds) 
+with **AI reasoning** (for nuanced interpretation and explanation). This hybrid approach reduces hallucinations 
+and legal risk.
 
 ### Decision Flow
 
@@ -1479,7 +1484,8 @@ Case Facts
 1. **Construct Query String**:
    - Build natural language query from case facts
    - Include: visa type name, applicant nationality, salary, sponsor status
-   - Example: "Eligibility requirements for Skilled Worker visa. Applicant nationality: NG. Salary: 42000. Has sponsor: true."
+   - Example: "Eligibility requirements for Skilled Worker visa. Applicant nationality: NG. Salary: 42000. 
+   - Has sponsor: true."
 
 2. **Query Vector DB**:
    - Use vector DB query API with:
@@ -1510,7 +1516,8 @@ Case Facts
 **Step-by-Step Implementation**:
 
 1. **Build Prompt Structure**:
-   - Start with system role: "You are an immigration eligibility assessment system. Your role is to provide decision support and information interpretation—NOT legal advice."
+   - Start with system role: "You are an immigration eligibility assessment system. 
+   - Your role is to provide decision support and information interpretation—NOT legal advice."
 
 2. **Include Case Facts**:
    - Format case facts as JSON with indentation
@@ -1763,7 +1770,8 @@ Case Facts
 
 ## 7.1 Review Workflow Overview
 
-Human reviewers serve as the **authority layer** over AI decisions, ensuring regulatory compliance and handling edge cases.
+Human reviewers serve as the **authority layer** over AI decisions, ensuring regulatory compliance and handling
+edge cases.
 
 ### Review Triggers
 
@@ -2301,11 +2309,11 @@ Shows:
 ## 10.2 Recommended Tech Stack
 
 ### Backend
-- **Language**: Python 3.11+ or Node.js 20+ (TypeScript)
-- **Framework**: FastAPI (Python) or Express/NestJS (Node.js)
-- **Database**: PostgreSQL 14+
-- **Object Storage**: AWS S3, Azure Blob, or GCP Cloud Storage
-- **Job Queue**: Celery (Python) or Bull (Node.js) with Redis
+- **Language**: Python 3.12+
+- **Framework**: Django (Python) 
+- **Database**: PostgreSQL 16+
+- **Object Storage**: AWS S3
+- **Job Queue**: Celery (Python) with Redis
 - **Vector DB**: Pinecone, Weaviate, or pgvector (PostgreSQL extension)
 
 ### AI/ML
@@ -2314,14 +2322,14 @@ Shows:
 - **OCR**: Tesseract, AWS Textract, or Google Vision API
 
 ### Infrastructure
-- **Hosting**: AWS, Azure, or GCP
+- **Hosting**: AWS
 - **Containerization**: Docker + Kubernetes (or Docker Compose for MVP)
-- **CI/CD**: GitHub Actions, GitLab CI, or Jenkins
-- **Monitoring**: Prometheus + Grafana, or cloud provider monitoring
+- **CI/CD**: GitHub Actions
+- **Monitoring**: Prometheus + Grafana
 - **Logging**: ELK Stack (Elasticsearch, Logstash, Kibana) or cloud logging
 
 ### Frontend
-- **Framework**: React 18+ or Vue 3+ or Next.js
+- **Framework**: React 18+ or Next.js
 - **State Management**: Redux, Zustand, or Pinia
 - **UI Library**: Material-UI, Ant Design, or Tailwind CSS
 
@@ -3043,7 +3051,8 @@ immigration-platform/
 
 # Conclusion
 
-This implementation plan provides a complete, developer-ready guide for building the Immigration Intelligence Platform. Every component, workflow, edge case, and compliance requirement has been documented with step-by-step instructions.
+This implementation plan provides a complete, developer-ready guide for building the Immigration Intelligence Platform. 
+Every component, workflow, edge case, and compliance requirement has been documented with step-by-step instructions.
 
 The system is designed to be:
 - **Scalable**: Architecture supports growth from MVP to enterprise
@@ -3052,7 +3061,8 @@ The system is designed to be:
 - **Compliant**: OISC boundary compliance, human-in-loop, versioned rules
 - **Maintainable**: Clear module boundaries, comprehensive testing, monitoring
 
-Follow this plan section by section, and you will have a production-ready immigration intelligence platform that can scale globally while maintaining regulatory compliance and user trust.
+Follow this plan section by section, and you will have a production-ready immigration intelligence platform that 
+can scale globally while maintaining regulatory compliance and user trust.
 
 ---
 
