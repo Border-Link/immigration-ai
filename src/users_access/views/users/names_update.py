@@ -1,8 +1,8 @@
 from rest_framework import status
-from finance.base.auth_api import AuthAPI
-from ..serializers.create_user_success import UserSerializer
-from ..services.user_service import UserService
-from ..serializers.names_update import NamesUpdateSerializer
+from main_system.base.auth_api import AuthAPI
+from users_access.serializers.users.create_user_success import UserSerializer
+from users_access.services.user_service import UserService
+from users_access.serializers.users.names_update import NamesUpdateSerializer
 
 
 class UserNamesUpdateAPI(AuthAPI):
