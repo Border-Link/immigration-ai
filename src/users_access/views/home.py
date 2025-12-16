@@ -6,9 +6,10 @@ class HomeView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['app_title'] = 'Cashra: Ai-Powered Finance Manager'
-        context['app_welcome'] = 'Welcome to Your AI-Powered Finance Manager'
-        context['app_content'] = """Take control of your finances with Cashra — a smart, 
-        AI-driven platform designed to help you manage your money, track your spending, 
-        and build a future of financial freedom."""
+        context['app_title'] = 'Borderlink: Immigration Intelligence Platform'
+        context['app_welcome'] = 'Welcome to Your Immigration Intelligence Platform'
+        context['app_content'] = """The Immigration Intelligence Platform is a compliance-aware AI system 
+        that helps immigration applicants understand their visa eligibility, prepare required documents, 
+        and make informed decisions. The platform provides **decision support** and **information interpretation**—not 
+        legal advice—through explainable AI and human-in-the-loop workflows."""
         return context
