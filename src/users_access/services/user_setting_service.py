@@ -1,6 +1,6 @@
 import logging
 from helpers.cache_utils import cache_result
-from user_settings.models import UserSetting
+from users_access.models.user_settings import UserSetting
 
 logger = logging.getLogger('django')
 
