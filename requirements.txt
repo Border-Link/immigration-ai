@@ -1,0 +1,68 @@
+# Core Django & Database Packages
+django~=5.2
+djangorestframework~=3.16.0
+python-decouple  # For managing environment variables
+pytz  # Timezone support
+psycopg  # PostgreSQL support
+asyncpg  # Async PostgreSQL (if using async DB connections)
+pydantic  # Data validation (for API responses)
+django-rest-knox~=5.0.2
+typing-extensions  # Type hints for Python 3.6
+celery~=5.5.2
+redis  # Redis support for Celery
+django-celery-results  # Celery results backend
+gunicorn # WSGI server for production
+django-guardian  # Object-level permissions
+requests~=2.32.3
+django-encrypted-model-fields # Encrypted fields for sensitive data
+django-filter~=25.1
+python-dateutil~=2.8.0
+debugpy # Debugging support for Django
+django-cors-headers
+
+django-extensions # Useful extensions for Django development
+
+# AI & ML Frameworks
+#groq  # Groq API for AI models
+#openai  # OpenAI API support
+#mistralai  # Mistral AI API
+#langchain  # AI-powered reasoning and retrieval
+#llama-index  # Indexing & search over AI data
+#tantivy  # Fast search engine library
+
+
+# Web & Deployment Tools
+django-environ~=0.12.0
+markdown  # Render markdown content
+pyyaml  # Parse YAML configs
+
+# Testing & Development
+pytest  # Testing framework
+pytest-asyncio  # Async test support
+pytest-cov  # Test coverage reporting
+black  # Code formatting
+flake8  # Code linting
+mypy  # Static type checking
+
+
+# Cloud & Storage Services
+boto3  # AWS SDK for S3/DigitalOcean Spaces integration
+python-magic  # File type detection for uploads
+
+sentry-sdk~=2.27.0
+python-json-logger~=3.3.0
+django-prometheus
+
+# GRAPHS
+matplotlib
+pillow~=11.2.1
+scipy~=1.15.2
+
+pyotp~=2.9.0
+
+django_celery_results~=2.6.0
+django-qrcode~=0.3
+numpy~=2.2.6
+django-celery-beat~=2.8.1
+django-redis
+sendgrid
