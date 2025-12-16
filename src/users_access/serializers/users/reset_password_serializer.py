@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from users.serializers.password_validation import PasswordValidation
+from .password_validation import PasswordValidation
 from helpers import fields as input_fields
-from users.services.service import UserService
+from users_access.services.user_service import UserService
 
 
 class ResetPasswordSerializer(serializers.Serializer):
