@@ -1,14 +1,14 @@
 version: "3.9"
 
 networks:
-  pfm_network:
+  border_link:
     internal: false
 
 volumes:
   postgres_data:
-      name: postgres_data
+      name: border_link_postgres_data
   redis_data:
-      name: redis_data
+      name: border_link_redis_data
 
 services:
   postgres:
@@ -22,7 +22,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_DATABASE}
     networks:
-      - pfm_network
+      - border_link
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     networks:
-      - pfm_network
+      - border_link
     volumes:
       - redis_data:/data
     ports:
@@ -62,13 +62,13 @@ services:
     env_file:
       - .env
     networks:
-      - pfm_network
+      - border_link
     volumes:
       - ./src:/src
     ports:
       - "8000:8000"
       # - "5678:5678" # Uncomment if using debug
-    command: gunicorn --workers ${GUNICORN_WORKERS:-4} --bind 0.0.0.0:8000 finance.wsgi:application
+    command: gunicorn --workers ${GUNICORN_WORKERS:-4} --bind 0.0.0.0:8000 main_system.wsgi:application
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
       interval: 30s
@@ -91,8 +91,8 @@ services:
     env_file:
       - .env
     networks:
-      - pfm_network
-    command: celery -A finance worker --loglevel=info --concurrency=4
+      - border_link
+    command: celery -A main_system worker --loglevel=info --concurrency=4
     depends_on:
       - redis
       - postgres
@@ -105,8 +105,8 @@ services:
     env_file:
       - .env
     networks:
-      - pfm_network
-    command: celery -A finance beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      - border_link
+    command: celery -A main_system beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     depends_on:
       - redis
       - postgres
@@ -124,4 +124,4 @@ services:
       - "8025:8025"
       - "1025:1025"
     networks:
-      - pfm_network
+      - border_link
