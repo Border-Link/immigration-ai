@@ -1,9 +1,8 @@
 from rest_framework import status
-
-from finance.base.auth_api import AuthAPI
-from finance.totp_issuer import QRCodeGenerator
-from user_settings.serializers.setting_serializer import UserSettingSerializer
-from user_settings.services.service import UserSettingsService
+from main_system.base.auth_api import AuthAPI
+from main_system.totp_issuer import QRCodeGenerator
+from users_access.serializers.user_settings.setting_serializer import UserSettingSerializer
+from users_access.services.user_setting_service import UserSettingsService
 
 
 class UserSettingsListAPIView(AuthAPI):
