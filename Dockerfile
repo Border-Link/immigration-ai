@@ -1,7 +1,7 @@
 # --------------------------
 # Base image and Python version
 # --------------------------
-ARG PYTHON_VERSION=3.14-slim-bullseye
+ARG PYTHON_VERSION=3.12-slim-bullseye
 FROM python:${PYTHON_VERSION}
 
 LABEL authors="Border Link Systems"
@@ -44,7 +44,7 @@ ENV PATH=/opt/venv/bin:$PATH
 # Copy and install dependencies
 # --------------------------
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt
 
 # --------------------------
@@ -80,7 +80,7 @@ EXPOSE 8000
 # If PRODUCTION=true, run Gunicorn, else default to Django dev server
 ARG PRODUCTION=false
 CMD if [ "${PRODUCTION}" = "true" ]; then \
-        gunicorn --bind 0.0.0.0:8000 finance.wsgi:application; \
+        gunicorn --bind 0.0.0.0:8000 main_system.wsgi:application; \
     else \
         python manage.py runserver 0.0.0.0:8000; \
     fi
