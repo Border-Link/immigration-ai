@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class PasswordResetConfig(AppConfig):
+class PaymentsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "ai_decisions"
+    name = "payments"
