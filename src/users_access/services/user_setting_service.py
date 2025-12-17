@@ -1,26 +1,64 @@
-import logging
-from helpers.cache_utils import cache_result
 from users_access.models.user_settings import UserSetting
+from users_access.repositories.user_setting_repository import UserSettingRepository
+from users_access.selectors.user_setting_selector import UserSettingSelector
+import logging
 
 logger = logging.getLogger('django')
 
 
 class UserSettingsService:
-    def __init__(self):
-        self.manager = UserSetting.objects
 
-    @cache_result(timeout=3600, keys=['user_id'])
-    def get_settings(self, user_id: str):
-        return self.manager.get_settings(user_id)
+    @staticmethod
+    def create_user_setting(user_id: str):
+        try:
+            return UserSettingRepository.create_user_setting(user_id)
+        except Exception as e:
+            logger.error(f"Error creating default settings for user {user_id}: {e}")
+            return None
 
-    def create_default_settings(self, user_id: str):
-        return self.manager.create_user_setting(user_id)
+    @staticmethod
+    def update_settings(user_id: str, settings_data: dict):
+        try:
+            return UserSettingRepository.update_settings(user_id, settings_data)
+        except Exception as e:
+            logger.error(f"Error updating settings for user {user_id}: {e}")
+            return None
 
-    def update_settings(self, user_id: str, settings_data: dict):
-        return self.manager.update_settings(user_id, settings_data)
+    @staticmethod
+    def get_settings(user_id: str):
+        try:
+            settings = UserSettingSelector.get_settings(user_id)
+            if not settings:
+                logger.warning(f"Settings not found for user {user_id}")
+            return settings
+        except Exception as e:
+            logger.error(f"Error fetching settings for user {user_id}: {e}")
+            return None
 
-    def delete_settings(self, user_id: str):
-        return self.manager.delete_settings(user_id)
+    @staticmethod
+    def delete_settings(user_id: str):
+        try:
+            return UserSettingRepository.delete_settings(user_id)
+        except UserSetting.DoesNotExist:
+            logger.warning(f"Settings not found for user {user_id}")
+            return False
+        except Exception as e:
+            logger.error(f"Error deleting settings for user {user_id}: {e}")
+            return False
 
-    def enable_2fa(self, user_id: str):
-        return self.manager.enable_2fa(user_id)
+    @staticmethod
+    def enable_2fa(user_id: str):
+        try:
+            settings = UserSettingSelector.get_settings(user_id)
+            if not settings:
+                logger.warning(f"Settings not found for user {user_id}")
+                return None
+            # Skip if already enabled
+            if settings.two_factor_auth and settings.totp_secret:
+                logger.warning(f"2FA already enabled for user {user_id}")
+                return settings
+
+            return UserSettingRepository.enable_2fa(user_id)
+        except Exception as e:
+            logger.error(f"Error enabling 2FA for user {user_id}: {e}")
+            return None
