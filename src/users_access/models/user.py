@@ -57,13 +57,3 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         db_table = 'users'
-
-
-# Import managers after User class definition to avoid circular imports
-from users_access.repositories.user_repository import UserManager, UserRepository
-from users_access.selectors.user_selector import UserSelector
-
-# Assign managers to User model
-User.add_to_class('objects', UserManager())
-User.add_to_class('repository', UserRepository())
-User.add_to_class('selector', UserSelector())
