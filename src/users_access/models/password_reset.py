@@ -17,10 +17,3 @@ class PasswordReset(models.Model):
 
     def __str__(self):
         return self.user.email if self.user else 'None'
-
-
-# Import manager after PasswordReset class definition to avoid circular imports
-from users_access.repositories.password_reset_repository import PasswordResetRepository
-
-# Assign manager to PasswordReset model
-PasswordReset.add_to_class('repository', PasswordResetRepository())
