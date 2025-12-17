@@ -32,3 +32,12 @@ class OTP(models.Model):
 
     def __str__(self):
         return f"OTP for {self.user.email} - {'Verified' if self.is_verified else 'Pending'}"
+
+
+# Import managers after OTP class definition to avoid circular imports
+from users_access.repositories.otp_repository import OTPRepository
+from users_access.selectors.otp_selector import OTPSelector
+
+# Assign managers to OTP model
+OTP.add_to_class('repository', OTPRepository())
+OTP.add_to_class('selector', OTPSelector())
