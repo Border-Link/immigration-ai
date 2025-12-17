@@ -1,5 +1,9 @@
+from typing import Optional
+from django.contrib.auth import authenticate
+from helpers import fields as input_fields
 from users_access.repositories.user_repository import UserRepository
 from users_access.selectors.user_selector import UserSelector
+from users_access.models.user import User as CustomUser
 import logging
 
 logger = logging.getLogger('django')
@@ -94,6 +98,21 @@ class UserService:
         except Exception as e:
             logger.error(f"Error checking if email exists: {e}")
             return False
+
+    @staticmethod
+    def login(email: str, password: str, request=None):
+        try:
+            user: Optional[CustomUser] = authenticate(request, email=email, password=password)
+            if not user:
+                return None, input_fields.INVALID_CREDENTIALS
+            if not user.is_active:
+                return None, input_fields.USER_NOT_ACTIVE
+            if not user.is_verified:
+                return None, input_fields.EMAIL_NOT_VERIFIED
+            return user, None
+        except Exception as e:
+            logger.exception(f"Error during login for {email}: {e}")
+            return None, input_fields.INVALID_CREDENTIALS
 
     @staticmethod
     def get_by_email(email):
