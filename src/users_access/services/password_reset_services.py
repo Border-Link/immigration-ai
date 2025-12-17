@@ -1,9 +1,18 @@
-from ..models import PasswordReset
+from users_access.repositories.password_reset_repository import PasswordResetRepository
+import logging
+
+logger = logging.getLogger('django')
+
 
 class PasswordResetService:
-    def __init__(self):
-        self.manager = PasswordReset.objects
 
-    def create(self, user):
-        created = self.manager.create_password_reset(user=user)
-
+    @staticmethod
+    def create_password_reset(user):
+        try:
+            return PasswordResetRepository.create_password_reset(user)
+        except KeyError as e:
+            logger.error(f"Missing required field: {e} for user {user.email}")
+            return None
+        except Exception as e:
+            logger.error(f"Error while creating password reset for user {user.email}: {e}")
+            return None
