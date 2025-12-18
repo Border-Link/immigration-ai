@@ -7,12 +7,11 @@ class OTPSelector:
 
     @staticmethod
     def get_by_otp_and_endpoint_token(otp, endpoint_token):
-        otp = (
+        return (
             OTP.objects
             .filter(otp=otp, endpoint_token=endpoint_token, is_verified=False, expires_at__gt=timezone.now())
             .last()
         )
-        return otp
 
     @staticmethod
     def get_by_endpoint(endpoint_token):
