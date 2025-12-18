@@ -8,3 +8,4 @@ class UsersAccessConfig(AppConfig):
     def ready(self):
         from .tasks import otp_tasks
         from .signals import user_settings
+        from .signals import user_profile
