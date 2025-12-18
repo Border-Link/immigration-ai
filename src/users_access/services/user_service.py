@@ -2,6 +2,7 @@ from typing import Optional
 from django.contrib.auth import authenticate
 from helpers import fields as input_fields
 from users_access.repositories.user_repository import UserRepository
+from users_access.repositories.user_profile_repository import UserProfileRepository
 from users_access.selectors.user_selector import UserSelector
 from users_access.models.user import User as CustomUser
 import logging
@@ -12,17 +13,35 @@ logger = logging.getLogger('django')
 class UserService:
 
     @staticmethod
-    def create_user(email, password, first_name, last_name):
+    def create_user(email, password, first_name=None, last_name=None):
         try:
-            return UserRepository.create_user(email, password, first_name, last_name)
+            user = UserRepository.create_user(email, password)
+            if user and (first_name or last_name):
+                # Profile is auto-created by signal, but we update it with names
+                from users_access.selectors.user_profile_selector import UserProfileSelector
+                try:
+                    profile = UserProfileSelector.get_by_user(user)
+                    UserProfileRepository.update_names(profile, first_name, last_name)
+                except Exception:
+                    # If profile doesn't exist yet, create it
+                    UserProfileRepository.create_profile(user, first_name, last_name)
+            return user
         except Exception as e:
             logger.error(f"Error creating user {email}: {e}")
             return None
 
     @staticmethod
-    def create_superuser(email, password, first_name, last_name):
+    def create_superuser(email, password, first_name=None, last_name=None):
         try:
-            return UserRepository.create_superuser(email, password, first_name, last_name)
+            user = UserRepository.create_superuser(email, password)
+            if user and (first_name or last_name):
+                from users_access.selectors.user_profile_selector import UserProfileSelector
+                try:
+                    profile = UserProfileSelector.get_by_user(user)
+                    UserProfileRepository.update_names(profile, first_name, last_name)
+                except Exception:
+                    UserProfileRepository.create_profile(user, first_name, last_name)
+            return user
         except Exception as e:
             logger.error(f"Error creating superuser {email}: {e}")
             return None
@@ -37,24 +56,30 @@ class UserService:
 
     @staticmethod
     def update_avatar(user, avatar):
+        """Update user avatar - delegates to UserProfileService."""
         try:
-            return UserRepository.update_avatar(user, avatar)
+            from users_access.services.user_profile_service import UserProfileService
+            return UserProfileService.update_avatar(user, avatar)
         except Exception as e:
             logger.error(f"Error updating avatar for user {user.email}: {e}")
             return None
 
     @staticmethod
     def remove_avatar(user):
+        """Remove user avatar - delegates to UserProfileService."""
         try:
-            return UserRepository.remove_avatar(user)
+            from users_access.services.user_profile_service import UserProfileService
+            return UserProfileService.remove_avatar(user)
         except Exception as e:
             logger.error(f"Error removing avatar for user {user.email}: {e}")
             return None
 
     @staticmethod
     def update_names(user, first_name=None, last_name=None):
+        """Update user names - delegates to UserProfileService."""
         try:
-            return UserRepository.update_names(user, first_name, last_name)
+            from users_access.services.user_profile_service import UserProfileService
+            return UserProfileService.update_names(user, first_name, last_name)
         except Exception as e:
             logger.error(f"Error updating names for user {user.email}: {e}")
             return None
