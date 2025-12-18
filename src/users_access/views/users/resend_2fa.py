@@ -29,7 +29,12 @@ class ResendTwoFactorTokenAPIView(GuestAPI):
             otp = get_random_string(length=6, allowed_chars='0123456789')
             otp_service.resend_otp(otp_model=login_otp, otp=otp)
 
-            send_otp_email.delay(login_otp.user.email, login_otp.user.first_name, otp)
+            # Get first_name from profile
+            first_name = None
+            if hasattr(login_otp.user, 'profile') and login_otp.user.profile:
+                first_name = login_otp.user.profile.first_name
+
+            send_otp_email.delay(login_otp.user.email, first_name, otp)
             return self.api_response(
                 message="OTP resent successfully",
                 data={"email": login_otp.user.email},
