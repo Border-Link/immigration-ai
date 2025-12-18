@@ -1,4 +1,6 @@
 from django.utils.crypto import get_random_string
+
+from users_access.constants.otp_constants import ALLOWED_OTP_NUMBERS
 from users_access.services.otp_services import OTPService
 from users_access.tasks.otp_tasks import send_otp_email
 from helpers.generate_hash import GenerateHash
@@ -17,7 +19,7 @@ class OTPBaseHandler:
 
     def generate_otp(self, length: int = 6) -> str:
         """Generate a random numeric OTP."""
-        return get_random_string(length=length, allowed_chars='0123456789')
+        return get_random_string(length=length, allowed_chars=ALLOWED_OTP_NUMBERS)
 
     def create_otp(self, user):
         """Create and store an OTP for the user."""
@@ -29,7 +31,11 @@ class OTPBaseHandler:
 
     def send_otp_email(self, user, otp: str):
         """Send the OTP to the user's email asynchronously."""
-        send_otp_email.delay(user.email, user.first_name, otp)
+        # Get first_name from profile
+        first_name = None
+        if hasattr(user, 'profile') and user.profile:
+            first_name = user.profile.first_name
+        send_otp_email.delay(user.email, first_name, otp)
 
 
     def generate_and_send_otp(self, user):
