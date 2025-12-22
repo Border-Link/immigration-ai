@@ -62,7 +62,8 @@ class UserAccountAPI(AuthAPI):
             score += 30
 
         # 4. Password updated in last 3 months (based on PasswordReset)
-        last_reset = PasswordReset.objects.filter(user=user).order_by('-created_at').first()
+        from users_access.selectors.password_reset_selector import PasswordResetSelector
+        last_reset = PasswordResetSelector.get_by_user(user)
         if last_reset and last_reset.created_at > now() - timedelta(days=90):
             score += 10
 
