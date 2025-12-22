@@ -6,11 +6,10 @@ from users_access.services.user_setting_service import UserSettingsService
 
 
 class UserSettingsListAPIView(AuthAPI):
-    service = UserSettingsService()
 
     def get(self, request):
         user = request.user
-        settings = getattr(user, 'user_settings', None)
+        settings = UserSettingsService.get_settings(user)
         if not settings:
             return self.api_response(
                 message="User settings not found.",
@@ -20,7 +19,7 @@ class UserSettingsListAPIView(AuthAPI):
 
         response = UserSettingSerializer(settings).data
 
-        if settings.two_factor_auth and settings.totp_secret:
+        if settings and settings.two_factor_auth and settings.totp_secret:
             qr_base64 = QRCodeGenerator.generate(secret=settings.totp_secret, user_email=user.email)
             response['qr_code'] = qr_base64
 
