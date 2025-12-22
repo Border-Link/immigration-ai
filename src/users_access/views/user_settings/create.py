@@ -8,11 +8,6 @@ from .user_settings import valid_fields
 
 class UserSettingsToggleAPI(AuthAPI):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.service = UserSettingsService()
-
-
     def patch(self, request, setting_name):
         if setting_name not in valid_fields:
             return self.api_response(
@@ -26,8 +21,8 @@ class UserSettingsToggleAPI(AuthAPI):
                 status_code=status.HTTP_400_BAD_REQUEST
             )
 
-        updated_settings = self.service.update_settings(
-            request.user.id, {setting_name: value}
+        updated_settings = UserSettingsService.update_settings(
+            request.user, {setting_name: value}
         )
 
         return self.api_response(
@@ -40,11 +35,10 @@ class UserSettingsToggleAPI(AuthAPI):
 
 
 class Enable2FAAPIView(AuthAPI):
-    service = UserSettingsService()
 
     def post(self, request):
         user = request.user
-        settings = self.service.enable_2fa(user_id=user.id)
+        settings = UserSettingsService.enable_2fa(user)
 
         qr_base64 = QRCodeGenerator.generate(secret=settings.totp_secret, user_email=user.email)
         return self.api_response(
