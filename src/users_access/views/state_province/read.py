@@ -23,20 +23,19 @@ class StateProvinceDetailAPI(AuthAPI):
     """Get specific state/province by ID."""
 
     def get(self, request, id):
-        from users_access.selectors.state_province_selector import StateProvinceSelector
-        try:
-            state = StateProvinceSelector.get_by_id(id)
-            return self.api_response(
-                message="State/Province retrieved successfully.",
-                data=StateProvinceSerializer(state).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception:
+        state = StateProvinceService.get_by_id(id)
+        if not state:
             return self.api_response(
                 message=f"State/Province with ID '{id}' not found.",
                 data=None,
                 status_code=status.HTTP_404_NOT_FOUND
             )
+        
+        return self.api_response(
+            message="State/Province retrieved successfully.",
+            data=StateProvinceSerializer(state).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
 class StateProvinceNominationProgramsAPI(AuthAPI):
