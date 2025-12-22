@@ -17,8 +17,7 @@ class ResendTwoFactorTokenAPIView(GuestAPI):
 
     def post(self, request, endpoint_token):
         try:
-            otp_service = OTPService()
-            login_otp = otp_service.get_by_endpoint(endpoint_token=endpoint_token)
+            login_otp = OTPService.get_by_endpoint(endpoint_token=endpoint_token)
             if not login_otp:
                 return self.api_response(
                     message="Invalid or expired endpoint token",
@@ -27,7 +26,7 @@ class ResendTwoFactorTokenAPIView(GuestAPI):
                 )
 
             otp = get_random_string(length=6, allowed_chars='0123456789')
-            otp_service.resend_otp(otp_model=login_otp, otp=otp)
+            OTPService.resend_otp(otp_model=login_otp, otp=otp)
 
             # Get first_name from profile
             first_name = None
