@@ -17,7 +17,8 @@ class UserLoginAPIView(GuestAPI):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data.get('user')
 
-        UserDeviceSession.repository.revoke_all_for_user(user=user)
+        from users_access.services.user_device_session_service import UserDeviceSessionService
+        UserDeviceSessionService.revoke_all_for_user(user=user)
         AuthToken.objects.filter(user=user).delete()
 
         otp_handler = OTPBaseHandler(otp_type=OTP_TYPE)
