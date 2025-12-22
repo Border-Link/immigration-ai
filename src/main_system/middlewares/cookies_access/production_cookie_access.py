@@ -3,7 +3,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
 from django.utils import timezone
 from main_system.cookies.manager import CookieManager
-from users_access.models.user_device_session import UserDeviceSession
+from users_access.services.user_device_session_service import UserDeviceSessionService
 
 ACCESS_COOKIE_NAME = getattr(settings, "ACCESS_COOKIE_NAME", "access_token")
 SESSION_COOKIE_NAME = getattr(settings, "SESSION_COOKIE_NAME", "sessionid")
@@ -32,7 +32,7 @@ class ProductionCookieAccessTokenAuthentication:
         if token_obj.expiry and token_obj.expiry < timezone.now():
             raise AuthenticationFailed("Token expired")
 
-        device_session = UserDeviceSession.objects.get_by_session_id(session_id=session_id, fingerprint=fingerprint)
+        device_session = UserDeviceSessionService.get_by_session_id(session_id=session_id, fingerprint=fingerprint)
         if not device_session or device_session.revoked:
             raise AuthenticationFailed("Invalid or revoked session")
 
