@@ -147,3 +147,12 @@ class UserService:
             logger.error(f"Error fetching user by email {email}: {e}")
             return None
 
+    @staticmethod
+    def get_by_id(user_id):
+        """Get user by ID."""
+        try:
+            return UserSelector.get_by_id(user_id)
+        except Exception as e:
+            logger.error(f"Error fetching user by ID {user_id}: {e}")
+            return None
+
