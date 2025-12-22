@@ -60,6 +60,15 @@ class StateProvinceService:
             return None
 
     @staticmethod
+    def get_by_id(state_id):
+        """Get state/province by ID."""
+        try:
+            return StateProvinceSelector.get_by_id(state_id)
+        except Exception as e:
+            logger.error(f"Error fetching state/province by ID {state_id}: {e}")
+            return None
+
+    @staticmethod
     def get_nomination_programs(country_id: Optional[str] = None):
         """Get states/provinces with nomination programs."""
         try:
