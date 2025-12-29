@@ -1,0 +1,128 @@
+import logging
+from typing import Optional
+from django.utils import timezone
+from data_ingestion.models.rule_validation_task import RuleValidationTask
+from data_ingestion.repositories.rule_validation_task_repository import RuleValidationTaskRepository
+from data_ingestion.selectors.rule_validation_task_selector import RuleValidationTaskSelector
+
+logger = logging.getLogger('django')
+
+
+class RuleValidationTaskService:
+    """Service for RuleValidationTask business logic."""
+
+    @staticmethod
+    def get_all():
+        """Get all validation tasks."""
+        try:
+            return RuleValidationTaskSelector.get_all()
+        except Exception as e:
+            logger.error(f"Error fetching all validation tasks: {e}")
+            return RuleValidationTask.objects.none()
+
+    @staticmethod
+    def get_by_status(status: str):
+        """Get validation tasks by status."""
+        try:
+            return RuleValidationTaskSelector.get_by_status(status)
+        except Exception as e:
+            logger.error(f"Error fetching validation tasks by status {status}: {e}")
+            return RuleValidationTask.objects.none()
+
+    @staticmethod
+    def get_by_reviewer(reviewer_id: str):
+        """Get validation tasks assigned to a reviewer."""
+        try:
+            from users_access.selectors.user_selector import UserSelector
+            reviewer = UserSelector.get_by_id(reviewer_id)
+            if not reviewer:
+                return RuleValidationTask.objects.none()
+            return RuleValidationTaskSelector.get_by_reviewer(reviewer)
+        except Exception as e:
+            logger.error(f"Error fetching validation tasks for reviewer {reviewer_id}: {e}")
+            return RuleValidationTask.objects.none()
+
+    @staticmethod
+    def get_pending():
+        """Get all pending validation tasks."""
+        try:
+            return RuleValidationTaskSelector.get_pending()
+        except Exception as e:
+            logger.error(f"Error fetching pending validation tasks: {e}")
+            return RuleValidationTask.objects.none()
+
+    @staticmethod
+    def get_by_id(task_id: str) -> Optional[RuleValidationTask]:
+        """Get validation task by ID."""
+        try:
+            return RuleValidationTaskSelector.get_by_id(task_id)
+        except RuleValidationTask.DoesNotExist:
+            logger.error(f"Validation task {task_id} not found")
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching validation task {task_id}: {e}")
+            return None
+
+    @staticmethod
+    def assign_reviewer(task_id: str, reviewer_id: str) -> Optional[RuleValidationTask]:
+        """Assign a reviewer to a validation task."""
+        try:
+            task = RuleValidationTaskSelector.get_by_id(task_id)
+            from users_access.selectors.user_selector import UserSelector
+            reviewer = UserSelector.get_by_id(reviewer_id)
+            if not reviewer:
+                logger.error(f"Reviewer {reviewer_id} not found")
+                return None
+            return RuleValidationTaskRepository.assign_reviewer(task, reviewer)
+        except RuleValidationTask.DoesNotExist:
+            logger.error(f"Validation task {task_id} not found")
+            return None
+        except Exception as e:
+            logger.error(f"Error assigning reviewer to task {task_id}: {e}")
+            return None
+
+    @staticmethod
+    def update_task(task_id: str, **fields) -> Optional[RuleValidationTask]:
+        """Update validation task fields."""
+        try:
+            task = RuleValidationTaskSelector.get_by_id(task_id)
+            return RuleValidationTaskRepository.update_validation_task(task, **fields)
+        except RuleValidationTask.DoesNotExist:
+            logger.error(f"Validation task {task_id} not found")
+            return None
+        except Exception as e:
+            logger.error(f"Error updating validation task {task_id}: {e}")
+            return None
+
+    @staticmethod
+    def approve_task(task_id: str, reviewer_notes: str = None) -> Optional[RuleValidationTask]:
+        """Approve a validation task."""
+        try:
+            task = RuleValidationTaskSelector.get_by_id(task_id)
+            update_fields = {'status': 'approved'}
+            if reviewer_notes:
+                update_fields['reviewer_notes'] = reviewer_notes
+            return RuleValidationTaskRepository.update_validation_task(task, **update_fields)
+        except RuleValidationTask.DoesNotExist:
+            logger.error(f"Validation task {task_id} not found")
+            return None
+        except Exception as e:
+            logger.error(f"Error approving validation task {task_id}: {e}")
+            return None
+
+    @staticmethod
+    def reject_task(task_id: str, reviewer_notes: str = None) -> Optional[RuleValidationTask]:
+        """Reject a validation task."""
+        try:
+            task = RuleValidationTaskSelector.get_by_id(task_id)
+            update_fields = {'status': 'rejected'}
+            if reviewer_notes:
+                update_fields['reviewer_notes'] = reviewer_notes
+            return RuleValidationTaskRepository.update_validation_task(task, **update_fields)
+        except RuleValidationTask.DoesNotExist:
+            logger.error(f"Validation task {task_id} not found")
+            return None
+        except Exception as e:
+            logger.error(f"Error rejecting validation task {task_id}: {e}")
+            return None
+
