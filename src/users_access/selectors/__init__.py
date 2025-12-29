@@ -6,6 +6,7 @@ from .state_province_selector import StateProvinceSelector
 from .otp_selector import OTPSelector
 from .user_device_session_selector import UserDeviceSessionSelector
 from .password_reset_selector import PasswordResetSelector
+from .notification_selector import NotificationSelector
 
 __all__ = [
     'UserSelector',
@@ -16,5 +17,6 @@ __all__ = [
     'OTPSelector',
     'UserDeviceSessionSelector',
     'PasswordResetSelector',
+    'NotificationSelector',
 ]
 
