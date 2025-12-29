@@ -88,8 +88,7 @@ class RuleParsingService:
                         
                         RuleValidationTaskRepository.create_validation_task(
                             parsed_rule=parsed_rule,
-                            sla_deadline=sla_deadline,
-                            status='pending'
+                            sla_deadline=sla_deadline
                         )
                         validation_tasks_created += 1
                         
