@@ -3,6 +3,8 @@ from .visa_type_service import VisaTypeService
 from .visa_rule_version_service import VisaRuleVersionService
 from .visa_requirement_service import VisaRequirementService
 from .visa_document_requirement_service import VisaDocumentRequirementService
+from .rule_engine_service import RuleEngineService, RuleEngineEvaluationResult
+from .rule_publishing_service import RulePublishingService
 
 __all__ = [
     'DocumentTypeService',
@@ -10,5 +12,8 @@ __all__ = [
     'VisaRuleVersionService',
     'VisaRequirementService',
     'VisaDocumentRequirementService',
+    'RuleEngineService',
+    'RuleEngineEvaluationResult',
+    'RulePublishingService',
 ]
 
