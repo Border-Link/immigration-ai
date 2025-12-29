@@ -175,6 +175,10 @@ DJANGO_CELERY_RESULTS_TASK_ID_MAX_LENGTH = 255
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300  # 5 minutes
 
+# Celery Beat Schedule (imported from celery_beat_schedule.py)
+from main_system.celery_beat_schedule import CELERY_BEAT_SCHEDULE
+CELERY_BEAT_SCHEDULE = CELERY_BEAT_SCHEDULE
+
 
 
 CACHES = {
