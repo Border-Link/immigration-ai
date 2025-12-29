@@ -6,6 +6,7 @@ from .state_province_service import StateProvinceService
 from .otp_services import OTPService
 from .password_reset_services import PasswordResetService
 from .user_device_session_service import UserDeviceSessionService
+from .notification_service import NotificationService
 
 __all__ = [
     'UserService',
@@ -16,4 +17,5 @@ __all__ = [
     'OTPService',
     'PasswordResetService',
     'UserDeviceSessionService',
+    'NotificationService',
 ]
