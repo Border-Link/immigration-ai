@@ -6,6 +6,7 @@ from .state_province_repository import StateProvinceRepository
 from .otp_repository import OTPRepository
 from .password_reset_repository import PasswordResetRepository
 from .user_device_session_repository import UserDeviceSessionRepository
+from .notification_repository import NotificationRepository
 
 __all__ = [
     'UserRepository',
@@ -16,4 +17,5 @@ __all__ = [
     'OTPRepository',
     'PasswordResetRepository',
     'UserDeviceSessionRepository',
+    'NotificationRepository',
 ]
