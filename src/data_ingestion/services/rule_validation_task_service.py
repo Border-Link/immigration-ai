@@ -95,14 +95,63 @@ class RuleValidationTaskService:
             return None
 
     @staticmethod
-    def approve_task(task_id: str, reviewer_notes: str = None) -> Optional[RuleValidationTask]:
-        """Approve a validation task."""
+    def approve_task(task_id: str, reviewer_notes: str = None, auto_publish: bool = True) -> Optional[RuleValidationTask]:
+        """
+        Approve a validation task.
+        
+        Args:
+            task_id: UUID of the validation task
+            reviewer_notes: Optional notes from reviewer
+            auto_publish: Whether to automatically publish the rule after approval (default: True)
+            
+        Returns:
+            Updated RuleValidationTask or None
+        """
         try:
             task = RuleValidationTaskSelector.get_by_id(task_id)
+            if not task:
+                logger.error(f"Validation task {task_id} not found")
+                return None
+            
             update_fields = {'status': 'approved'}
             if reviewer_notes:
                 update_fields['reviewer_notes'] = reviewer_notes
-            return RuleValidationTaskRepository.update_validation_task(task, **update_fields)
+            
+            updated_task = RuleValidationTaskRepository.update_validation_task(task, **update_fields)
+            
+            # Update parsed rule status to approved
+            if updated_task and updated_task.parsed_rule:
+                from data_ingestion.repositories.parsed_rule_repository import ParsedRuleRepository
+                ParsedRuleRepository.update_parsed_rule(
+                    updated_task.parsed_rule,
+                    status='approved'
+                )
+            
+            # Auto-publish if enabled
+            if auto_publish and updated_task:
+                try:
+                    from rules_knowledge.services.rule_publishing_service import RulePublishingService
+                    publish_result = RulePublishingService.publish_approved_validation_task(
+                        validation_task_id=task_id
+                    )
+                    if publish_result.get('success'):
+                        logger.info(
+                            f"Auto-published rule from validation task {task_id}. "
+                            f"Rule version: {publish_result.get('rule_version_id')}"
+                        )
+                    else:
+                        logger.warning(
+                            f"Auto-publish failed for validation task {task_id}: "
+                            f"{publish_result.get('error')}"
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"Error auto-publishing rule from validation task {task_id}: {e}",
+                        exc_info=True
+                    )
+                    # Don't fail the approval if publishing fails
+            
+            return updated_task
         except RuleValidationTask.DoesNotExist:
             logger.error(f"Validation task {task_id} not found")
             return None
