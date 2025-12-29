@@ -66,3 +66,4 @@ numpy~=2.2.6
 django-celery-beat~=2.8.1
 django-redis
 sendgrid
+json-logic-py~=1.2.0  # JSON Logic expression evaluator for rule engine
