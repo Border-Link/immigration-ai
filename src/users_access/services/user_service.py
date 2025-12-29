@@ -156,3 +156,12 @@ class UserService:
             logger.error(f"Error fetching user by ID {user_id}: {e}")
             return None
 
+    @staticmethod
+    def update_user_last_assigned_at(user):
+        """Update last assigned time for reviewer assignment tracking."""
+        try:
+            return UserRepository.update_last_assigned_at(user)
+        except Exception as e:
+            logger.error(f"Error updating last_assigned_at for user {user.email}: {e}")
+            return None
+
