@@ -41,6 +41,12 @@ from .views.state_province import (
     StateProvinceUpdateAPI,
     StateProvinceDeleteAPI
 )
+from .views.notification import (
+    NotificationListAPI,
+    NotificationDetailAPI,
+    NotificationUnreadCountAPI,
+    NotificationMarkReadAPI
+)
 
 app_name = "user_access"
 
@@ -93,4 +99,10 @@ urlpatterns = [
     path("states/<uuid:id>/", StateProvinceDetailAPI.as_view(), name="state-detail"),
     path("states/<uuid:id>/update/", StateProvinceUpdateAPI.as_view(), name="state-update"),
     path("states/<uuid:id>/delete/", StateProvinceDeleteAPI.as_view(), name="state-delete"),
+    
+    # Notifications
+    path("notifications/", NotificationListAPI.as_view(), name="notifications-list"),
+    path("notifications/unread-count/", NotificationUnreadCountAPI.as_view(), name="notifications-unread-count"),
+    path("notifications/mark-read/", NotificationMarkReadAPI.as_view(), name="notifications-mark-read"),
+    path("notifications/<uuid:id>/", NotificationDetailAPI.as_view(), name="notification-detail"),
 ]
