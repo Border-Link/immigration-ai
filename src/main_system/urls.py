@@ -29,6 +29,7 @@ urlpatterns = [
     path(f"{API}/ai-decisions/", include("ai_decisions.urls")),
     path(f"{API}/compliances/", include("compliance.urls")),
     path(f"{API}/data-ingestion/", include("data_ingestion.urls")),
+    path(f"{API}/document-handling/", include("document_handling.urls")),
     path(f"{API}/human-reviews/", include("human_reviews.urls")),
     path(f"{API}/imigration-cases/", include("immigration_cases.urls")),
     path(f"{API}/payments/", include("payments.urls")),
