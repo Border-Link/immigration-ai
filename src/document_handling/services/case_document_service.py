@@ -101,6 +101,17 @@ class CaseDocumentService:
         """Update case document."""
         try:
             case_document = CaseDocumentSelector.get_by_id(document_id)
+            
+            # Handle document_type_id separately (convert to ForeignKey)
+            if 'document_type_id' in fields:
+                from rules_knowledge.selectors.document_type_selector import DocumentTypeSelector
+                document_type_id = fields.pop('document_type_id')
+                document_type = DocumentTypeSelector.get_by_id(document_type_id)
+                if document_type:
+                    fields['document_type'] = document_type
+                else:
+                    logger.warning(f"Document type {document_type_id} not found, skipping update")
+            
             return CaseDocumentRepository.update_case_document(case_document, **fields)
         except CaseDocument.DoesNotExist:
             logger.error(f"Case document {document_id} not found")
@@ -124,9 +135,16 @@ class CaseDocumentService:
 
     @staticmethod
     def delete_case_document(document_id: str) -> bool:
-        """Delete case document."""
+        """Delete case document and its stored file."""
         try:
             case_document = CaseDocumentSelector.get_by_id(document_id)
+            
+            # Delete the stored file
+            if case_document.file_path:
+                from document_handling.services.file_storage_service import FileStorageService
+                FileStorageService.delete_file(case_document.file_path)
+            
+            # Delete the database record
             CaseDocumentRepository.delete_case_document(case_document)
             return True
         except CaseDocument.DoesNotExist:
@@ -135,6 +153,20 @@ class CaseDocumentService:
         except Exception as e:
             logger.error(f"Error deleting case document {document_id}: {e}")
             return False
+    
+    @staticmethod
+    def get_file_url(document_id: str) -> Optional[str]:
+        """Get URL to access the document file."""
+        try:
+            case_document = CaseDocumentSelector.get_by_id(document_id)
+            if not case_document or not case_document.file_path:
+                return None
+            
+            from document_handling.services.file_storage_service import FileStorageService
+            return FileStorageService.get_file_url(case_document.file_path)
+        except Exception as e:
+            logger.error(f"Error getting file URL for document {document_id}: {e}")
+            return None
 
     @staticmethod
     def get_verified_by_case(case_id: str):
