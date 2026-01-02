@@ -1,3 +1,6 @@
+pdf2image
+pytesseract
+openai
 # Core Django & Database Packages
 django~=5.2
 djangorestframework~=3.16.0
@@ -29,6 +32,7 @@ django-extensions # Useful extensions for Django development
 #langchain  # AI-powered reasoning and retrieval
 #llama-index  # Indexing & search over AI data
 #tantivy  # Fast search engine library
+pgvector~=0.3.0  # PostgreSQL vector extension for embeddings
 
 
 # Web & Deployment Tools
