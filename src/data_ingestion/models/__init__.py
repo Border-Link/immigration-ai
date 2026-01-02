@@ -4,6 +4,7 @@ from .document_version import DocumentVersion
 from .document_diff import DocumentDiff
 from .parsed_rule import ParsedRule
 from .rule_validation_task import RuleValidationTask
+from .document_chunk import DocumentChunk
 
 __all__ = [
     'DataSource',
@@ -12,5 +13,6 @@ __all__ = [
     'DocumentDiff',
     'ParsedRule',
     'RuleValidationTask',
+    'DocumentChunk',
 ]
 
