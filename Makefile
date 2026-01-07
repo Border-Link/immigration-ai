@@ -12,10 +12,10 @@ venv:
 list:
 	pip list
 
-uninstall_all:
+uninstall-all:
 	pip freeze | xargs pip uninstall -y
 
-install_all:
+install-all:
 	pip install -r requirements.txt
 
 appinstall:
@@ -28,10 +28,10 @@ build:
 	@echo "📦 Building Docker image (Production)..."
 	docker-compose build
 
-build_progress:
+build-progress:
 	docker compose build --progress=plain
 
-freshbuild:
+fresh-build:
 	docker compose build --no-cache
 
 up:
@@ -59,44 +59,44 @@ shell:
 # ============================================================
 # 🧪 DOCKER — DEVELOPMENT
 # ============================================================
-dev_build:
+dev-build:
 	docker compose -f docker-compose.dev.yml build
 
-dev_progress:
+dev-progress:
 	docker compose -f docker-compose.dev.yml build --progress=plain
 
-dev_freshbuild:
+dev-fresh-build:
 	docker compose -f docker-compose.dev.yml build --no-cache
 
 dev:
 	docker compose -f docker-compose.dev.yml up -d
 
-dev_down:
+dev-down:
 	docker compose -f docker-compose.dev.yml down
 
-dev_restart:
+dev-restart:
 	make dev_down
 	make dev
 
-dev_logs:
+dev-logs:
 	docker compose -f docker-compose.dev.yml logs -f
 
-dev_shell:
+dev-shell:
 	docker exec -it pfm_api_dev /bin/sh
 
 # ============================================================
 # 🧹 MAINTENANCE & UTILITIES
 # ============================================================
-purge_redis:
+purge-redis:
 	docker exec -it pfm_api redis-cli flushall
 
-purge_celery:
+purge-celery:
 	docker exec -it celery_worker celery -A main_system purge -f
 
 key:
 	openssl rand -base64 $(length)
 
-agno_upgrade:
+agno-upgrade:
 	pip install -U agno --no-cache-dir
 
 ngrok:
@@ -137,7 +137,7 @@ dhub_build:
 	@echo "🐳 Building Docker image for Docker Hub..."
 	docker build -t threxcode/pfm:latest .
 
-dhub_push:
+dhub-push:
 	@echo "⬆️  Pushing Docker image to Docker Hub..."
 	docker push threxcode/pfm:latest
 	@echo "✅ Docker image pushed successfully."
@@ -145,12 +145,12 @@ dhub_push:
 # ============================================================
 # 🧽 Cleanup
 # ============================================================
-prune_docker:
+prune-docker:
 	@echo "🧹 Pruning unused Docker resources..."
 	docker system prune -a --volumes -f
 	@echo "✅ Docker resources pruned successfully."
 
-encode_env:
+encode-env:
 	base64 -i .env.production | tr -d '\n' > encoded_env.txt
 
 # ============================================================
