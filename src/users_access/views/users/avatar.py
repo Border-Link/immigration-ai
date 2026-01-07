@@ -17,7 +17,7 @@ class UserAvatarAPI(AuthAPI):
             return self.api_response(
                 message="Error updating avatar.",
                 data=None,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status_code=status.HTTP_400_BAD_REQUEST
             )
 
         return self.api_response(
