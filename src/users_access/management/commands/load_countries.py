@@ -85,6 +85,7 @@ class Command(BaseCommand):
             for country_data in countries_data:
                 try:
                     # Handle both formats: 'code' or 'countryCode'
+
                     code = (country_data.get('code') or country_data.get('countryCode') or '').strip().upper()
                     name = country_data.get('name', '').strip()
                     # Handle both formats: 'has_states' or infer from stateProvinces
