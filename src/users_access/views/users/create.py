@@ -23,6 +23,12 @@ class UserRegistrationAPI(GuestAPI):
         first_name = serializer.validated_data.get('first_name')
         last_name = serializer.validated_data.get('last_name')
         user = UserService.create_user(email, password, first_name.title() if first_name else None, last_name.title() if last_name else None)
+        if not user:
+            return self.api_response(
+                message="Error creating user.",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
         # Generate a unique token for the endpoint
         otp_handler = OTPBaseHandler(otp_type=OTP_TYPE)
