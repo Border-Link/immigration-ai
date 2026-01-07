@@ -1,8 +1,7 @@
 import logging
-from knox.views import LogoutView as KnoxLogoutView, LogoutAllView as KnoxLogoutAllView
+from knox.views import LogoutAllView as KnoxLogoutAllView
 from knox.models import AuthToken
 from main_system.cookies.manager import CookieManager
-from users_access.models.user_device_session import UserDeviceSession
 
 logger = logging.getLogger('django')
 
