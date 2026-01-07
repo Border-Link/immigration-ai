@@ -10,7 +10,6 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from helpers.totp import TOTPAuthenticator
 from users_access.services.otp_services import OTPService
-from users_access.models.user_device_session import UserDeviceSession
 from main_system.cookies.manager import CookieManager
 from users_access.serializers.users.login import TwoFactorVerifySerializer
 
