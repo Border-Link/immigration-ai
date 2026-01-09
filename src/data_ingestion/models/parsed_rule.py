@@ -73,6 +73,52 @@ class ParsedRule(models.Model):
         help_text="Validation status of the parsed rule"
     )
     
+    # LLM metadata tracking
+    llm_model = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="LLM model used for extraction (e.g., 'gpt-4-turbo-preview')"
+    )
+    
+    llm_model_version = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="Version of the LLM model used"
+    )
+    
+    # Cost tracking
+    tokens_used = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Number of tokens used for this extraction"
+    )
+    
+    estimated_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="Estimated cost in USD for this extraction"
+    )
+    
+    # Processing metadata
+    processing_time_ms = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Processing time in milliseconds"
+    )
+    
+    error_type = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Type of error if parsing failed (e.g., 'rate_limit', 'timeout')"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 

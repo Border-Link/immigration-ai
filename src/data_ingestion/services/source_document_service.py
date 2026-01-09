@@ -1,7 +1,6 @@
 import logging
 from typing import Optional
 from data_ingestion.models.source_document import SourceDocument
-from data_ingestion.repositories.source_document_repository import SourceDocumentRepository
 from data_ingestion.selectors.source_document_selector import SourceDocumentSelector
 
 logger = logging.getLogger('django')

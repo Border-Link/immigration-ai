@@ -1,7 +1,6 @@
 import logging
 from typing import Optional
 from data_ingestion.models.document_diff import DocumentDiff
-from data_ingestion.repositories.document_diff_repository import DocumentDiffRepository
 from data_ingestion.selectors.document_diff_selector import DocumentDiffSelector
 
 logger = logging.getLogger('django')

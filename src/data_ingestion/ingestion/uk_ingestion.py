@@ -3,7 +3,7 @@ import logging
 import time
 from typing import Dict, Optional, List
 from django.conf import settings
-from helpers.request.client import Client
+from external_services.request import ExternalHTTPClient
 from .base_ingestion import BaseIngestionSystem
 
 UK_GOV_BASE = "https://www.gov.uk"
@@ -32,7 +32,8 @@ class UKIngestionSystem(BaseIngestionSystem):
             self.api_base = UK_GOV_BASE
             logger.warning("UK_GOV_API_BASE_URL not set in settings, using default: https://www.gov.uk")
         
-        self.client = Client(base_url=self.api_base)
+        # Use external services HTTP client
+        self.client = ExternalHTTPClient(base_url=self.api_base, default_timeout=30)
         self.headers = {
             'User-Agent': 'ImmigrationIntelligenceBot/1.0',
             'Accept': 'application/json'
@@ -52,10 +53,12 @@ class UKIngestionSystem(BaseIngestionSystem):
         endpoint = url.replace(self.api_base, '') if url.startswith('http') else url
         
         try:
-            result = self.client.get_with_details(
+            # Use external services client (returns detailed response)
+            result = self.client.get(
                 endpoint=endpoint,
                 headers=self.headers,
-                timeout=30
+                timeout=30,
+                return_details=True  # Get detailed response with status_code, error, etc.
             )
             return result
         except Exception as e:

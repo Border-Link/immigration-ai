@@ -4,6 +4,7 @@ from .document_version import DocumentVersion
 from .document_diff import DocumentDiff
 from .parsed_rule import ParsedRule
 from .rule_validation_task import RuleValidationTask
+from .audit_log import RuleParsingAuditLog
 from .document_chunk import DocumentChunk
 
 __all__ = [
@@ -14,5 +15,6 @@ __all__ = [
     'ParsedRule',
     'RuleValidationTask',
     'DocumentChunk',
+    'RuleParsingAuditLog',
 ]
 

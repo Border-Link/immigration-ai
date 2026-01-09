@@ -1,6 +1,5 @@
 import logging
 from typing import Optional
-from django.utils import timezone
 from data_ingestion.models.rule_validation_task import RuleValidationTask
 from data_ingestion.repositories.rule_validation_task_repository import RuleValidationTaskRepository
 from data_ingestion.selectors.rule_validation_task_selector import RuleValidationTaskSelector
