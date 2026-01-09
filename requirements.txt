@@ -11,7 +11,7 @@ asyncpg  # Async PostgreSQL (if using async DB connections)
 pydantic  # Data validation (for API responses)
 django-rest-knox~=5.0.2
 typing-extensions  # Type hints for Python 3.6
-celery~=5.6.1
+celery~=5.6.2
 redis  # Redis support for Celery
 django-celery-results  # Celery results backend
 gunicorn # WSGI server for production
@@ -32,7 +32,7 @@ django-extensions # Useful extensions for Django development
 #langchain  # AI-powered reasoning and retrieval
 #llama-index  # Indexing & search over AI data
 #tantivy  # Fast search engine library
-pgvector~=0.3.0  # PostgreSQL vector extension for embeddings
+pgvector~=0.4.2  # PostgreSQL vector extension for embeddings
 
 
 # Web & Deployment Tools
@@ -71,3 +71,5 @@ django-celery-beat~=2.8.1
 django-redis
 sendgrid
 json-logic~=0.6.3  # JSON Logic expression evaluator for rule engine
+tenacity~=9.0.0  # Retry library with exponential backoff
+pybreaker~=1.0.1  # Circuit breaker pattern implementation
