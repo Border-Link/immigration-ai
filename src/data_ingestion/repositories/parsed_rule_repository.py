@@ -1,3 +1,4 @@
+from typing import Optional
 from django.db import transaction
 from data_ingestion.models.parsed_rule import ParsedRule
 from data_ingestion.models.document_version import DocumentVersion
@@ -7,11 +8,24 @@ class ParsedRuleRepository:
     """Repository for ParsedRule write operations."""
 
     @staticmethod
-    def create_parsed_rule(document_version: DocumentVersion, visa_code: str,
-                          rule_type: str, extracted_logic: dict, description: str,
-                          source_excerpt: str, confidence_score: float = 0.0,
-                          status: str = 'pending'):
-        """Create a new parsed rule."""
+    def create_parsed_rule(
+        document_version: DocumentVersion,
+        visa_code: str,
+        rule_type: str,
+        extracted_logic: dict,
+        description: str,
+        source_excerpt: str,
+        confidence_score: float = 0.0,
+        status: str = 'pending',
+        llm_model: Optional[str] = None,
+        llm_model_version: Optional[str] = None,
+        tokens_used: Optional[int] = None,
+        estimated_cost: Optional[float] = None,
+        processing_time_ms: Optional[int] = None
+    ):
+        """Create a new parsed rule with optional metadata."""
+        from typing import Optional
+        
         with transaction.atomic():
             parsed_rule = ParsedRule.objects.create(
                 document_version=document_version,
@@ -21,7 +35,12 @@ class ParsedRuleRepository:
                 description=description,
                 source_excerpt=source_excerpt,
                 confidence_score=confidence_score,
-                status=status
+                status=status,
+                llm_model=llm_model,
+                llm_model_version=llm_model_version,
+                tokens_used=tokens_used,
+                estimated_cost=estimated_cost,
+                processing_time_ms=processing_time_ms
             )
             parsed_rule.full_clean()
             parsed_rule.save()
