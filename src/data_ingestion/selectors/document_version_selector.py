@@ -36,4 +36,13 @@ class DocumentVersionSelector:
         return DocumentVersion.objects.select_related(
             'source_document', 'source_document__data_source'
         ).get(id=version_id)
+    
+    @staticmethod
+    def get_by_jurisdiction(jurisdiction: str):
+        """Get document versions by jurisdiction."""
+        return DocumentVersion.objects.select_related(
+            'source_document', 'source_document__data_source'
+        ).filter(
+            source_document__data_source__jurisdiction=jurisdiction
+        ).order_by('-extracted_at')
 
