@@ -39,6 +39,11 @@ class RuleValidationTaskSelector:
             'parsed_rule__document_version',
             'assigned_to'
         ).filter(parsed_rule=parsed_rule).order_by('-created_at').first()
+    
+    @staticmethod
+    def exists_for_parsed_rule(parsed_rule):
+        """Check if validation task exists for a parsed rule."""
+        return RuleValidationTask.objects.filter(parsed_rule=parsed_rule).exists()
 
     @staticmethod
     def get_pending():
