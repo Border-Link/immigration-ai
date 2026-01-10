@@ -97,6 +97,38 @@ class ProcessingJob(models.Model):
         help_text="Additional metadata (processing time, tokens used, cost, etc.)"
     )
     
+    # Structured cost tracking
+    llm_tokens_used = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Number of LLM tokens used"
+    )
+    
+    llm_cost_usd = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="LLM cost in USD"
+    )
+    
+    ocr_cost_usd = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="OCR cost in USD"
+    )
+    
+    total_cost_usd = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Total processing cost in USD"
+    )
+    
     started_at = models.DateTimeField(
         null=True,
         blank=True,
