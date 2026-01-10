@@ -28,7 +28,7 @@ class CountryService:
             return CountrySelector.get_active()
         except Exception as e:
             logger.error(f"Error fetching countries: {e}")
-            return Country.objects.none()
+            return CountrySelector.get_none()
 
     @staticmethod
     def get_by_code(code: str):
@@ -55,7 +55,7 @@ class CountryService:
             return CountrySelector.get_jurisdictions()
         except Exception as e:
             logger.error(f"Error fetching jurisdictions: {e}")
-            return Country.objects.none()
+            return CountrySelector.get_none()
 
     @staticmethod
     def get_with_states():
@@ -64,7 +64,7 @@ class CountryService:
             return CountrySelector.get_with_states()
         except Exception as e:
             logger.error(f"Error fetching countries with states: {e}")
-            return Country.objects.none()
+            return CountrySelector.get_none()
 
     @staticmethod
     def search_by_name(name: str):
@@ -73,7 +73,7 @@ class CountryService:
             return CountrySelector.search_by_name(name)
         except Exception as e:
             logger.error(f"Error searching countries by name {name}: {e}")
-            return Country.objects.none()
+            return CountrySelector.get_none()
 
     @staticmethod
     def update_country(country, **fields):
@@ -112,3 +112,26 @@ class CountryService:
             logger.error(f"Error deleting country by ID {country_id}: {e}")
             return False
 
+    @staticmethod
+    def activate_country_by_id(country_id: str, is_active: bool):
+        """Activate or deactivate a country by ID."""
+        try:
+            country = CountrySelector.get_by_id(country_id)
+            if not country:
+                return None
+            return CountryRepository.activate_country(country, is_active)
+        except Exception as e:
+            logger.error(f"Error activating/deactivating country {country_id}: {e}")
+            return None
+
+    @staticmethod
+    def set_jurisdiction_by_id(country_id: str, is_jurisdiction: bool):
+        """Set jurisdiction status for a country by ID."""
+        try:
+            country = CountrySelector.get_by_id(country_id)
+            if not country:
+                return None
+            return CountryRepository.set_jurisdiction(country, is_jurisdiction)
+        except Exception as e:
+            logger.error(f"Error setting jurisdiction for country {country_id}: {e}")
+            return None
