@@ -1,6 +1,7 @@
 from .case.create import CaseCreateAPI
 from .case.read import CaseListAPI, CaseDetailAPI
 from .case.update_delete import CaseUpdateAPI, CaseDeleteAPI
+from .case.eligibility import CaseEligibilityCheckAPI, CaseEligibilityExplanationAPI
 from .case_fact.create import CaseFactCreateAPI
 from .case_fact.read import CaseFactListAPI, CaseFactDetailAPI
 from .case_fact.update_delete import CaseFactUpdateAPI, CaseFactDeleteAPI
@@ -11,6 +12,8 @@ __all__ = [
     'CaseDetailAPI',
     'CaseUpdateAPI',
     'CaseDeleteAPI',
+    'CaseEligibilityCheckAPI',
+    'CaseEligibilityExplanationAPI',
     'CaseFactCreateAPI',
     'CaseFactListAPI',
     'CaseFactDetailAPI',
