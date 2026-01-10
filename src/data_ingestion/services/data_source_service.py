@@ -32,7 +32,7 @@ class DataSourceService:
             return DataSourceSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all data sources: {e}")
-            return DataSource.objects.none()
+            return DataSourceSelector.get_none()
 
     @staticmethod
     def get_active():
@@ -41,7 +41,7 @@ class DataSourceService:
             return DataSourceSelector.get_active()
         except Exception as e:
             logger.error(f"Error fetching active data sources: {e}")
-            return DataSource.objects.none()
+            return DataSourceSelector.get_none()
 
     @staticmethod
     def get_by_jurisdiction(jurisdiction: str):
@@ -50,7 +50,7 @@ class DataSourceService:
             return DataSourceSelector.get_by_jurisdiction(jurisdiction)
         except Exception as e:
             logger.error(f"Error fetching data sources for jurisdiction {jurisdiction}: {e}")
-            return DataSource.objects.none()
+            return DataSourceSelector.get_none()
 
     @staticmethod
     def get_by_id(data_source_id):
@@ -106,3 +106,39 @@ class DataSourceService:
             logger.error(f"Error triggering ingestion for {data_source_id}: {e}")
             return {'success': False, 'message': str(e)}
 
+    @staticmethod
+    def delete_data_source(data_source_id: str) -> bool:
+        """Delete a data source."""
+        try:
+            data_source = DataSourceSelector.get_by_id(data_source_id)
+            if not data_source:
+                logger.error(f"Data source {data_source_id} not found")
+                return False
+            DataSourceRepository.delete_data_source(data_source)
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting data source {data_source_id}: {e}")
+            return False
+
+    @staticmethod
+    def get_by_filters(jurisdiction: str = None, is_active: bool = None, date_from=None, date_to=None):
+        """Get data sources with filters."""
+        try:
+            return DataSourceSelector.get_by_filters(
+                jurisdiction=jurisdiction,
+                is_active=is_active,
+                date_from=date_from,
+                date_to=date_to
+            )
+        except Exception as e:
+            logger.error(f"Error fetching filtered data sources: {e}")
+            return DataSourceSelector.get_none()
+
+    @staticmethod
+    def get_statistics():
+        """Get data source statistics."""
+        try:
+            return DataSourceSelector.get_statistics()
+        except Exception as e:
+            logger.error(f"Error getting data source statistics: {e}")
+            return {}
