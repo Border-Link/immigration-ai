@@ -2332,9 +2332,15 @@ Shows:
    - Never delete audit logs (even for GDPR erasure, anonymize only)
 
 4. **Audit Log Querying**:
-   - Provide admin endpoint to query audit logs
-   - Filter by: actor, action, entity, date range
-   - Export audit logs for compliance audits
+   - ✅ Admin endpoints implemented: `GET /api/v1/compliance/admin/audit-logs/`
+   - ✅ Filter by: level, logger_name, date range, limit
+   - ✅ Admin detail endpoint: `GET /api/v1/compliance/admin/audit-logs/<id>/`
+   - ✅ Delete endpoint: `DELETE /api/v1/compliance/admin/audit-logs/<id>/delete/`
+   - ✅ Bulk delete endpoint: `POST /api/v1/compliance/admin/audit-logs/bulk-operation/`
+   - ✅ Statistics endpoint: `GET /api/v1/compliance/admin/statistics/`
+   - ✅ Export audit logs for compliance audits (via API)
+   - ✅ **Architecture**: Follows system architecture pattern (selectors, repositories, services, views)
+   - ✅ **Documentation**: See `COMPLIANCE_ADMIN_FUNCTIONALITY.md` for complete API documentation
 
 ## 9.5 Handling Sensitive Documents
 
