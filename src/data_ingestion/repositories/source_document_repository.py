@@ -24,3 +24,9 @@ class SourceDocumentRepository:
             source_doc.save()
             return source_doc
 
+    @staticmethod
+    def delete_source_document(source_document):
+        """Delete a source document."""
+        with transaction.atomic():
+            source_document.delete()
+            return True
