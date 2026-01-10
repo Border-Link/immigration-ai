@@ -59,9 +59,11 @@ class VisaRequirement(models.Model):
     class Meta:
         db_table = 'visa_requirements'
         ordering = ['requirement_code']
+        unique_together = [['rule_version', 'requirement_code']]
         indexes = [
             models.Index(fields=['rule_version', 'is_mandatory']),
             models.Index(fields=['rule_type', 'is_mandatory']),
+            models.Index(fields=['rule_version', 'requirement_code']),
         ]
         verbose_name_plural = 'Visa Requirements'
 
