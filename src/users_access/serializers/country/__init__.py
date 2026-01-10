@@ -16,6 +16,12 @@ from .update_delete import (
     CountryDeleteSerializer
 )
 
+# Admin serializers
+from .admin import (
+    CountryActivateSerializer,
+    CountrySetJurisdictionSerializer,
+)
+
 __all__ = [
     # Read
     'CountrySerializer',
@@ -26,5 +32,8 @@ __all__ = [
     # Update/Delete
     'CountryUpdateSerializer',
     'CountryDeleteSerializer',
+    # Admin
+    'CountryActivateSerializer',
+    'CountrySetJurisdictionSerializer',
 ]
 
