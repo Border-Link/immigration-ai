@@ -102,18 +102,24 @@ class DocumentRequirementMatchingService:
             if matching_requirement.conditional_logic:
                 try:
                     # Evaluate conditional logic against case facts
-                    case_facts = RuleEngineService.load_case_facts(case)
                     conditional_result = RuleEngineService.evaluate_expression(
                         matching_requirement.conditional_logic,
                         case_facts
                     )
                     
-                    if isinstance(conditional_result, dict):
-                        conditional_passed = conditional_result.get('result', False)
-                        conditional_details = conditional_result
-                    else:
-                        conditional_passed = bool(conditional_result)
-                        conditional_details = {'result': conditional_passed}
+                    # evaluate_expression always returns a dict with 'passed', 'result', 'error', 'missing_facts'
+                    conditional_passed = conditional_result.get('passed', False)
+                    conditional_details = conditional_result
+                    
+                    # If there's an error or missing facts, log it but default to passed
+                    if conditional_result.get('error') or conditional_result.get('missing_facts'):
+                        logger.warning(
+                            f"Conditional logic evaluation had issues: "
+                            f"error={conditional_result.get('error')}, "
+                            f"missing_facts={conditional_result.get('missing_facts')}"
+                        )
+                        # Default to passed if evaluation has issues
+                        conditional_passed = True
                 except Exception as e:
                     logger.warning(f"Error evaluating conditional logic: {e}")
                     conditional_passed = True  # Default to passed if evaluation fails
