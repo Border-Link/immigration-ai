@@ -99,7 +99,7 @@ targeting UK immigration routes initially.
 │                    AI REASONING SERVICE                       │
 │  ┌──────────────────────────────────────────────────────┐     │
 │  │  RAG Orchestrator                                    │     │
-│  │  - Vector DB Retrieval                               │     │
+│  │  - pgvector Retrieval                                 │     │
 │  │  - LLM Prompt Construction                           │     │
 │  │  - Citation Extraction                               │     │
 │  │  - Confidence Scoring                               │     │
@@ -109,9 +109,9 @@ targeting UK immigration routes initially.
           ┌────────────────┼─────────────────┐
           │                 │                 │
 ┌─────────▼─────────┐ ┌────▼─────┐ ┌─────────▼─────────┐
-│   VECTOR DATABASE │ │   LLM    │ │  CITATION TRACKER  │
-│   (Pinecone/      │ │  SERVICE │ │                    │
-│    Weaviate)      │ │ (OpenAI/ │ │ - Source Mapping   │
+│   PGVECTOR        │ │   LLM    │ │  CITATION TRACKER  │
+│   (PostgreSQL     │ │  SERVICE │ │                    │
+│    Extension)     │ │ (OpenAI/ │ │ - Source Mapping   │
 │                   │ │ Anthropic)│ │ - Excerpt Storage  │
 │ - Document Chunks │ │          │ │                    │
 │ - Embeddings      │ │ - GPT-4  │ │                    │
@@ -167,7 +167,7 @@ targeting UK immigration routes initially.
 
 3. **AI Reasoning Service**
    - Orchestrates RAG retrieval, LLM calls, citation extraction
-   - Depends on: Vector DB, LLM API, Database
+   - Depends on: pgvector (PostgreSQL), LLM API, Database
    - Handles: Low-confidence escalation, citation tracking
 
 4. **Document Service**
@@ -362,7 +362,7 @@ OPTIONAL (MVP+)
 **`ai_citations`**
 - Purpose: Source attribution for AI outputs
 - Workflow: AI response parsed → Citations extracted → Linked to document_versions → Stored
-- Edge Cases: Citation not found in vector DB → Warning logged, citation still stored with URL
+- Edge Cases: Citation not found in pgvector → Warning logged, citation still stored with URL
 
 ### Document Handling Layer
 
@@ -708,6 +708,127 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 - Joins `eligibility_results`, `ai_reasoning_logs`, `ai_citations`, `visa_requirements`
 - **Edge Cases**: Result not found → 404
 
+### 4.3.3 List AI Reasoning Logs (Reviewer Only)
+**Endpoint**: `GET /api/v1/ai-decisions/ai-reasoning-logs/`  
+**Auth**: Required (reviewer only - reviewers review AI decisions)  
+**Query Params**:
+- `case_id` (optional): Filter by case ID
+- `model_name` (optional): Filter by model name (e.g., "gpt-4")
+
+**Response**:
+```json
+{
+  "message": "AI reasoning logs retrieved successfully.",
+  "data": [
+    {
+      "id": "aa0e8400-e29b-41d4-a716-446655440010",
+      "case_id": "550e8400-e29b-41d4-a716-446655440000",
+      "model_name": "gpt-4",
+      "tokens_used": 1250,
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+**Use Cases**: Debugging, auditing, token usage tracking, AI quality analysis
+
+### 4.3.4 Get AI Reasoning Log Detail (Reviewer Only)
+**Endpoint**: `GET /api/v1/ai-decisions/ai-reasoning-logs/{log_id}/`  
+**Auth**: Required (reviewer only - reviewers review AI decisions)  
+**Response**:
+```json
+{
+  "message": "AI reasoning log retrieved successfully.",
+  "data": {
+    "id": "aa0e8400-e29b-41d4-a716-446655440010",
+    "case_id": "550e8400-e29b-41d4-a716-446655440000",
+    "case_status": "evaluated",
+    "prompt": "You are an immigration eligibility advisor...",
+    "response": "Based on your case facts...",
+    "model_name": "gpt-4",
+    "tokens_used": 1250,
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+**Use Cases**: Full prompt/response inspection for debugging, compliance auditing
+
+### 4.3.5 List AI Citations (Reviewer Only)
+**Endpoint**: `GET /api/v1/ai-decisions/ai-citations/`  
+**Auth**: Required (reviewer only - reviewers review AI decisions)  
+**Query Params**:
+- `reasoning_log_id` (optional): Filter by reasoning log ID
+- `document_version_id` (optional): Filter by document version ID
+
+**Response**:
+```json
+{
+  "message": "AI citations retrieved successfully.",
+  "data": [
+    {
+      "id": "bb0e8400-e29b-41d4-a716-446655440011",
+      "reasoning_log_id": "aa0e8400-e29b-41d4-a716-446655440010",
+      "source_url": "https://www.gov.uk/skilled-worker-visa",
+      "relevance_score": 0.92,
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+**Use Cases**: Citation quality analysis, source verification, debugging
+
+### 4.3.6 Get AI Citation Detail (Reviewer Only)
+**Endpoint**: `GET /api/v1/ai-decisions/ai-citations/{citation_id}/`  
+**Auth**: Required (reviewer only - reviewers review AI decisions)  
+**Response**:
+```json
+{
+  "message": "AI citation retrieved successfully.",
+  "data": {
+    "id": "bb0e8400-e29b-41d4-a716-446655440011",
+    "reasoning_log_id": "aa0e8400-e29b-41d4-a716-446655440010",
+    "case_id": "550e8400-e29b-41d4-a716-446655440000",
+    "document_version_id": "770e8400-e29b-41d4-a716-446655440002",
+    "source_url": "https://www.gov.uk/skilled-worker-visa",
+    "document_title": "Skilled Worker Visa - GOV.UK",
+    "excerpt": "You must be paid at least £38,700 per year...",
+    "relevance_score": 0.92,
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+**Use Cases**: Detailed citation inspection, source verification, quality assurance
+
+**Note**: These endpoints (4.3.3-4.3.6) are **read-only** and restricted to reviewers (who review AI decisions) for:
+- **Observability**: Monitor AI reasoning quality
+- **Debugging**: Investigate AI decision issues
+- **Compliance**: Audit AI outputs and citations
+- **Analytics**: Track token usage and citation quality
+
+### 4.3.7 Admin Management Endpoints (Staff/Superuser Only)
+**Base Path**: `/api/v1/ai-decisions/admin/`
+
+All admin endpoints use `IsAdminOrStaff` permission class (requires `is_staff=True` OR `is_superuser=True`).
+
+#### Eligibility Results Admin
+- `GET /api/v1/ai-decisions/admin/eligibility-results/` - List with advanced filtering (outcome, confidence, date range)
+- `GET /api/v1/ai-decisions/admin/eligibility-results/<id>/` - Get detailed result
+- `DELETE /api/v1/ai-decisions/admin/eligibility-results/<id>/` - Delete result (data cleanup)
+
+#### AI Reasoning Logs Admin
+- `GET /api/v1/ai-decisions/admin/ai-reasoning-logs/` - List with advanced filtering (model, tokens, date range)
+- `GET /api/v1/ai-decisions/admin/ai-reasoning-logs/<id>/` - Get detailed log
+- `DELETE /api/v1/ai-decisions/admin/ai-reasoning-logs/<id>/` - Delete log (data cleanup)
+
+#### AI Citations Admin
+- `GET /api/v1/ai-decisions/admin/ai-citations/` - List with advanced filtering (relevance, date range)
+- `GET /api/v1/ai-decisions/admin/ai-citations/<id>/` - Get detailed citation
+- `DELETE /api/v1/ai-decisions/admin/ai-citations/<id>/` - Delete citation (data cleanup)
+
+**Use Cases**: Data management, cleanup, advanced analytics, system maintenance
+
+**Note**: Django admin interface is disabled - all admin functionality is API-based.
+
 ## 4.4 Document Management APIs
 
 ### 4.4.1 Upload Document
@@ -1048,7 +1169,7 @@ document_type: "passport"  // Optional: pre-classify
 
 8. **Publisher**
    - Promotes approved rules to `visa_rule_versions`
-   - Updates vector DB
+   - Updates pgvector (PostgreSQL)
    - Closes previous rule versions
 
 ## 5.2 Scraping Strategy
@@ -1256,17 +1377,17 @@ Text to extract from:
      - Update `effective_to` to one day before new version's `effective_from`
      - This ensures no gap and no overlap in effective dates
 
-5. **Update Vector DB**:
+5. **Update pgvector**:
    - Re-chunk new document version
    - Generate embeddings for new chunks
-   - Upsert to vector DB with metadata (document_version_id, source_url, effective_date, visa_code)
+   - Store in pgvector (PostgreSQL) with metadata (document_version_id, source_url, effective_date, visa_code)
    - Mark old chunks as deprecated (don't delete, preserve for citations)
 
 6. **Notify Users (Optional)**:
    - Send notification to users with active cases for affected visa type
    - Message: "Rules updated for [Visa Type] visa - you may want to re-check your eligibility"
 
-## 5.7 Vector DB Sync
+## 5.7 pgvector Sync
 
 ### Chunking Strategy
 
@@ -1284,11 +1405,11 @@ Text to extract from:
 
 3. **Embedding**:
    - Model: `text-embedding-ada-002` (OpenAI) or similar
-   - Store in Pinecone/Weaviate with metadata
+   - Store in pgvector (PostgreSQL) with metadata
 
 4. **Update Process**:
    - On rule publication → Re-chunk new document version
-   - Embed and upsert to vector DB
+   - Embed and store in pgvector (PostgreSQL)
    - Mark old chunks as `deprecated` (don't delete, for citations)
 
 ## 5.8 Failure Handling
@@ -1310,7 +1431,7 @@ Text to extract from:
 ### Publisher Failures
 
 - **DB Transaction Failures**: Rollback, retry
-- **Vector DB Failures**: Queue for retry, don't block rule publication
+- **pgvector Failures**: Queue for retry, don't block rule publication
 - **Conflicting Rules**: Detect overlaps → Escalate to admin, don't auto-publish
 
 ## 5.9 Monitoring & Alerts
@@ -1487,8 +1608,8 @@ Case Facts
    - Example: "Eligibility requirements for Skilled Worker visa. Applicant nationality: NG. Salary: 42000. 
    - Has sponsor: true."
 
-2. **Query Vector DB**:
-   - Use vector DB query API with:
+2. **Query pgvector**:
+   - Use pgvector query API with:
      - Query text (from step 1)
      - `top_k`: Retrieve top 5-10 most relevant chunks
      - Filters:
@@ -1645,7 +1766,7 @@ Case Facts
    - This gives deterministic pass/fail result
 
 3. **Run AI Reasoning (RAG)**:
-   - Retrieve relevant context from vector DB (using Step 1 from AI Reasoning)
+   - Retrieve relevant context from pgvector (using Step 1 from AI Reasoning)
    - Construct AI prompt (using Step 2 from AI Reasoning)
    - Call LLM (using Step 3 from AI Reasoning)
    - Store reasoning and citations (using Step 4 from AI Reasoning)
@@ -1761,7 +1882,7 @@ Case Facts
 ### System Downtime / Service Unavailability
 
 - **AI Service Down**: Fallback to rule engine only, confidence reduced, user notified
-- **Vector DB Down**: Use rule engine + cached citations, degrade gracefully
+- **pgvector Down**: Use rule engine + cached citations, degrade gracefully
 - **Database Down**: Return 503, retry with exponential backoff
 
 ---
@@ -2287,7 +2408,7 @@ Shows:
    - Tasks: File upload, OCR, classification, validation
 
 6. **AI Reasoning Service Module**
-   - Dependencies: Database Module, Vector DB, LLM API
+   - Dependencies: Database Module, pgvector (PostgreSQL), LLM API
    - Tasks: RAG retrieval, prompt construction, LLM calls, citation extraction
 
 7. **Ingestion Service (IRIMS)**
@@ -2314,7 +2435,7 @@ Shows:
 - **Database**: PostgreSQL 16+
 - **Object Storage**: AWS S3
 - **Job Queue**: Celery (Python) with Redis
-- **Vector DB**: Pinecone, Weaviate, or pgvector (PostgreSQL extension)
+- **Vector Storage**: pgvector (PostgreSQL extension) - recommended approach
 
 ### AI/ML
 - **LLM API**: OpenAI GPT-4, Anthropic Claude, or self-hosted
@@ -2375,7 +2496,7 @@ Shows:
 5. Test with sample documents
 
 **Week 6: AI Reasoning Service**
-1. Set up vector DB (Pinecone/Weaviate)
+1. Set up pgvector (PostgreSQL extension)
 2. Implement document chunking and embedding
 3. Implement RAG retrieval
 4. Implement LLM prompt construction
@@ -2422,7 +2543,7 @@ Shows:
 **Week 12: Rule Publishing**
 1. Implement rule promotion to production
 2. Implement version closing (effective_to)
-3. Implement vector DB sync on rule publish
+3. Implement pgvector sync on rule publish
 4. Test rule updates flow end-to-end
 
 ### Phase 4: Human Review & Admin (Weeks 13-16)
@@ -2678,7 +2799,7 @@ immigration-platform/
 
 1. **Retrieve Context**:
    - Construct query from case facts and visa type
-   - Query vector DB with filters (visa_code, effective_date)
+   - Query pgvector with filters (visa_code, effective_date)
    - Retrieve top 5-10 relevant chunks
    - Extract metadata (source_url, document_version_id)
 
@@ -2742,7 +2863,7 @@ immigration-platform/
    - On approval: create `visa_rule_versions`
    - Create `visa_requirements`
    - Close previous version
-   - Update vector DB
+   - Update pgvector
 
 ## 11.6 Human Review Integration
 
@@ -2808,7 +2929,7 @@ immigration-platform/
 ### Out of Scope for MVP
 - Automated ingestion service (use manual rule entry)
 - AI reasoning (use rule engine only)
-- Vector DB (add in Phase 2)
+- pgvector (add in Phase 2)
 - Auto-escalation to human review
 - Multi-jurisdiction support (UK only)
 
@@ -2867,8 +2988,10 @@ immigration-platform/
 
 ## 12.5 Scaling Considerations
 
-### Vector DB Scaling
-- Use managed vector DB service (Pinecone, Weaviate Cloud)
+### pgvector Scaling
+- pgvector scales with PostgreSQL (no separate service needed)
+- For extreme scale (>100M vectors), consider PostgreSQL read replicas or sharding
+- Alternative: Separate vector database (Pinecone, Weaviate) only if needed for extreme scale
 - Implement chunking strategy for large documents
 - Cache frequently accessed embeddings
 
