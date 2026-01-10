@@ -1,6 +1,8 @@
 import uuid
 from django.db import models
+from django.db.models import Q, F
 from django.utils import timezone
+from django.conf import settings
 from .visa_type import VisaType
 
 
@@ -47,6 +49,55 @@ class VisaRuleVersion(models.Model):
         help_text="Whether this rule version is published and available for use"
     )
     
+    # Soft delete fields
+    is_deleted = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Whether this rule version is soft deleted"
+    )
+    
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="When this rule version was deleted"
+    )
+    
+    # Audit trail fields
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_rule_versions',
+        help_text="User who created this rule version"
+    )
+    
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='updated_rule_versions',
+        help_text="User who last updated this rule version"
+    )
+    
+    published_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='published_rule_versions',
+        help_text="User who published this rule version"
+    )
+    
+    published_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="When this rule version was published"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -56,6 +107,14 @@ class VisaRuleVersion(models.Model):
         indexes = [
             models.Index(fields=['visa_type', 'effective_from', 'effective_to']),
             models.Index(fields=['is_published', 'effective_from']),
+            models.Index(fields=['is_deleted', 'is_published']),
+            models.Index(fields=['visa_type', 'is_published', 'effective_from', 'effective_to']),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=Q(effective_to__isnull=True) | Q(effective_to__gte=F('effective_from')),
+                name='effective_to_after_effective_from'
+            ),
         ]
         verbose_name_plural = 'Visa Rule Versions'
 
@@ -64,6 +123,8 @@ class VisaRuleVersion(models.Model):
 
     def is_current(self):
         """Check if this rule version is currently effective."""
+        if self.is_deleted:
+            return False
         now = timezone.now()
         if self.effective_to:
             return self.effective_from <= now <= self.effective_to
