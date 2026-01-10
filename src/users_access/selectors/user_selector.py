@@ -80,3 +80,7 @@ class UserSelector:
         """Get all users by role."""
         return User.objects.select_related('profile').filter(role=role, is_active=True)
 
+    @staticmethod
+    def get_none():
+        """Get empty queryset."""
+        return User.objects.none()
