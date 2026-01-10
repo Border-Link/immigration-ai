@@ -165,3 +165,43 @@ class UserService:
             logger.error(f"Error updating last_assigned_at for user {user.email}: {e}")
             return None
 
+    @staticmethod
+    def delete_user(user_id: str) -> bool:
+        """Delete a user (soft delete by deactivating)."""
+        try:
+            user = UserSelector.get_by_id(user_id)
+            if not user:
+                logger.error(f"User {user_id} not found")
+                return False
+            # Soft delete by deactivating
+            UserRepository.update_user(user, is_active=False)
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting user {user_id}: {e}")
+            return False
+
+    @staticmethod
+    def get_by_filters(role: str = None, is_active: bool = None, is_verified: bool = None, 
+                       email: str = None, date_from=None, date_to=None):
+        """Get users with filters."""
+        try:
+            users = UserSelector.get_all()
+            
+            # Apply filters
+            if role:
+                users = users.filter(role=role)
+            if is_active is not None:
+                users = users.filter(is_active=is_active)
+            if is_verified is not None:
+                users = users.filter(is_verified=is_verified)
+            if email:
+                users = users.filter(email__icontains=email)
+            if date_from:
+                users = users.filter(created_at__gte=date_from)
+            if date_to:
+                users = users.filter(created_at__lte=date_to)
+            
+            return users
+        except Exception as e:
+            logger.error(f"Error fetching filtered users: {e}")
+            return UserSelector.get_none()
