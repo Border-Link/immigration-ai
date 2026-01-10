@@ -29,3 +29,9 @@ class DocumentVersionRepository:
             version.save()
             return version
 
+    @staticmethod
+    def delete_document_version(document_version):
+        """Delete a document version."""
+        with transaction.atomic():
+            document_version.delete()
+            return True

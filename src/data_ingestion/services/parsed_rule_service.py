@@ -17,7 +17,7 @@ class ParsedRuleService:
             return ParsedRuleSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all parsed rules: {e}")
-            return ParsedRule.objects.none()
+            return ParsedRuleSelector.get_none()
 
     @staticmethod
     def get_by_status(status: str):
@@ -26,7 +26,7 @@ class ParsedRuleService:
             return ParsedRuleSelector.get_by_status(status)
         except Exception as e:
             logger.error(f"Error fetching parsed rules by status {status}: {e}")
-            return ParsedRule.objects.none()
+            return ParsedRuleSelector.get_none()
 
     @staticmethod
     def get_by_visa_code(visa_code: str):
@@ -35,7 +35,7 @@ class ParsedRuleService:
             return ParsedRuleSelector.get_by_visa_code(visa_code)
         except Exception as e:
             logger.error(f"Error fetching parsed rules for visa code {visa_code}: {e}")
-            return ParsedRule.objects.none()
+            return ParsedRuleSelector.get_none()
 
     @staticmethod
     def get_pending():
@@ -44,7 +44,7 @@ class ParsedRuleService:
             return ParsedRuleSelector.get_pending()
         except Exception as e:
             logger.error(f"Error fetching pending parsed rules: {e}")
-            return ParsedRule.objects.none()
+            return ParsedRuleSelector.get_none()
 
     @staticmethod
     def get_by_id(rule_id: str) -> Optional[ParsedRule]:
@@ -84,3 +84,44 @@ class ParsedRuleService:
             logger.error(f"Error updating parsed rule {rule_id}: {e}")
             return None
 
+    @staticmethod
+    def delete_parsed_rule(rule_id: str) -> bool:
+        """Delete a parsed rule."""
+        try:
+            parsed_rule = ParsedRuleSelector.get_by_id(rule_id)
+            if not parsed_rule:
+                logger.error(f"Parsed rule {rule_id} not found")
+                return False
+            ParsedRuleRepository.delete_parsed_rule(parsed_rule)
+            return True
+        except ParsedRule.DoesNotExist:
+            logger.error(f"Parsed rule {rule_id} not found")
+            return False
+        except Exception as e:
+            logger.error(f"Error deleting parsed rule {rule_id}: {e}")
+            return False
+
+    @staticmethod
+    def get_by_filters(status: str = None, visa_code: str = None, rule_type: str = None, min_confidence: float = None, date_from=None, date_to=None):
+        """Get parsed rules with filters."""
+        try:
+            return ParsedRuleSelector.get_by_filters(
+                status=status,
+                visa_code=visa_code,
+                rule_type=rule_type,
+                min_confidence=min_confidence,
+                date_from=date_from,
+                date_to=date_to
+            )
+        except Exception as e:
+            logger.error(f"Error fetching filtered parsed rules: {e}")
+            return ParsedRuleSelector.get_none()
+
+    @staticmethod
+    def get_statistics():
+        """Get parsed rule statistics."""
+        try:
+            return ParsedRuleSelector.get_statistics()
+        except Exception as e:
+            logger.error(f"Error getting parsed rule statistics: {e}")
+            return {}

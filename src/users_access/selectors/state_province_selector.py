@@ -76,3 +76,8 @@ class StateProvinceSelector:
     def get_by_id(state_id):
         """Get state/province by ID (UUID)."""
         return StateProvince.objects.select_related('country').get(id=state_id)
+
+    @staticmethod
+    def get_none():
+        """Get empty queryset."""
+        return StateProvince.objects.none()

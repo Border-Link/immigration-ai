@@ -37,7 +37,7 @@ class AICitationService:
             return AICitationSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all AI citations: {e}")
-            return AICitation.objects.none()
+            return AICitationSelector.get_none()
 
     @staticmethod
     def get_by_reasoning_log(reasoning_log_id: str):
@@ -47,7 +47,17 @@ class AICitationService:
             return AICitationSelector.get_by_reasoning_log(reasoning_log)
         except Exception as e:
             logger.error(f"Error fetching citations for reasoning log {reasoning_log_id}: {e}")
-            return AICitation.objects.none()
+            return AICitationSelector.get_none()
+    
+    @staticmethod
+    def get_by_document_version(document_version_id: str):
+        """Get citations by document version."""
+        try:
+            document_version = DocumentVersionSelector.get_by_id(document_version_id)
+            return AICitationSelector.get_by_document_version(document_version)
+        except Exception as e:
+            logger.error(f"Error fetching citations for document version {document_version_id}: {e}")
+            return AICitationSelector.get_none()
 
     @staticmethod
     def get_by_id(citation_id: str) -> Optional[AICitation]:
@@ -88,3 +98,36 @@ class AICitationService:
             logger.error(f"Error deleting citation {citation_id}: {e}")
             return False
 
+    @staticmethod
+    def get_by_filters(reasoning_log_id: str = None, document_version_id: str = None, 
+                       min_relevance: float = None, date_from=None, date_to=None):
+        """Get AI citations with filters."""
+        try:
+            if reasoning_log_id:
+                citations = AICitationService.get_by_reasoning_log(reasoning_log_id)
+            elif document_version_id:
+                citations = AICitationService.get_by_document_version(document_version_id)
+            else:
+                citations = AICitationSelector.get_all()
+            
+            # Apply additional filters
+            if min_relevance is not None:
+                citations = citations.filter(relevance_score__gte=min_relevance)
+            if date_from:
+                citations = citations.filter(created_at__gte=date_from)
+            if date_to:
+                citations = citations.filter(created_at__lte=date_to)
+            
+            return citations
+        except Exception as e:
+            logger.error(f"Error fetching filtered AI citations: {e}")
+            return AICitationSelector.get_none()
+
+    @staticmethod
+    def get_statistics():
+        """Get AI citation statistics."""
+        try:
+            return AICitationSelector.get_statistics()
+        except Exception as e:
+            logger.error(f"Error getting AI citation statistics: {e}")
+            return {}

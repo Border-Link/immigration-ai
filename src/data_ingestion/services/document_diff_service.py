@@ -1,8 +1,8 @@
 import logging
 from typing import Optional
 from data_ingestion.models.document_diff import DocumentDiff
-from data_ingestion.repositories.document_diff_repository import DocumentDiffRepository
 from data_ingestion.selectors.document_diff_selector import DocumentDiffSelector
+from data_ingestion.repositories.document_diff_repository import DocumentDiffRepository
 
 logger = logging.getLogger('django')
 
@@ -17,7 +17,7 @@ class DocumentDiffService:
             return DocumentDiffSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all document diffs: {e}")
-            return DocumentDiff.objects.none()
+            return DocumentDiffSelector.get_none()
 
     @staticmethod
     def get_by_change_type(change_type: str):
@@ -26,7 +26,7 @@ class DocumentDiffService:
             return DocumentDiffSelector.get_by_change_type(change_type)
         except Exception as e:
             logger.error(f"Error fetching document diffs by change type {change_type}: {e}")
-            return DocumentDiff.objects.none()
+            return DocumentDiffSelector.get_none()
 
     @staticmethod
     def get_by_id(diff_id: str) -> Optional[DocumentDiff]:
@@ -54,3 +54,32 @@ class DocumentDiffService:
             logger.error(f"Error fetching document diff between versions {old_version_id} and {new_version_id}: {e}")
             return None
 
+    @staticmethod
+    def delete_document_diff(diff_id: str) -> bool:
+        """Delete a document diff."""
+        try:
+            diff = DocumentDiffSelector.get_by_id(diff_id)
+            if not diff:
+                logger.error(f"Document diff {diff_id} not found")
+                return False
+            DocumentDiffRepository.delete_document_diff(diff)
+            return True
+        except DocumentDiff.DoesNotExist:
+            logger.error(f"Document diff {diff_id} not found")
+            return False
+        except Exception as e:
+            logger.error(f"Error deleting document diff {diff_id}: {e}")
+            return False
+
+    @staticmethod
+    def get_by_filters(change_type: str = None, date_from=None, date_to=None):
+        """Get document diffs with filters."""
+        try:
+            return DocumentDiffSelector.get_by_filters(
+                change_type=change_type,
+                date_from=date_from,
+                date_to=date_to
+            )
+        except Exception as e:
+            logger.error(f"Error fetching filtered document diffs: {e}")
+            return DocumentDiffSelector.get_none()

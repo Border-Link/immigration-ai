@@ -141,3 +141,41 @@ class UserProfileService:
             logger.error(f"Error removing avatar for user {user.email}: {e}")
             return None
 
+    @staticmethod
+    def get_by_filters(user_id=None, nationality=None, consent_given=None, date_from=None, date_to=None):
+        """Get user profiles with filters."""
+        try:
+            if user_id:
+                from users_access.services.user_service import UserService
+                user = UserService.get_by_id(user_id)
+                if user:
+                    try:
+                        profile = UserProfileSelector.get_by_user(user)
+                        profiles = UserProfile.objects.filter(id=profile.id)
+                    except UserProfile.DoesNotExist:
+                        profiles = UserProfileSelector.get_none()
+                else:
+                    profiles = UserProfileSelector.get_none()
+            elif nationality:
+                profiles = UserProfileSelector.get_by_nationality(nationality)
+            elif consent_given is not None:
+                profiles = UserProfileSelector.get_with_consent(consent_given)
+            else:
+                # Get all profiles
+                profiles = UserProfile.objects.select_related(
+                    'user',
+                    'nationality',
+                    'state_province',
+                    'state_province__country'
+                ).all()
+            
+            # Apply date filters
+            if date_from:
+                profiles = profiles.filter(created_at__gte=date_from)
+            if date_to:
+                profiles = profiles.filter(created_at__lte=date_to)
+            
+            return profiles
+        except Exception as e:
+            logger.error(f"Error fetching filtered user profiles: {e}")
+            return UserProfileSelector.get_none()
