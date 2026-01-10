@@ -29,3 +29,9 @@ class DocumentDiffRepository:
             diff.save()
             return diff
 
+    @staticmethod
+    def delete_document_diff(document_diff):
+        """Delete a document diff."""
+        with transaction.atomic():
+            document_diff.delete()
+            return True
