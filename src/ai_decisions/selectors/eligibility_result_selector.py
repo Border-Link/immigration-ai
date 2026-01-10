@@ -50,3 +50,43 @@ class EligibilityResultSelector:
             'rule_version__visa_type'
         ).get(id=result_id)
 
+    @staticmethod
+    def get_none():
+        """Get empty queryset."""
+        return EligibilityResult.objects.none()
+
+    @staticmethod
+    def get_statistics():
+        """Get eligibility result statistics."""
+        from django.db.models import Count, Avg
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        queryset = EligibilityResult.objects.all()
+        
+        total_results = queryset.count()
+        results_by_outcome = queryset.values('outcome').annotate(
+            count=Count('id')
+        ).order_by('outcome')
+        
+        avg_confidence = queryset.aggregate(
+            avg_confidence=Avg('confidence')
+        )['avg_confidence'] or 0.0
+        
+        results_requiring_review = queryset.filter(
+            outcome='requires_review'
+        ).count()
+        
+        # Recent activity (last 30 days)
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        recent_results = queryset.filter(
+            created_at__gte=thirty_days_ago
+        ).count()
+        
+        return {
+            'total': total_results,
+            'by_outcome': list(results_by_outcome),
+            'average_confidence': round(avg_confidence, 3),
+            'requiring_review': results_requiring_review,
+            'recent_30_days': recent_results,
+        }
