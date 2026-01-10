@@ -35,7 +35,7 @@ class AIReasoningLogService:
             return AIReasoningLogSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all AI reasoning logs: {e}")
-            return AIReasoningLog.objects.none()
+            return AIReasoningLogSelector.get_none()
 
     @staticmethod
     def get_by_case(case_id: str):
@@ -45,7 +45,7 @@ class AIReasoningLogService:
             return AIReasoningLogSelector.get_by_case(case)
         except Exception as e:
             logger.error(f"Error fetching reasoning logs for case {case_id}: {e}")
-            return AIReasoningLog.objects.none()
+            return AIReasoningLogSelector.get_none()
 
     @staticmethod
     def get_by_id(log_id: str) -> Optional[AIReasoningLog]:
@@ -58,6 +58,15 @@ class AIReasoningLogService:
         except Exception as e:
             logger.error(f"Error fetching reasoning log {log_id}: {e}")
             return None
+    
+    @staticmethod
+    def get_by_model(model_name: str):
+        """Get reasoning logs by model name."""
+        try:
+            return AIReasoningLogSelector.get_by_model(model_name)
+        except Exception as e:
+            logger.error(f"Error fetching reasoning logs for model {model_name}: {e}")
+            return AIReasoningLogSelector.get_none()
 
     @staticmethod
     def update_reasoning_log(log_id: str, **fields) -> Optional[AIReasoningLog]:
@@ -86,3 +95,36 @@ class AIReasoningLogService:
             logger.error(f"Error deleting reasoning log {log_id}: {e}")
             return False
 
+    @staticmethod
+    def get_by_filters(case_id: str = None, model_name: str = None, min_tokens: int = None, 
+                       date_from=None, date_to=None):
+        """Get AI reasoning logs with filters."""
+        try:
+            if case_id:
+                logs = AIReasoningLogService.get_by_case(case_id)
+            elif model_name:
+                logs = AIReasoningLogSelector.get_by_model(model_name)
+            else:
+                logs = AIReasoningLogSelector.get_all()
+            
+            # Apply additional filters
+            if min_tokens is not None:
+                logs = logs.filter(tokens_used__gte=min_tokens)
+            if date_from:
+                logs = logs.filter(created_at__gte=date_from)
+            if date_to:
+                logs = logs.filter(created_at__lte=date_to)
+            
+            return logs
+        except Exception as e:
+            logger.error(f"Error fetching filtered AI reasoning logs: {e}")
+            return AIReasoningLogSelector.get_none()
+
+    @staticmethod
+    def get_statistics():
+        """Get AI reasoning log statistics."""
+        try:
+            return AIReasoningLogSelector.get_statistics()
+        except Exception as e:
+            logger.error(f"Error getting AI reasoning log statistics: {e}")
+            return {}
