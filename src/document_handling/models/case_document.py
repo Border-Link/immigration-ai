@@ -78,6 +78,40 @@ class CaseDocument(models.Model):
         help_text="Confidence score for document type classification (0.0 to 1.0)"
     )
     
+    # Content extraction fields
+    expiry_date = models.DateField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Expiry date extracted from document (e.g., passport expiry, visa expiry)"
+    )
+    
+    extracted_metadata = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Extracted metadata from document (names, dates, numbers, etc.)"
+    )
+    
+    # Content validation fields
+    content_validation_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('passed', 'Passed'),
+            ('failed', 'Failed'),
+            ('warning', 'Warning'),
+        ],
+        default='pending',
+        db_index=True,
+        help_text="Status of content validation against case facts"
+    )
+    
+    content_validation_details = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Details of content validation (matched fields, mismatches, etc.)"
+    )
+    
     uploaded_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
