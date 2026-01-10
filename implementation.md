@@ -2129,48 +2129,242 @@ Shows:
    - If low confidence: Mark as warning, flag for human review
    - If document is image-only (no text): Mark OCR as N/A, proceed with classification
 
-## 8.3 Document Classification
+## 8.3 Document Classification ✅ **FULLY IMPLEMENTED**
 
 ### Step-by-Step Implementation
 
-1. **AI Classification**:
-   - Use LLM or ML model to classify document type
-   - Input: OCR text + file metadata (filename, size)
-   - Output: Predicted `document_type_id` with confidence score
+1. **AI Classification** ✅:
+   - ✅ Use LLM to classify document type (`DocumentClassificationService`)
+   - ✅ Input: OCR text + file metadata (filename, size)
+   - ✅ Output: Predicted `document_type_id` with confidence score
+   - ✅ Comprehensive prompts in `helpers/prompts.py` (`build_document_classification_prompt`)
+   - ✅ LLM calls use `external_services` pattern via `helpers/llm_helper.py`
+   - ✅ Production-ready: retry logic, rate limiting, circuit breaker, error handling
 
-2. **Classification Logic**:
-   - Match against known document types (passport, bank_statement, certificate_of_sponsorship, etc.)
-   - If confidence < 0.7: Flag for human review
-   - Update `case_documents.document_type_id` if confidence >= 0.7
-   - Create `document_checks` entry:
+2. **Classification Logic** ✅:
+   - ✅ Match against known document types (passport, bank_statement, certificate_of_sponsorship, etc.)
+   - ✅ If confidence < 0.7: Flag for human review
+   - ✅ Update `case_documents.document_type_id` if confidence >= 0.7
+   - ✅ Create `document_checks` entry:
      - `check_type = 'classification'`
      - `result = 'pass'` if confident, `'warning'` if low confidence
 
-3. **Manual Override**:
-   - Allow user to manually select document type if classification uncertain
-   - Allow reviewer to correct classification
+3. **Manual Override** ✅:
+   - ✅ Allow user to manually select document type if classification uncertain
+   - ✅ Allow reviewer to correct classification
+
+4. **Prompt Architecture** ✅:
+   - ✅ All prompts centralized in `helpers/prompts.py`
+   - ✅ System messages in helpers (`get_classification_system_message`)
+   - ✅ Comprehensive guidelines and document type descriptions
+   - ✅ Document type indicators and classification rules
 
 ## 8.4 Document Validation
 
 ### Step-by-Step Implementation
 
-1. **Requirement Matching**:
-   - Load `visa_document_requirements` for case's visa type and rule version
-   - Check if uploaded document matches required document type
-   - Create `document_checks` entry:
-     - `check_type = 'requirement_match'`
-     - `result = 'pass'` if matches requirement, `'fail'` if doesn't match
+1. **Requirement Matching** ✅ **FULLY IMPLEMENTED**:
+   - ✅ `DocumentRequirementMatchingService` - Matches documents against visa document requirements
+   - ✅ Loads `visa_document_requirements` for case's visa type and rule version
+   - ✅ Checks if uploaded document matches required document type
+   - ✅ Evaluates conditional logic against case facts using RuleEngineService
+   - ✅ Creates `document_checks` entry with `check_type='requirement_match'`
+   - ✅ Returns result: 'passed' if matches, 'failed' if doesn't match, 'warning' if conditional logic not satisfied
+   - ✅ Integrated into document processing workflow (Step 5)
+   - ✅ Comprehensive error handling and logging
 
-2. **Content Validation** (Future Enhancement):
-   - Validate document content against case facts (e.g., name matches, date ranges valid)
-   - Check document expiry dates
-   - Verify signatures if applicable
+2. **Content Validation** ✅ **FULLY IMPLEMENTED**:
+   - ✅ `DocumentContentValidationService` - Validates document content against case facts using LLM
+   - ✅ Comprehensive validation prompts in `helpers/prompts.py` (`build_content_validation_prompt`)
+   - ✅ Document-type specific validation guidance (passport, visa, bank_statement, etc.)
+   - ✅ Field-by-field matching instructions (names, dates, numbers, nationality)
+   - ✅ Validates names, dates, numbers, nationality against case facts
+   - ✅ Returns validation status (passed/failed/warning/pending) with detailed results
+   - ✅ Creates `DocumentCheck` with `check_type='content_validation'`
+   - ✅ Stores validation results in `CaseDocument.content_validation_status` and `content_validation_details`
+   - ✅ Integrated into document processing workflow (Step 4)
+   - ✅ LLM calls use `external_services` pattern via `helpers/llm_helper.py`
+   - ✅ Admin endpoints support filtering by content validation status
+   - ✅ Check document expiry dates - ✅ **FULLY IMPLEMENTED** (see Section 8.7.1)
+   - ⚠️ Verify signatures if applicable - Planned
 
 3. **Document Status Calculation**:
    - Aggregate all check results
    - Status = `verified` if all checks pass
    - Status = `rejected` if any critical check fails
    - Status = `warning` if non-critical checks fail
+
+## 8.5 Document Checklist Generation
+
+### Step-by-Step Implementation
+
+1. **Load Requirements**:
+   - Query `visa_document_requirements` for active rule version
+   - Filter by `mandatory = true` for required documents
+   - Include conditional requirements based on case facts (e.g., dependants require additional docs)
+
+2. **Match Against Uploads**:
+   - For each required document type:
+
+## 8.6 Admin API Endpoints
+
+### Step-by-Step Implementation
+
+1. **Case Document Management**:
+   - ✅ Admin endpoints implemented: `GET /api/v1/document-handling/admin/case-documents/`
+   - ✅ Filter by: case_id, document_type_id, status, has_ocr_text, min_confidence, mime_type, date range
+   - ✅ Admin detail endpoint: `GET /api/v1/document-handling/admin/case-documents/<id>/`
+   - ✅ Update endpoint: `PUT /api/v1/document-handling/admin/case-documents/<id>/`
+   - ✅ Delete endpoint: `DELETE /api/v1/document-handling/admin/case-documents/<id>/`
+   - ✅ Bulk operations endpoint: `POST /api/v1/document-handling/admin/case-documents/bulk-operation/`
+   - ✅ Bulk operations: delete, update_status, reprocess_ocr, reprocess_classification, reprocess_validation, reprocess_full
+
+2. **Document Check Management**:
+   - ✅ Admin endpoints implemented: `GET /api/v1/document-handling/admin/document-checks/`
+   - ✅ Filter by: case_document_id, check_type, result, performed_by, date range
+   - ✅ Admin detail endpoint: `GET /api/v1/document-handling/admin/document-checks/<id>/`
+   - ✅ Update endpoint: `PUT /api/v1/document-handling/admin/document-checks/<id>/`
+   - ✅ Delete endpoint: `DELETE /api/v1/document-handling/admin/document-checks/<id>/`
+   - ✅ Bulk delete endpoint: `POST /api/v1/document-handling/admin/document-checks/bulk-operation/`
+
+3. **Document Handling Analytics**:
+   - ✅ Statistics endpoint: `GET /api/v1/document-handling/admin/statistics/`
+   - ✅ Provides comprehensive statistics on:
+     - Case documents: total, by status, OCR coverage, classification confidence, file sizes, recent activity, by document type
+     - Document checks: total, by type, by result, failed/passed/warning/pending counts, recent activity
+   - ✅ **Architecture**: Follows system architecture pattern (selectors, repositories, services, views)
+   - ✅ **Documentation**: See `DOCUMENT_HANDLING_ADMIN_FUNCTIONALITY.md` for complete API documentation
+
+## 8.7.1 Document Expiry Date Extraction
+
+### Step-by-Step Implementation
+
+1. **Expiry Date Extraction Service** ✅:
+   - ✅ `DocumentExpiryExtractionService` - Uses LLM to extract expiry dates from OCR text
+   - ✅ Comprehensive extraction prompts in `helpers/prompts.py` (`build_expiry_date_extraction_prompt`)
+   - ✅ Document-type specific guidance (passport, visa, certificate, license)
+   - ✅ Supports multiple document types (passport, visa, certificate, license)
+   - ✅ Handles various date formats (DD/MM/YYYY, YYYY-MM-DD, ISO, written formats, etc.)
+   - ✅ Key indicators search (Date of Expiry, Expires, Valid Until, etc.)
+   - ✅ Confidence scoring guidelines and edge case handling
+   - ✅ Returns expiry date, confidence score, and metadata
+   - ✅ Stores expiry date in `CaseDocument.expiry_date` field
+   - ✅ LLM calls use `external_services` pattern via `helpers/llm_helper.py`
+
+2. **Expiry Date Validation**:
+   - ✅ Helper methods: `is_expired()` - Check if expiry date has passed
+   - ✅ Helper methods: `days_until_expiry()` - Calculate days until expiry
+   - ✅ Integrated into document processing workflow (Step 3)
+
+3. **Admin Support**:
+   - ✅ Admin endpoints support filtering by `has_expiry_date`, `expiry_date_from`, `expiry_date_to`, `is_expired`
+   - ✅ Admin serializers include `expiry_date`, `is_expired`, `days_until_expiry` fields
+   - ✅ Statistics include expiry date metrics (with_expiry_date, expired, expiring_soon)
+
+## 8.7.2 Content Validation Against Case Facts ✅ **FULLY IMPLEMENTED**
+
+### Step-by-Step Implementation
+
+1. **Content Validation Service** ✅:
+   - ✅ `DocumentContentValidationService` - Validates document content against case facts using LLM
+   - ✅ Comprehensive validation prompts in `helpers/prompts.py` (`build_content_validation_prompt`)
+   - ✅ Document-type specific validation guidance (passport, visa, bank_statement, certificate_of_sponsorship)
+   - ✅ Field-by-field matching instructions with confidence scoring
+   - ✅ Compares document content (from OCR) with case facts
+   - ✅ Validates: names, dates, numbers, nationality, identifiers
+   - ✅ Returns validation status: passed, failed, warning, pending
+   - ✅ Returns detailed results: matched_fields, mismatched_fields, missing_fields, confidence
+   - ✅ LLM calls use `external_services` pattern via `helpers/llm_helper.py`
+
+2. **Validation Integration** ✅:
+   - ✅ Integrated into document processing workflow (Step 4)
+   - ✅ Creates `DocumentCheck` with `check_type='content_validation'`
+   - ✅ Stores validation results in `CaseDocument.content_validation_status` and `content_validation_details`
+   - ✅ Updates document status based on validation results
+
+3. **Admin Support** ✅:
+   - ✅ Admin endpoints support filtering by `content_validation_status`
+   - ✅ Admin serializers include `content_validation_status`, `content_validation_details`, `content_validation_summary` fields
+   - ✅ Statistics include content validation metrics (by_status, passed, failed, warning)
+
+## 8.8 Document Processing Job Tracking ✅ **FULLY INTEGRATED**
+
+### Step-by-Step Implementation
+
+1. **Processing Job Management** ✅:
+   - ✅ Processing job model (`ProcessingJob`) tracks all document processing operations
+   - ✅ **Integrated into document processing workflow**: `process_document_task` creates and updates `ProcessingJob` records
+   - ✅ Celery task IDs are linked to processing jobs for tracking
+   - ✅ Admin endpoints implemented: `GET /api/v1/document-processing/admin/processing-jobs/`
+   - ✅ Filter by: case_document_id, status, processing_type, error_type, created_by_id, date range, priority, retry status
+   - ✅ Admin detail endpoint: `GET /api/v1/document-processing/admin/processing-jobs/<id>/`
+   - ✅ Update endpoint: `PUT /api/v1/document-processing/admin/processing-jobs/<id>/`
+   - ✅ Delete endpoint: `DELETE /api/v1/document-processing/admin/processing-jobs/<id>/`
+   - ✅ Bulk operations endpoint: `POST /api/v1/document-processing/admin/processing-jobs/bulk-operation/`
+   - ✅ Bulk operations: delete, cancel, retry, update_status, update_priority
+
+2. **Processing History/Audit Logging** ✅:
+   - ✅ Processing history model (`ProcessingHistory`) tracks all processing operations
+   - ✅ **Integrated into document processing workflow**: All processing steps log to `ProcessingHistory`
+   - ✅ History entries created for: OCR started/completed/failed, classification started/completed/failed, validation started/completed/failed, job started/completed/failed
+   - ✅ Processing time tracking for each step
+   - ✅ Error tracking with error types and messages
+   - ✅ Admin endpoints implemented: `GET /api/v1/document-processing/admin/processing-history/`
+   - ✅ Filter by: case_document_id, processing_job_id, action, status, error_type, user_id, date range
+   - ✅ Admin detail endpoint: `GET /api/v1/document-processing/admin/processing-history/<id>/`
+   - ✅ Delete endpoint: `DELETE /api/v1/document-processing/admin/processing-history/<id>/`
+   - ✅ Bulk delete endpoint: `POST /api/v1/document-processing/admin/processing-history/bulk-operation/`
+
+3. **Document Processing Analytics** ✅:
+   - ✅ Statistics endpoint: `GET /api/v1/document-processing/admin/statistics/`
+   - ✅ Provides comprehensive statistics on:
+     - Processing jobs: total, by status, by type, failed/completed/pending counts, average processing time, retry statistics, recent activity
+     - Processing history: total, by action, by status, failed/successful/warning counts, average processing time, recent activity
+   - ✅ **Architecture**: Follows system architecture pattern (selectors, repositories, services, views)
+   - ✅ **Documentation**: See `DOCUMENT_PROCESSING_ADMIN_FUNCTIONALITY.md` for complete API documentation
+
+## 8.9 LLM Integration & Prompt Architecture ✅ **FULLY IMPLEMENTED**
+
+### Step-by-Step Implementation
+
+1. **Prompt Centralization** ✅:
+   - ✅ All LLM prompts centralized in `helpers/prompts.py`
+   - ✅ Comprehensive prompts for all document processing operations:
+     - ✅ Document classification (`build_document_classification_prompt`)
+     - ✅ Expiry date extraction (`build_expiry_date_extraction_prompt`)
+     - ✅ Content validation (`build_content_validation_prompt`)
+   - ✅ System messages for each operation in helpers
+   - ✅ Document-type specific guidance and instructions
+   - ✅ Detailed instructions, edge case handling, and confidence scoring guidelines
+
+2. **LLM Helper Architecture** ✅:
+   - ✅ `helpers/llm_helper.py` provides centralized LLM call interface
+   - ✅ Uses `external_services` pattern via `data_ingestion.helpers.llm_client`
+   - ✅ Production-ready features:
+     - ✅ Retry logic with exponential backoff
+     - ✅ Rate limiting and circuit breaker
+     - ✅ Timeout handling
+     - ✅ Error classification (LLMRateLimitError, LLMTimeoutError, etc.)
+     - ✅ Usage tracking and processing time metrics
+   - ✅ JSON response parsing with markdown code block handling (`parse_llm_json_response`)
+
+3. **Service Integration** ✅:
+   - ✅ All services use `call_llm_for_document_processing()` from helpers
+   - ✅ No direct OpenAI client calls in services
+   - ✅ Consistent error handling across all LLM operations
+   - ✅ Proper logging and observability
+   - ✅ Services updated:
+     - ✅ `DocumentClassificationService` - Uses helpers for LLM calls
+     - ✅ `DocumentExpiryExtractionService` - Uses helpers for LLM calls
+     - ✅ `DocumentContentValidationService` - Uses helpers for LLM calls
+
+4. **Benefits** ✅:
+   - ✅ Centralized prompt management - easier to maintain and update
+   - ✅ Consistent LLM calls - retry logic, rate limiting, error handling
+   - ✅ Better error handling - custom exceptions for different error types
+   - ✅ Improved observability - usage tracking, processing time metrics
+   - ✅ Easier testing - helpers can be mocked independently
+   - ✅ Production-ready - circuit breaker, retry logic, timeout handling
 
 ## 8.5 Document Checklist Generation
 
@@ -2207,6 +2401,35 @@ Shows:
 
 3. **Human Review for Uncertain Cases**:
    - If classification confidence < 0.7: Flag for reviewer
+
+## 8.7 Admin API Endpoints
+
+### Step-by-Step Implementation
+
+1. **Case Document Management**:
+   - ✅ Admin endpoints implemented: `GET /api/v1/document-handling/admin/case-documents/`
+   - ✅ Filter by: case_id, document_type_id, status, has_ocr_text, min_confidence, mime_type, date range
+   - ✅ Admin detail endpoint: `GET /api/v1/document-handling/admin/case-documents/<id>/`
+   - ✅ Update endpoint: `PUT /api/v1/document-handling/admin/case-documents/<id>/`
+   - ✅ Delete endpoint: `DELETE /api/v1/document-handling/admin/case-documents/<id>/`
+   - ✅ Bulk operations endpoint: `POST /api/v1/document-handling/admin/case-documents/bulk-operation/`
+   - ✅ Bulk operations: delete, update_status, reprocess_ocr, reprocess_classification, reprocess_validation, reprocess_full
+
+2. **Document Check Management**:
+   - ✅ Admin endpoints implemented: `GET /api/v1/document-handling/admin/document-checks/`
+   - ✅ Filter by: case_document_id, check_type, result, performed_by, date range
+   - ✅ Admin detail endpoint: `GET /api/v1/document-handling/admin/document-checks/<id>/`
+   - ✅ Update endpoint: `PUT /api/v1/document-handling/admin/document-checks/<id>/`
+   - ✅ Delete endpoint: `DELETE /api/v1/document-handling/admin/document-checks/<id>/`
+   - ✅ Bulk delete endpoint: `POST /api/v1/document-handling/admin/document-checks/bulk-operation/`
+
+3. **Document Handling Analytics**:
+   - ✅ Statistics endpoint: `GET /api/v1/document-handling/admin/statistics/`
+   - ✅ Provides comprehensive statistics on:
+     - Case documents: total, by status, OCR coverage, classification confidence, file sizes, recent activity, by document type
+     - Document checks: total, by type, by result, failed/passed/warning/pending counts, recent activity
+   - ✅ **Architecture**: Follows system architecture pattern (selectors, repositories, services, views)
+   - ✅ **Documentation**: See `DOCUMENT_HANDLING_ADMIN_FUNCTIONALITY.md` for complete API documentation
    - Reviewer can manually classify and approve
 
 ---
