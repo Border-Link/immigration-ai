@@ -93,3 +93,26 @@ class VisaTypeService:
             logger.error(f"Error deleting visa type {type_id}: {e}")
             return False
 
+    @staticmethod
+    def get_by_filters(jurisdiction=None, is_active=None, code=None, date_from=None, date_to=None):
+        """Get visa types with advanced filtering for admin."""
+        try:
+            return VisaTypeSelector.get_by_filters(
+                jurisdiction=jurisdiction,
+                is_active=is_active,
+                code=code,
+                date_from=date_from,
+                date_to=date_to
+            )
+        except Exception as e:
+            logger.error(f"Error filtering visa types: {e}")
+            return VisaType.objects.none()
+
+    @staticmethod
+    def activate_visa_type(visa_type, is_active: bool) -> Optional[VisaType]:
+        """Activate or deactivate a visa type."""
+        try:
+            return VisaTypeRepository.update_visa_type(visa_type, is_active=is_active)
+        except Exception as e:
+            logger.error(f"Error activating/deactivating visa type: {e}")
+            return None
