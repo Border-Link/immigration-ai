@@ -61,3 +61,7 @@ class UserProfileSelector:
             'state_province__country'
         ).filter(consent_given=consent_given)
 
+    @staticmethod
+    def get_none():
+        """Get empty queryset."""
+        return UserProfile.objects.none()
