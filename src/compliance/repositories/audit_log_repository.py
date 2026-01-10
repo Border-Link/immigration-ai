@@ -26,3 +26,9 @@ class AuditLogRepository:
             audit_log.save()
             return audit_log
 
+    @staticmethod
+    def delete_audit_log(audit_log):
+        """Delete an audit log entry."""
+        with transaction.atomic():
+            audit_log.delete()
+            return True
