@@ -41,7 +41,7 @@ class NotificationService:
             return NotificationSelector.get_by_user(user)
         except Exception as e:
             logger.error(f"Error fetching notifications for user {user_id}: {e}")
-            return Notification.objects.none()
+            return NotificationSelector.get_none()
 
     @staticmethod
     def get_unread_by_user(user_id: str):
@@ -51,7 +51,7 @@ class NotificationService:
             return NotificationSelector.get_unread_by_user(user)
         except Exception as e:
             logger.error(f"Error fetching unread notifications for user {user_id}: {e}")
-            return Notification.objects.none()
+            return NotificationSelector.get_none()
 
     @staticmethod
     def mark_as_read(notification_id: str) -> Optional[Notification]:
@@ -99,3 +99,28 @@ class NotificationService:
             logger.error(f"Error fetching notification {notification_id}: {e}")
             return None
 
+    @staticmethod
+    def get_all():
+        """Get all notifications."""
+        try:
+            return NotificationSelector.get_all()
+        except Exception as e:
+            logger.error(f"Error fetching all notifications: {e}")
+            return NotificationSelector.get_none()
+
+    @staticmethod
+    def delete_notification(notification_id: str) -> bool:
+        """Delete a notification."""
+        try:
+            notification = NotificationSelector.get_by_id(notification_id)
+            if not notification:
+                logger.error(f"Notification {notification_id} not found")
+                return False
+            NotificationRepository.delete_notification(notification)
+            return True
+        except Notification.DoesNotExist:
+            logger.error(f"Notification {notification_id} not found")
+            return False
+        except Exception as e:
+            logger.error(f"Error deleting notification {notification_id}: {e}")
+            return False

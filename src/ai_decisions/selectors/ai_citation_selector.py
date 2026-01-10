@@ -46,3 +46,43 @@ class AICitationSelector:
             'document_version__source_document'
         ).get(id=citation_id)
 
+    @staticmethod
+    def get_none():
+        """Get empty queryset."""
+        return AICitation.objects.none()
+
+    @staticmethod
+    def get_statistics():
+        """Get AI citation statistics."""
+        from django.db.models import Avg
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        queryset = AICitation.objects.all()
+        
+        total_citations = queryset.count()
+        avg_relevance_score = queryset.aggregate(
+            avg=Avg('relevance_score')
+        )['avg'] or 0.0
+        
+        citations_by_relevance_range = {
+            'high': queryset.filter(relevance_score__gte=0.8).count(),
+            'medium': queryset.filter(
+                relevance_score__gte=0.5,
+                relevance_score__lt=0.8
+            ).count(),
+            'low': queryset.filter(relevance_score__lt=0.5).count(),
+        }
+        
+        # Recent activity (last 30 days)
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        recent_citations = queryset.filter(
+            created_at__gte=thirty_days_ago
+        ).count()
+        
+        return {
+            'total': total_citations,
+            'average_relevance_score': round(avg_relevance_score, 3),
+            'by_relevance_range': citations_by_relevance_range,
+            'recent_30_days': recent_citations,
+        }

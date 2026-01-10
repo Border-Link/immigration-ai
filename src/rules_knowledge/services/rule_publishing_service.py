@@ -27,7 +27,7 @@ from rules_knowledge.selectors.visa_rule_version_selector import VisaRuleVersion
 from rules_knowledge.services.visa_rule_version_service import VisaRuleVersionService
 from users_access.services.notification_service import NotificationService
 from users_access.tasks.email_tasks import send_rule_change_notification_email_task
-from ai_decisions.services.vector_db_service import VectorDBService
+from ai_decisions.services.vector_db_service import PgVectorService
 from ai_decisions.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger('django')
@@ -142,7 +142,7 @@ class RulePublishingService:
                 rule_version=published_version
             )
             
-            # Step 10: Update vector DB with embeddings (for RAG retrieval)
+            # Step 10: Update pgvector with embeddings (for RAG retrieval)
             # This is done asynchronously to not block rule publishing
             RulePublishingService._update_vector_db_for_document_version(
                 document_version=parsed_rule.document_version,
@@ -439,12 +439,12 @@ class RulePublishingService:
         jurisdiction: Optional[str] = None
     ):
         """
-        Update vector DB with embeddings for a document version.
+        Update pgvector with embeddings for a document version.
         
         This method:
         1. Chunks the document text
         2. Generates embeddings
-        3. Stores chunks with embeddings in vector DB
+        3. Stores chunks with embeddings in pgvector (PostgreSQL)
         
         Args:
             document_version: DocumentVersion instance
@@ -457,7 +457,7 @@ class RulePublishingService:
                 return
             
             # Check if chunks already exist
-            existing_chunks = VectorDBService.get_chunks_by_document_version(document_version)
+            existing_chunks = PgVectorService.get_chunks_by_document_version(document_version)
             if existing_chunks:
                 logger.info(
                     f"Chunks already exist for document version {document_version.id}, skipping embedding generation"
@@ -492,8 +492,8 @@ class RulePublishingService:
                 chunk_metadata['source_url'] = document_version.source_document.source_url
                 chunk['metadata'] = chunk_metadata
             
-            # Step 4: Store in vector DB
-            VectorDBService.store_chunks(
+            # Step 4: Store in pgvector (PostgreSQL)
+            PgVectorService.store_chunks(
                 document_version=document_version,
                 chunks=chunks,
                 embeddings=embeddings
@@ -504,9 +504,9 @@ class RulePublishingService:
             )
             
         except Exception as e:
-            # Don't fail rule publishing if vector DB update fails
+            # Don't fail rule publishing if pgvector update fails
             logger.error(
-                f"Error updating vector DB for document version "
+                f"Error updating pgvector for document version "
                 f"{document_version.id if document_version else 'None'}: {e}",
                 exc_info=True
             )

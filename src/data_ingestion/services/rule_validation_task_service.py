@@ -17,7 +17,7 @@ class RuleValidationTaskService:
             return RuleValidationTaskSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all validation tasks: {e}")
-            return RuleValidationTask.objects.none()
+            return RuleValidationTaskSelector.get_none()
 
     @staticmethod
     def get_by_status(status: str):
@@ -26,7 +26,7 @@ class RuleValidationTaskService:
             return RuleValidationTaskSelector.get_by_status(status)
         except Exception as e:
             logger.error(f"Error fetching validation tasks by status {status}: {e}")
-            return RuleValidationTask.objects.none()
+            return RuleValidationTaskSelector.get_none()
 
     @staticmethod
     def get_by_reviewer(reviewer_id: str):
@@ -35,11 +35,11 @@ class RuleValidationTaskService:
             from users_access.selectors.user_selector import UserSelector
             reviewer = UserSelector.get_by_id(reviewer_id)
             if not reviewer:
-                return RuleValidationTask.objects.none()
+                return RuleValidationTaskSelector.get_none()
             return RuleValidationTaskSelector.get_by_reviewer(reviewer)
         except Exception as e:
             logger.error(f"Error fetching validation tasks for reviewer {reviewer_id}: {e}")
-            return RuleValidationTask.objects.none()
+            return RuleValidationTaskSelector.get_none()
 
     @staticmethod
     def get_pending():
@@ -48,7 +48,7 @@ class RuleValidationTaskService:
             return RuleValidationTaskSelector.get_pending()
         except Exception as e:
             logger.error(f"Error fetching pending validation tasks: {e}")
-            return RuleValidationTask.objects.none()
+            return RuleValidationTaskSelector.get_none()
 
     @staticmethod
     def get_by_id(task_id: str) -> Optional[RuleValidationTask]:
@@ -174,3 +174,43 @@ class RuleValidationTaskService:
             logger.error(f"Error rejecting validation task {task_id}: {e}")
             return None
 
+    @staticmethod
+    def delete_validation_task(task_id: str) -> bool:
+        """Delete a validation task."""
+        try:
+            task = RuleValidationTaskSelector.get_by_id(task_id)
+            if not task:
+                logger.error(f"Validation task {task_id} not found")
+                return False
+            RuleValidationTaskRepository.delete_validation_task(task)
+            return True
+        except RuleValidationTask.DoesNotExist:
+            logger.error(f"Validation task {task_id} not found")
+            return False
+        except Exception as e:
+            logger.error(f"Error deleting validation task {task_id}: {e}")
+            return False
+
+    @staticmethod
+    def get_by_filters(status: str = None, assigned_to: str = None, date_from=None, date_to=None, sla_overdue: bool = None):
+        """Get validation tasks with filters."""
+        try:
+            return RuleValidationTaskSelector.get_by_filters(
+                status=status,
+                assigned_to_id=assigned_to,
+                date_from=date_from,
+                date_to=date_to,
+                sla_overdue=sla_overdue
+            )
+        except Exception as e:
+            logger.error(f"Error fetching filtered validation tasks: {e}")
+            return RuleValidationTaskSelector.get_none()
+
+    @staticmethod
+    def get_statistics():
+        """Get validation task statistics."""
+        try:
+            return RuleValidationTaskSelector.get_statistics()
+        except Exception as e:
+            logger.error(f"Error getting validation task statistics: {e}")
+            return {}

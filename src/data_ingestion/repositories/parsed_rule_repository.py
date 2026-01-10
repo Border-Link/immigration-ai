@@ -66,3 +66,9 @@ class ParsedRuleRepository:
             parsed_rule.save()
             return parsed_rule
 
+    @staticmethod
+    def delete_parsed_rule(parsed_rule):
+        """Delete a parsed rule."""
+        with transaction.atomic():
+            parsed_rule.delete()
+            return True

@@ -5,6 +5,10 @@ from .update_delete import (
     RuleValidationTaskApproveSerializer,
     RuleValidationTaskRejectSerializer
 )
+from .admin import (
+    RuleValidationTaskAdminUpdateSerializer,
+    BulkRuleValidationTaskOperationSerializer,
+)
 
 __all__ = [
     'RuleValidationTaskSerializer',
@@ -13,5 +17,7 @@ __all__ = [
     'RuleValidationTaskAssignSerializer',
     'RuleValidationTaskApproveSerializer',
     'RuleValidationTaskRejectSerializer',
+    'RuleValidationTaskAdminUpdateSerializer',
+    'BulkRuleValidationTaskOperationSerializer',
 ]
 

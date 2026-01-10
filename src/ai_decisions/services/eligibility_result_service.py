@@ -43,7 +43,7 @@ class EligibilityResultService:
             return EligibilityResultSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all eligibility results: {e}")
-            return EligibilityResult.objects.none()
+            return EligibilityResultSelector.get_none()
 
     @staticmethod
     def get_by_case(case_id: str):
@@ -53,7 +53,7 @@ class EligibilityResultService:
             return EligibilityResultSelector.get_by_case(case)
         except Exception as e:
             logger.error(f"Error fetching eligibility results for case {case_id}: {e}")
-            return EligibilityResult.objects.none()
+            return EligibilityResultSelector.get_none()
 
     @staticmethod
     def get_by_id(result_id: str) -> Optional[EligibilityResult]:
@@ -94,3 +94,38 @@ class EligibilityResultService:
             logger.error(f"Error deleting eligibility result {result_id}: {e}")
             return False
 
+    @staticmethod
+    def get_by_filters(case_id: str = None, visa_type_id: str = None, outcome: str = None, 
+                       min_confidence: float = None, date_from=None, date_to=None):
+        """Get eligibility results with filters."""
+        try:
+            if case_id:
+                results = EligibilityResultService.get_by_case(case_id)
+            else:
+                results = EligibilityResultSelector.get_all()
+            
+            # Apply additional filters
+            if visa_type_id:
+                results = results.filter(visa_type_id=visa_type_id)
+            if outcome:
+                results = results.filter(outcome=outcome)
+            if min_confidence is not None:
+                results = results.filter(confidence__gte=min_confidence)
+            if date_from:
+                results = results.filter(created_at__gte=date_from)
+            if date_to:
+                results = results.filter(created_at__lte=date_to)
+            
+            return results
+        except Exception as e:
+            logger.error(f"Error fetching filtered eligibility results: {e}")
+            return EligibilityResultSelector.get_none()
+
+    @staticmethod
+    def get_statistics():
+        """Get eligibility result statistics."""
+        try:
+            return EligibilityResultSelector.get_statistics()
+        except Exception as e:
+            logger.error(f"Error getting eligibility result statistics: {e}")
+            return {}

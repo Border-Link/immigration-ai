@@ -1,6 +1,18 @@
+"""
+PgVector Service
+
+Service for vector similarity search using pgvector (PostgreSQL vector extension).
+This service handles storing and querying document chunks with embeddings directly
+in PostgreSQL using the pgvector extension - no separate vector database needed.
+
+Benefits of pgvector:
+- Native PostgreSQL integration (no separate infrastructure)
+- ACID compliant transactions
+- Cost-effective (no additional service costs)
+- Simple architecture (single database)
+"""
 import logging
 from typing import List, Dict, Optional
-from django.db.models import Q
 from pgvector.django import CosineDistance
 from data_ingestion.models.document_chunk import DocumentChunk
 from data_ingestion.models.document_version import DocumentVersion
@@ -8,10 +20,15 @@ from data_ingestion.models.document_version import DocumentVersion
 logger = logging.getLogger('django')
 
 
-class VectorDBService:
+class PgVectorService:
     """
-    Service for vector similarity search using pgvector.
-    Handles storing and querying document chunks with embeddings.
+    Service for vector similarity search using pgvector (PostgreSQL extension).
+    
+    This service uses pgvector, a PostgreSQL extension that adds vector similarity
+    search capabilities directly to PostgreSQL. No separate vector database is needed.
+    
+    All embeddings are stored in the same PostgreSQL database as the rest of the
+    application data, providing ACID compliance and simplified architecture.
     """
 
     @staticmethod
@@ -190,8 +207,8 @@ class VectorDBService:
             List of created DocumentChunk objects
         """
         # Delete existing chunks
-        VectorDBService.delete_chunks_by_document_version(document_version)
+        PgVectorService.delete_chunks_by_document_version(document_version)
         
         # Create new chunks
-        return VectorDBService.store_chunks(document_version, chunks, embeddings)
+        return PgVectorService.store_chunks(document_version, chunks, embeddings)
 

@@ -51,3 +51,7 @@ class CountrySelector:
         """Get country by ID (UUID)."""
         return Country.objects.get(id=country_id)
 
+    @staticmethod
+    def get_none():
+        """Get empty queryset."""
+        return Country.objects.none()

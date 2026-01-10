@@ -50,3 +50,9 @@ class DataSourceRepository:
             data_source.save()
             return data_source
 
+    @staticmethod
+    def delete_data_source(data_source):
+        """Delete a data source."""
+        with transaction.atomic():
+            data_source.delete()
+            return True

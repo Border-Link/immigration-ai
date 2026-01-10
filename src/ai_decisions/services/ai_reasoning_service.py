@@ -3,7 +3,7 @@ AI Reasoning Service
 
 Service for AI-assisted reasoning using RAG (Retrieval-Augmented Generation).
 This service:
-1. Retrieves relevant context using vector similarity search
+1. Retrieves relevant context using pgvector similarity search
 2. Constructs prompts with context
 3. Calls LLM API
 4. Extracts citations and stores reasoning logs
@@ -11,7 +11,7 @@ This service:
 import logging
 from typing import Dict, List, Optional, Any
 from django.conf import settings
-from ai_decisions.services.vector_db_service import VectorDBService
+from ai_decisions.services.vector_db_service import PgVectorService
 from ai_decisions.services.embedding_service import EmbeddingService
 from ai_decisions.services.ai_reasoning_log_service import AIReasoningLogService
 from ai_decisions.services.ai_citation_service import AICitationService
@@ -21,13 +21,16 @@ logger = logging.getLogger('django')
 
 class AIReasoningService:
     """
-    Service for AI reasoning with RAG.
+    Service for AI reasoning with RAG (Retrieval-Augmented Generation).
     
     This service implements the AI reasoning workflow from implementation.md Section 6.3:
-    1. Retrieve relevant context (vector DB query)
+    1. Retrieve relevant context using pgvector similarity search
     2. Construct AI prompt
     3. Call LLM (OpenAI/Anthropic)
     4. Store reasoning & citations
+    
+    Note: Uses pgvector (PostgreSQL extension) for vector similarity search.
+    No separate vector database is required.
     """
 
     @staticmethod
@@ -40,7 +43,10 @@ class AIReasoningService:
         similarity_threshold: float = 0.7
     ) -> List[Dict[str, Any]]:
         """
-        Step 1: Retrieve relevant context using vector similarity search.
+        Step 1: Retrieve relevant context using pgvector similarity search.
+        
+        Uses pgvector (PostgreSQL extension) to perform cosine similarity search
+        on document chunk embeddings stored in PostgreSQL.
         
         Args:
             case_facts: Dictionary of case facts
@@ -70,8 +76,8 @@ class AIReasoningService:
             if jurisdiction:
                 filters['jurisdiction'] = jurisdiction
             
-            # Search similar chunks
-            chunks = VectorDBService.search_similar(
+            # Search similar chunks using pgvector
+            chunks = PgVectorService.search_similar(
                 query_embedding=query_embedding,
                 limit=limit,
                 filters=filters,
@@ -381,20 +387,49 @@ class AIReasoningService:
             )
             
             # Step 5: Store citations
-            # Note: Citation storage requires document_version_id, which we don't have from context chunks
-            # For now, we'll skip citation storage or implement a different approach
             citations_created = 0
-            if reasoning_log and llm_result.get('citations'):
-                # TODO: Map citations to document versions from context chunks
-                # For now, log citations but don't store them
-                logger.info(
-                    f"Found {len(llm_result['citations'])} citations in response, "
-                    f"but citation storage requires document_version_id mapping"
-                )
+            if reasoning_log and context_chunks:
+                # Map citations to document versions from context chunks
+                # Context chunks contain document_version relationship
+                from data_ingestion.models.document_chunk import DocumentChunk
+                
+                for chunk_data in context_chunks:
+                    chunk_id = chunk_data.get('chunk_id')
+                    if not chunk_id:
+                        continue
+                    
+                    try:
+                        # Get the DocumentChunk to access document_version
+                        # Use select_related to avoid N+1 queries
+                        document_chunk = DocumentChunk.objects.select_related(
+                            'document_version'
+                        ).get(id=chunk_id)
+                        
+                        if document_chunk and document_chunk.document_version:
+                            # Create citation for this chunk
+                            citation = AICitationService.create_citation(
+                                reasoning_log_id=str(reasoning_log.id),
+                                document_version_id=str(document_chunk.document_version.id),
+                                excerpt=chunk_data.get('text', '')[:1000],  # Truncate excerpt to 1000 chars
+                                relevance_score=chunk_data.get('similarity', 0.0)
+                            )
+                            if citation:
+                                citations_created += 1
+                    except DocumentChunk.DoesNotExist:
+                        logger.warning(f"DocumentChunk {chunk_id} not found for citation")
+                    except Exception as e:
+                        logger.warning(f"Failed to create citation for chunk {chunk_id}: {e}", exc_info=True)
+                
+                # Also store citations extracted from LLM response (if any)
+                if llm_result.get('citations'):
+                    logger.info(
+                        f"Found {len(llm_result['citations'])} citations in LLM response, "
+                        f"stored {citations_created} citations from context chunks"
+                    )
             
             logger.info(
                 f"AI reasoning completed for case {case_id}: "
-                f"{len(context_chunks)} context chunks, {citations_created} citations"
+                f"{len(context_chunks)} context chunks, {citations_created} citations stored"
             )
             
             return {

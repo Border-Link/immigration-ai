@@ -73,3 +73,14 @@ class UserRepository:
             user.full_clean()
             user.save()
             return user
+
+    @staticmethod
+    def update_user(user, **fields):
+        """Update user fields."""
+        with transaction.atomic():
+            for field, value in fields.items():
+                if hasattr(user, field):
+                    setattr(user, field, value)
+            user.full_clean()
+            user.save()
+            return user

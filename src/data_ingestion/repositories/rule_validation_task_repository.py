@@ -45,3 +45,9 @@ class RuleValidationTaskRepository:
             task.save()
             return task
 
+    @staticmethod
+    def delete_validation_task(task):
+        """Delete a validation task."""
+        with transaction.atomic():
+            task.delete()
+            return True

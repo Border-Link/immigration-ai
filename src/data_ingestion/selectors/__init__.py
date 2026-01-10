@@ -1,6 +1,7 @@
 from .data_source_selector import DataSourceSelector
 from .source_document_selector import SourceDocumentSelector
 from .document_version_selector import DocumentVersionSelector
+from .document_chunk_selector import DocumentChunkSelector
 from .document_diff_selector import DocumentDiffSelector
 from .parsed_rule_selector import ParsedRuleSelector
 from .rule_validation_task_selector import RuleValidationTaskSelector
@@ -10,6 +11,7 @@ __all__ = [
     'DataSourceSelector',
     'SourceDocumentSelector',
     'DocumentVersionSelector',
+    'DocumentChunkSelector',
     'DocumentDiffSelector',
     'ParsedRuleSelector',
     'RuleValidationTaskSelector',

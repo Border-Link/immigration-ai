@@ -38,7 +38,7 @@ class StateProvinceService:
             return StateProvinceSelector.get_by_country_code(country_code)
         except Exception as e:
             logger.error(f"Error fetching states for country {country_code}: {e}")
-            return StateProvince.objects.none()
+            return StateProvinceSelector.get_none()
 
     @staticmethod
     def get_by_country_id(country_id):
@@ -48,7 +48,7 @@ class StateProvinceService:
             return StateProvinceSelector.get_by_country_code(country.code)
         except Exception as e:
             logger.error(f"Error fetching states for country ID {country_id}: {e}")
-            return StateProvince.objects.none()
+            return StateProvinceSelector.get_none()
 
     @staticmethod
     def get_by_code(country_code: str, state_code: str):
@@ -78,7 +78,7 @@ class StateProvinceService:
             return StateProvinceSelector.get_with_nomination_programs()
         except Exception as e:
             logger.error(f"Error fetching nomination programs: {e}")
-            return StateProvince.objects.none()
+            return StateProvinceSelector.get_none()
 
     @staticmethod
     def update_state_province(state, **fields):
@@ -117,3 +117,14 @@ class StateProvinceService:
             logger.error(f"Error deleting state/province by ID {state_id}: {e}")
             return False
 
+    @staticmethod
+    def activate_state_province_by_id(state_id: str, is_active: bool):
+        """Activate or deactivate a state/province by ID."""
+        try:
+            state = StateProvinceSelector.get_by_id(state_id)
+            if not state:
+                return None
+            return StateProvinceRepository.activate_state_province(state, is_active)
+        except Exception as e:
+            logger.error(f"Error activating/deactivating state/province {state_id}: {e}")
+            return None

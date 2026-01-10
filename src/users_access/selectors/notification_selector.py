@@ -49,3 +49,7 @@ class NotificationSelector:
         """Count unread notifications for a user."""
         return Notification.objects.filter(user=user, is_read=False).count()
 
+    @staticmethod
+    def get_none():
+        """Get empty queryset."""
+        return Notification.objects.none()
