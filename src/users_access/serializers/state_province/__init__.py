@@ -16,6 +16,11 @@ from .update_delete import (
     StateProvinceDeleteSerializer
 )
 
+# Admin serializers
+from .admin import (
+    StateProvinceActivateSerializer,
+)
+
 __all__ = [
     # Read
     'StateProvinceSerializer',
@@ -26,5 +31,7 @@ __all__ = [
     # Update/Delete
     'StateProvinceUpdateSerializer',
     'StateProvinceDeleteSerializer',
+    # Admin
+    'StateProvinceActivateSerializer',
 ]
 
