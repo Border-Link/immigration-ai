@@ -138,11 +138,23 @@ class ProcessingJobService:
             return None
 
     @staticmethod
-    def update_status(job_id: str, status: str) -> Optional[ProcessingJob]:
-        """Update processing job status."""
+    def update_status(job_id: str, status: str, error_message: str = None, error_type: str = None) -> Optional[ProcessingJob]:
+        """Update processing job status with optional error information."""
         try:
             job = ProcessingJobSelector.get_by_id(job_id)
-            return ProcessingJobRepository.update_status(job, status)
+            updated_job = ProcessingJobRepository.update_status(job, status)
+            
+            # Update error fields if provided
+            if error_message or error_type:
+                update_fields = {}
+                if error_message:
+                    update_fields['error_message'] = error_message
+                if error_type:
+                    update_fields['error_type'] = error_type
+                if update_fields:
+                    updated_job = ProcessingJobRepository.update_processing_job(updated_job, **update_fields)
+            
+            return updated_job
         except ProcessingJob.DoesNotExist:
             logger.error(f"Processing job {job_id} not found")
             return None
@@ -214,3 +226,44 @@ class ProcessingJobService:
         except Exception as e:
             logger.error(f"Error getting processing job statistics: {e}")
             return {}
+    
+    @staticmethod
+    def update_cost_tracking(
+        job_id: str,
+        llm_tokens_used: int = None,
+        llm_cost_usd: float = None,
+        ocr_cost_usd: float = None
+    ) -> Optional[ProcessingJob]:
+        """Update cost tracking for a processing job."""
+        try:
+            job = ProcessingJobSelector.get_by_id(job_id)
+            if not job:
+                return None
+            
+            update_fields = {}
+            if llm_tokens_used is not None:
+                update_fields['llm_tokens_used'] = llm_tokens_used
+            if llm_cost_usd is not None:
+                update_fields['llm_cost_usd'] = llm_cost_usd
+            if ocr_cost_usd is not None:
+                update_fields['ocr_cost_usd'] = ocr_cost_usd
+            
+            # Calculate total cost
+            total_cost = 0.0
+            if llm_cost_usd is not None:
+                total_cost += float(llm_cost_usd)
+            if ocr_cost_usd is not None:
+                total_cost += float(ocr_cost_usd)
+            if total_cost > 0:
+                update_fields['total_cost_usd'] = total_cost
+            
+            if update_fields:
+                return ProcessingJobRepository.update_processing_job(job, **update_fields)
+            
+            return job
+        except ProcessingJob.DoesNotExist:
+            logger.error(f"Processing job {job_id} not found")
+            return None
+        except Exception as e:
+            logger.error(f"Error updating cost tracking for job {job_id}: {e}")
+            return None
