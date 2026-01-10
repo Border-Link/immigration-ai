@@ -14,7 +14,7 @@ class VisaRuleVersionService:
 
     @staticmethod
     def create_rule_version(visa_type_id: str, effective_from, effective_to=None,
-                           source_document_version_id=None, is_published: bool = False):
+                           source_document_version_id=None, is_published: bool = False, created_by=None):
         """Create a new rule version."""
         try:
             visa_type = VisaTypeSelector.get_by_id(visa_type_id)
@@ -24,7 +24,7 @@ class VisaRuleVersionService:
                 source_doc_version = DocumentVersionSelector.get_by_id(source_document_version_id)
             
             return VisaRuleVersionRepository.create_rule_version(
-                visa_type, effective_from, effective_to, source_doc_version, is_published
+                visa_type, effective_from, effective_to, source_doc_version, is_published, created_by
             )
         except Exception as e:
             logger.error(f"Error creating rule version for visa type {visa_type_id}: {e}")
@@ -72,11 +72,11 @@ class VisaRuleVersionService:
             return None
 
     @staticmethod
-    def publish_rule_version(version_id: str) -> Optional[VisaRuleVersion]:
+    def publish_rule_version(version_id: str, published_by=None) -> Optional[VisaRuleVersion]:
         """Publish a rule version."""
         try:
             rule_version = VisaRuleVersionSelector.get_by_id(version_id)
-            return VisaRuleVersionRepository.publish_rule_version(rule_version)
+            return VisaRuleVersionRepository.publish_rule_version(rule_version, published_by)
         except VisaRuleVersion.DoesNotExist:
             logger.error(f"Rule version {version_id} not found")
             return None
@@ -85,11 +85,11 @@ class VisaRuleVersionService:
             return None
 
     @staticmethod
-    def update_rule_version(version_id: str, **fields) -> Optional[VisaRuleVersion]:
+    def update_rule_version(version_id: str, updated_by=None, **fields) -> Optional[VisaRuleVersion]:
         """Update rule version."""
         try:
             rule_version = VisaRuleVersionSelector.get_by_id(version_id)
-            return VisaRuleVersionRepository.update_rule_version(rule_version, **fields)
+            return VisaRuleVersionRepository.update_rule_version(rule_version, updated_by, **fields)
         except VisaRuleVersion.DoesNotExist:
             logger.error(f"Rule version {version_id} not found")
             return None
@@ -111,3 +111,28 @@ class VisaRuleVersionService:
             logger.error(f"Error deleting rule version {version_id}: {e}")
             return False
 
+    @staticmethod
+    def get_by_filters(visa_type_id=None, is_published=None, jurisdiction=None, date_from=None, date_to=None, effective_from=None, effective_to=None):
+        """Get rule versions with advanced filtering for admin."""
+        try:
+            return VisaRuleVersionSelector.get_by_filters(
+                visa_type_id=visa_type_id,
+                is_published=is_published,
+                jurisdiction=jurisdiction,
+                date_from=date_from,
+                date_to=date_to,
+                effective_from=effective_from,
+                effective_to=effective_to
+            )
+        except Exception as e:
+            logger.error(f"Error filtering rule versions: {e}")
+            return VisaRuleVersion.objects.none()
+
+    @staticmethod
+    def publish_rule_version_by_flag(rule_version, is_published: bool) -> Optional[VisaRuleVersion]:
+        """Publish or unpublish a rule version."""
+        try:
+            return VisaRuleVersionRepository.update_rule_version(rule_version, is_published=is_published)
+        except Exception as e:
+            logger.error(f"Error publishing/unpublishing rule version: {e}")
+            return None
