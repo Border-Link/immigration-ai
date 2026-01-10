@@ -82,3 +82,20 @@ class VisaRequirementService:
             logger.error(f"Error deleting requirement {requirement_id}: {e}")
             return False
 
+    @staticmethod
+    def get_by_filters(rule_version_id=None, rule_type=None, is_mandatory=None, requirement_code=None, visa_type_id=None, jurisdiction=None, date_from=None, date_to=None):
+        """Get requirements with advanced filtering for admin."""
+        try:
+            return VisaRequirementSelector.get_by_filters(
+                rule_version_id=rule_version_id,
+                rule_type=rule_type,
+                is_mandatory=is_mandatory,
+                requirement_code=requirement_code,
+                visa_type_id=visa_type_id,
+                jurisdiction=jurisdiction,
+                date_from=date_from,
+                date_to=date_to
+            )
+        except Exception as e:
+            logger.error(f"Error filtering requirements: {e}")
+            return VisaRequirement.objects.none()

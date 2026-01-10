@@ -96,3 +96,25 @@ class DocumentTypeService:
             logger.error(f"Error deleting document type {type_id}: {e}")
             return False
 
+    @staticmethod
+    def get_by_filters(is_active=None, code=None, date_from=None, date_to=None):
+        """Get document types with advanced filtering for admin."""
+        try:
+            return DocumentTypeSelector.get_by_filters(
+                is_active=is_active,
+                code=code,
+                date_from=date_from,
+                date_to=date_to
+            )
+        except Exception as e:
+            logger.error(f"Error filtering document types: {e}")
+            return DocumentType.objects.none()
+
+    @staticmethod
+    def activate_document_type(document_type, is_active: bool) -> Optional[DocumentType]:
+        """Activate or deactivate a document type."""
+        try:
+            return DocumentTypeRepository.update_document_type(document_type, is_active=is_active)
+        except Exception as e:
+            logger.error(f"Error activating/deactivating document type: {e}")
+            return None

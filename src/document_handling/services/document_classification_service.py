@@ -6,9 +6,22 @@ Uses OCR text and file metadata to predict document type.
 """
 import logging
 from typing import Tuple, Optional, Dict
-from django.conf import settings
 from rules_knowledge.selectors.document_type_selector import DocumentTypeSelector
-from document_handling.helpers.prompts import build_document_classification_prompt, get_system_message
+from document_handling.helpers.prompts import (
+    build_document_classification_prompt,
+    get_classification_system_message
+)
+from document_handling.helpers.llm_helper import (
+    call_llm_for_document_processing,
+    parse_llm_json_response
+)
+from data_ingestion.exceptions.rule_parsing_exceptions import (
+    LLMRateLimitError,
+    LLMTimeoutError,
+    LLMServiceUnavailableError,
+    LLMAPIKeyError,
+    LLMInvalidResponseError
+)
 
 logger = logging.getLogger('django')
 
@@ -105,21 +118,6 @@ class DocumentClassificationService:
             Dict with 'document_type', 'confidence', 'metadata'
         """
         try:
-            # Import OpenAI client
-            try:
-                from openai import OpenAI
-            except ImportError:
-                logger.error("OpenAI package not installed. Install with: pip install openai")
-                return None
-            
-            # Get API key from settings
-            api_key = getattr(settings, 'OPENAI_API_KEY', None)
-            if not api_key:
-                logger.error("OPENAI_API_KEY not set in settings")
-                return None
-            
-            client = OpenAI(api_key=api_key)
-            
             # Build comprehensive prompt using helper
             prompt = build_document_classification_prompt(
                 ocr_text=ocr_text,
@@ -127,32 +125,27 @@ class DocumentClassificationService:
                 possible_types=possible_types
             )
             
-            # Call LLM
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",  # Use cheaper model for classification
-                messages=[
-                    {
-                        "role": "system", 
-                        "content": get_system_message()
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.1,  # Low temperature for consistent classification
-                max_tokens=300  # Increased for detailed reasoning
+            # Get system message
+            system_message = get_classification_system_message()
+            
+            # Call LLM through helper (uses external_services)
+            response = call_llm_for_document_processing(
+                system_message=system_message,
+                user_prompt=prompt,
+                model="gpt-4o-mini",
+                temperature=0.1,
+                max_tokens=400,
+                response_format={"type": "json_object"}
             )
             
-            # Parse response
-            response_text = response.choices[0].message.content.strip()
+            if not response or 'content' not in response:
+                logger.error("LLM response missing content")
+                return None
             
-            # Remove markdown code blocks if present
-            if response_text.startswith('```'):
-                response_text = response_text.split('```')[1]
-                if response_text.startswith('json'):
-                    response_text = response_text[4:]
-                response_text = response_text.strip()
-            
-            import json
-            result = json.loads(response_text)
+            # Parse JSON response
+            result = parse_llm_json_response(response['content'])
+            if not result:
+                return None
             
             # Validate result
             if 'document_type' not in result:
@@ -168,12 +161,15 @@ class DocumentClassificationService:
                 'confidence': float(confidence),
                 'metadata': {
                     'reasoning': result.get('reasoning', ''),
-                    'model': 'gpt-4o-mini'
+                    'model': response.get('model', 'gpt-4o-mini'),
+                    'usage': response.get('usage', {}),
+                    'processing_time_ms': response.get('processing_time_ms', 0)
                 }
             }
             
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse LLM response as JSON: {e}")
+        except (LLMRateLimitError, LLMTimeoutError, LLMServiceUnavailableError,
+                LLMAPIKeyError, LLMInvalidResponseError) as e:
+            logger.error(f"LLM call failed for classification: {e}")
             return None
         except Exception as e:
             logger.error(f"Error calling LLM for classification: {e}", exc_info=True)

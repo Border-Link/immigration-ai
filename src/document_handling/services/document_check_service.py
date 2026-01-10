@@ -39,7 +39,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all document checks: {e}")
-            return DocumentCheck.objects.none()
+            return DocumentCheckSelector.get_none()
 
     @staticmethod
     def get_by_case_document(case_document_id: str):
@@ -49,10 +49,10 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_by_case_document(case_document)
         except CaseDocument.DoesNotExist:
             logger.error(f"Case document {case_document_id} not found")
-            return DocumentCheck.objects.none()
+            return DocumentCheckSelector.get_none()
         except Exception as e:
             logger.error(f"Error fetching checks for case document {case_document_id}: {e}")
-            return DocumentCheck.objects.none()
+            return DocumentCheckSelector.get_none()
 
     @staticmethod
     def get_by_check_type(check_type: str):
@@ -61,7 +61,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_by_check_type(check_type)
         except Exception as e:
             logger.error(f"Error fetching checks by type {check_type}: {e}")
-            return DocumentCheck.objects.none()
+            return DocumentCheckSelector.get_none()
 
     @staticmethod
     def get_by_result(result: str):
@@ -70,7 +70,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_by_result(result)
         except Exception as e:
             logger.error(f"Error fetching checks by result {result}: {e}")
-            return DocumentCheck.objects.none()
+            return DocumentCheckSelector.get_none()
 
     @staticmethod
     def get_by_id(check_id: str) -> Optional[DocumentCheck]:
@@ -124,3 +124,28 @@ class DocumentCheckService:
             logger.error(f"Error fetching latest check for case document {case_document_id}: {e}")
             return None
 
+    @staticmethod
+    def get_by_filters(case_document_id: str = None, check_type: str = None, result: str = None,
+                       performed_by: str = None, date_from=None, date_to=None):
+        """Get document checks with filters."""
+        try:
+            return DocumentCheckSelector.get_by_filters(
+                case_document_id=case_document_id,
+                check_type=check_type,
+                result=result,
+                performed_by=performed_by,
+                date_from=date_from,
+                date_to=date_to
+            )
+        except Exception as e:
+            logger.error(f"Error fetching filtered document checks: {e}")
+            return DocumentCheckSelector.get_none()
+
+    @staticmethod
+    def get_statistics():
+        """Get document check statistics."""
+        try:
+            return DocumentCheckSelector.get_statistics()
+        except Exception as e:
+            logger.error(f"Error getting document check statistics: {e}")
+            return {}

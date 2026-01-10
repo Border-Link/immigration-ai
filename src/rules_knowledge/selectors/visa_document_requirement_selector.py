@@ -51,3 +51,34 @@ class VisaDocumentRequirementSelector:
             'document_type'
         ).get(id=requirement_id)
 
+    @staticmethod
+    def get_by_filters(rule_version_id=None, document_type_id=None, mandatory=None, visa_type_id=None, jurisdiction=None, date_from=None, date_to=None):
+        """Get document requirements with advanced filtering for admin."""
+        queryset = VisaDocumentRequirement.objects.select_related(
+            'rule_version',
+            'rule_version__visa_type',
+            'document_type'
+        ).all()
+        
+        if rule_version_id:
+            queryset = queryset.filter(rule_version_id=rule_version_id)
+        
+        if document_type_id:
+            queryset = queryset.filter(document_type_id=document_type_id)
+        
+        if mandatory is not None:
+            queryset = queryset.filter(mandatory=mandatory)
+        
+        if visa_type_id:
+            queryset = queryset.filter(rule_version__visa_type_id=visa_type_id)
+        
+        if jurisdiction:
+            queryset = queryset.filter(rule_version__visa_type__jurisdiction=jurisdiction)
+        
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        
+        if date_to:
+            queryset = queryset.filter(created_at__lte=date_to)
+        
+        return queryset.order_by('document_type__code')

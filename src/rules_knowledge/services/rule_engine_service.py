@@ -290,6 +290,108 @@ class RuleEngineService:
         return value
     
     @staticmethod
+    def evaluate_expression(
+        expression: Dict[str, Any],
+        case_facts: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Evaluate a JSON Logic expression against case facts.
+        
+        This is a lower-level method for evaluating arbitrary JSON Logic expressions,
+        useful for conditional logic in document requirements, etc.
+        
+        Args:
+            expression: JSON Logic expression (dict or list)
+            case_facts: Dictionary of case facts
+            
+        Returns:
+            Dictionary with evaluation result:
+            {
+                "result": Any,  # The evaluation result (bool, number, etc.)
+                "passed": bool,  # Boolean interpretation of result
+                "missing_facts": List[str],  # Missing variables
+                "error": Optional[str]  # Error message if evaluation failed
+            }
+        """
+        result = {
+            "result": None,
+            "passed": False,
+            "missing_facts": [],
+            "error": None
+        }
+        
+        try:
+            # Edge case: Validate expression structure
+            is_valid, error_msg = RuleEngineService.validate_expression_structure(expression)
+            if not is_valid:
+                result["error"] = error_msg
+                logger.error(f"Invalid expression structure: {error_msg}")
+                return result
+            
+            # Extract variables from expression
+            required_variables = RuleEngineService.extract_variables_from_expression(expression)
+            
+            # Edge case: Expression has no variables (constant expression)
+            if not required_variables:
+                try:
+                    evaluation_result = json_logic.jsonLogic(expression, {})
+                    result["result"] = evaluation_result
+                    result["passed"] = bool(evaluation_result)
+                    return result
+                except Exception as e:
+                    result["error"] = f"Constant expression evaluation failed: {str(e)}"
+                    return result
+            
+            # Check for missing variables
+            missing_vars = [var for var in required_variables if var not in case_facts]
+            if missing_vars:
+                result["missing_facts"] = missing_vars
+                logger.debug(f"Cannot evaluate expression: missing facts: {missing_vars}")
+                return result
+            
+            # Prepare facts for JSON Logic (only include variables used in expression)
+            facts_for_evaluation = {}
+            for var in required_variables:
+                fact_value = case_facts[var]
+                normalized_value = RuleEngineService.normalize_fact_value(fact_value)
+                facts_for_evaluation[var] = normalized_value
+            
+            # Evaluate JSON Logic expression
+            try:
+                evaluation_result = json_logic.jsonLogic(expression, facts_for_evaluation)
+                
+                # Edge case: Handle None result
+                if evaluation_result is None:
+                    result["result"] = None
+                    result["passed"] = False
+                    return result
+                
+                # Convert to boolean for pass/fail
+                if isinstance(evaluation_result, bool):
+                    result["passed"] = evaluation_result
+                elif isinstance(evaluation_result, (int, float)):
+                    import math
+                    if math.isnan(evaluation_result) or math.isinf(evaluation_result):
+                        result["error"] = f"Expression evaluated to {evaluation_result}"
+                        return result
+                    result["passed"] = bool(evaluation_result)
+                else:
+                    result["passed"] = bool(evaluation_result)
+                
+                result["result"] = evaluation_result
+                return result
+                
+            except Exception as e:
+                result["error"] = f"Expression evaluation failed: {str(e)}"
+                logger.error(f"Error evaluating expression: {e}", exc_info=True)
+                return result
+                
+        except Exception as e:
+            result["error"] = f"Unexpected error: {str(e)}"
+            logger.error(f"Unexpected error in expression evaluation: {e}", exc_info=True)
+            return result
+    
+    @staticmethod
     def evaluate_requirement(
         requirement: VisaRequirement,
         case_facts: Dict[str, Any]

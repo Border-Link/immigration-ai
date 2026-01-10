@@ -12,6 +12,8 @@ class DocumentCheck(models.Model):
         ('ocr', 'OCR'),
         ('classification', 'Classification'),
         ('validation', 'Validation'),
+        ('content_validation', 'Content Validation'),
+        ('requirement_match', 'Requirement Match'),
         ('authenticity', 'Authenticity Check'),
     ]
 

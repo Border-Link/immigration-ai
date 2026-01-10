@@ -31,6 +31,41 @@ from rules_knowledge.views import (
     VisaDocumentRequirementUpdateAPI,
     VisaDocumentRequirementDeleteAPI,
 )
+from rules_knowledge.views.admin import (
+    # DocumentType Admin
+    DocumentTypeAdminListAPI,
+    DocumentTypeAdminDetailAPI,
+    DocumentTypeAdminActivateAPI,
+    DocumentTypeAdminDeleteAPI,
+    BulkDocumentTypeOperationAPI,
+    # VisaType Admin
+    VisaTypeAdminListAPI,
+    VisaTypeAdminDetailAPI,
+    VisaTypeAdminActivateAPI,
+    VisaTypeAdminDeleteAPI,
+    BulkVisaTypeOperationAPI,
+    # VisaRuleVersion Admin
+    VisaRuleVersionAdminListAPI,
+    VisaRuleVersionAdminDetailAPI,
+    VisaRuleVersionAdminUpdateAPI,
+    VisaRuleVersionAdminPublishAPI,
+    VisaRuleVersionAdminDeleteAPI,
+    BulkVisaRuleVersionOperationAPI,
+    # VisaRequirement Admin
+    VisaRequirementAdminListAPI,
+    VisaRequirementAdminDetailAPI,
+    VisaRequirementAdminUpdateAPI,
+    VisaRequirementAdminDeleteAPI,
+    BulkVisaRequirementOperationAPI,
+    # VisaDocumentRequirement Admin
+    VisaDocumentRequirementAdminListAPI,
+    VisaDocumentRequirementAdminDetailAPI,
+    VisaDocumentRequirementAdminUpdateAPI,
+    VisaDocumentRequirementAdminDeleteAPI,
+    BulkVisaDocumentRequirementOperationAPI,
+    # Analytics
+    RulesKnowledgeStatisticsAPI,
+)
 
 app_name = 'rules_knowledge'
 
@@ -69,5 +104,45 @@ urlpatterns = [
     path('visa-document-requirements/<uuid:id>/', VisaDocumentRequirementDetailAPI.as_view(), name='visa-document-requirement-detail'),
     path('visa-document-requirements/<uuid:id>/update/', VisaDocumentRequirementUpdateAPI.as_view(), name='visa-document-requirement-update'),
     path('visa-document-requirements/<uuid:id>/delete/', VisaDocumentRequirementDeleteAPI.as_view(), name='visa-document-requirement-delete'),
+    
+    # Admin endpoints (staff/superuser only)
+    # DocumentType Admin
+    path('admin/document-types/', DocumentTypeAdminListAPI.as_view(), name='admin-document-types-list'),
+    path('admin/document-types/bulk-operation/', BulkDocumentTypeOperationAPI.as_view(), name='admin-document-types-bulk-operation'),
+    path('admin/document-types/<uuid:id>/', DocumentTypeAdminDetailAPI.as_view(), name='admin-document-types-detail'),
+    path('admin/document-types/<uuid:id>/activate/', DocumentTypeAdminActivateAPI.as_view(), name='admin-document-types-activate'),
+    path('admin/document-types/<uuid:id>/delete/', DocumentTypeAdminDeleteAPI.as_view(), name='admin-document-types-delete'),
+    
+    # VisaType Admin
+    path('admin/visa-types/', VisaTypeAdminListAPI.as_view(), name='admin-visa-types-list'),
+    path('admin/visa-types/bulk-operation/', BulkVisaTypeOperationAPI.as_view(), name='admin-visa-types-bulk-operation'),
+    path('admin/visa-types/<uuid:id>/', VisaTypeAdminDetailAPI.as_view(), name='admin-visa-types-detail'),
+    path('admin/visa-types/<uuid:id>/activate/', VisaTypeAdminActivateAPI.as_view(), name='admin-visa-types-activate'),
+    path('admin/visa-types/<uuid:id>/delete/', VisaTypeAdminDeleteAPI.as_view(), name='admin-visa-types-delete'),
+    
+    # VisaRuleVersion Admin
+    path('admin/visa-rule-versions/', VisaRuleVersionAdminListAPI.as_view(), name='admin-visa-rule-versions-list'),
+    path('admin/visa-rule-versions/bulk-operation/', BulkVisaRuleVersionOperationAPI.as_view(), name='admin-visa-rule-versions-bulk-operation'),
+    path('admin/visa-rule-versions/<uuid:id>/', VisaRuleVersionAdminDetailAPI.as_view(), name='admin-visa-rule-versions-detail'),
+    path('admin/visa-rule-versions/<uuid:id>/update/', VisaRuleVersionAdminUpdateAPI.as_view(), name='admin-visa-rule-versions-update'),
+    path('admin/visa-rule-versions/<uuid:id>/publish/', VisaRuleVersionAdminPublishAPI.as_view(), name='admin-visa-rule-versions-publish'),
+    path('admin/visa-rule-versions/<uuid:id>/delete/', VisaRuleVersionAdminDeleteAPI.as_view(), name='admin-visa-rule-versions-delete'),
+    
+    # VisaRequirement Admin
+    path('admin/visa-requirements/', VisaRequirementAdminListAPI.as_view(), name='admin-visa-requirements-list'),
+    path('admin/visa-requirements/bulk-operation/', BulkVisaRequirementOperationAPI.as_view(), name='admin-visa-requirements-bulk-operation'),
+    path('admin/visa-requirements/<uuid:id>/', VisaRequirementAdminDetailAPI.as_view(), name='admin-visa-requirements-detail'),
+    path('admin/visa-requirements/<uuid:id>/update/', VisaRequirementAdminUpdateAPI.as_view(), name='admin-visa-requirements-update'),
+    path('admin/visa-requirements/<uuid:id>/delete/', VisaRequirementAdminDeleteAPI.as_view(), name='admin-visa-requirements-delete'),
+    
+    # VisaDocumentRequirement Admin
+    path('admin/visa-document-requirements/', VisaDocumentRequirementAdminListAPI.as_view(), name='admin-visa-document-requirements-list'),
+    path('admin/visa-document-requirements/bulk-operation/', BulkVisaDocumentRequirementOperationAPI.as_view(), name='admin-visa-document-requirements-bulk-operation'),
+    path('admin/visa-document-requirements/<uuid:id>/', VisaDocumentRequirementAdminDetailAPI.as_view(), name='admin-visa-document-requirements-detail'),
+    path('admin/visa-document-requirements/<uuid:id>/update/', VisaDocumentRequirementAdminUpdateAPI.as_view(), name='admin-visa-document-requirements-update'),
+    path('admin/visa-document-requirements/<uuid:id>/delete/', VisaDocumentRequirementAdminDeleteAPI.as_view(), name='admin-visa-document-requirements-delete'),
+    
+    # Analytics & Statistics
+    path('admin/statistics/', RulesKnowledgeStatisticsAPI.as_view(), name='admin-statistics'),
 ]
 
