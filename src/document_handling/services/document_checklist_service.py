@@ -118,12 +118,19 @@ class DocumentChecklistService:
                             case_facts
                         )
                         
-                        if isinstance(conditional_result, dict):
-                            conditional_applies = conditional_result.get('result', False)
-                            conditional_details = conditional_result
-                        else:
-                            conditional_applies = bool(conditional_result)
-                            conditional_details = {'result': conditional_applies}
+                        # evaluate_expression always returns a dict with 'passed', 'result', 'error', 'missing_facts'
+                        conditional_applies = conditional_result.get('passed', False)
+                        conditional_details = conditional_result
+                        
+                        # If there's an error or missing facts, log it but default to applies
+                        if conditional_result.get('error') or conditional_result.get('missing_facts'):
+                            logger.warning(
+                                f"Conditional logic evaluation had issues: "
+                                f"error={conditional_result.get('error')}, "
+                                f"missing_facts={conditional_result.get('missing_facts')}"
+                            )
+                            # Default to applies if evaluation has issues
+                            conditional_applies = True
                     except Exception as e:
                         logger.warning(f"Error evaluating conditional logic: {e}")
                         conditional_applies = True  # Default to applies if evaluation fails
