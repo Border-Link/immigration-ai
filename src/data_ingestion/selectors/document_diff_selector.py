@@ -39,3 +39,22 @@ class DocumentDiffSelector:
             'new_version__source_document'
         ).get(id=diff_id)
 
+    @staticmethod
+    def get_none():
+        """Get empty queryset."""
+        return DocumentDiff.objects.none()
+
+    @staticmethod
+    def get_by_filters(change_type: str = None, date_from=None, date_to=None):
+        """Get document diffs with filters."""
+        if change_type:
+            queryset = DocumentDiffSelector.get_by_change_type(change_type)
+        else:
+            queryset = DocumentDiffSelector.get_all()
+        
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(created_at__lte=date_to)
+        
+        return queryset
