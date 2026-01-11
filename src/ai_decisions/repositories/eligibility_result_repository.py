@@ -1,4 +1,5 @@
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from ai_decisions.models.eligibility_result import EligibilityResult
 from immigration_cases.models.case import Case
 from rules_knowledge.models.visa_type import VisaType
@@ -30,13 +31,11 @@ class EligibilityResultRepository:
     @staticmethod
     def update_eligibility_result(result: EligibilityResult, **fields):
         """Update eligibility result fields."""
-        with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(result, key):
-                    setattr(result, key, value)
-            result.full_clean()
-            result.save()
-            return result
+        return BaseRepositoryMixin.update_model_fields(
+            result,
+            **fields,
+            cache_keys=[f'eligibility_result:{result.id}']
+        )
 
     @staticmethod
     def delete_eligibility_result(result: EligibilityResult):
