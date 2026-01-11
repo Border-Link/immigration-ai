@@ -1,4 +1,5 @@
 from rest_framework import status
+from django.core.exceptions import ValidationError
 from main_system.base.auth_api import AuthAPI
 from payments.services.payment_service import PaymentService
 from payments.serializers.payment.read import PaymentSerializer
@@ -12,7 +13,14 @@ class PaymentUpdateAPI(AuthAPI):
         serializer = PaymentUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        payment = PaymentService.update_payment(id, **serializer.validated_data)
+        version = serializer.validated_data.pop('version', None)
+        payment = PaymentService.update_payment(
+            payment_id=str(id),
+            version=version,
+            changed_by=request.user,
+            **serializer.validated_data
+        )
+        
         if not payment:
             return self.api_response(
                 message=f"Payment with ID '{id}' not found.",
@@ -31,7 +39,12 @@ class PaymentDeleteAPI(AuthAPI):
     """Delete a payment."""
 
     def delete(self, request, id):
-        success = PaymentService.delete_payment(id)
+        success = PaymentService.delete_payment(
+            payment_id=str(id),
+            changed_by=request.user,
+            reason="Deleted by user"
+        )
+        
         if not success:
             return self.api_response(
                 message=f"Payment with ID '{id}' not found.",
