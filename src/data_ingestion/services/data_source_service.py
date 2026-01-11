@@ -1,5 +1,5 @@
 import logging
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from data_ingestion.models.data_source import DataSource
 from data_ingestion.repositories.data_source_repository import DataSourceRepository
 from data_ingestion.selectors.data_source_selector import DataSourceSelector
