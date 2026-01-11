@@ -4,19 +4,22 @@ Admin API Views for DecisionOverride Management
 Admin-only endpoints for managing decision overrides.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+    BaseAdminUpdateAPI,
+)
 from human_reviews.services.decision_override_service import DecisionOverrideService
 from human_reviews.serializers.decision_override.read import DecisionOverrideSerializer, DecisionOverrideListSerializer
 from human_reviews.serializers.decision_override.admin import (
+    DecisionOverrideAdminListQuerySerializer,
     DecisionOverrideAdminUpdateSerializer,
     BulkDecisionOverrideOperationSerializer,
 )
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
 
 
 class DecisionOverrideAdminListAPI(AuthAPI):
@@ -36,43 +39,26 @@ class DecisionOverrideAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        case_id = request.query_params.get('case_id', None)
-        reviewer_id = request.query_params.get('reviewer_id', None)
-        original_result_id = request.query_params.get('original_result_id', None)
-        overridden_outcome = request.query_params.get('overridden_outcome', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        query_serializer = DecisionOverrideAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
         
-        try:
-            # Parse dates
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            
-            # Use service method with filters
-            overrides = DecisionOverrideService.get_by_filters(
-                case_id=case_id,
-                reviewer_id=reviewer_id,
-                original_result_id=original_result_id,
-                overridden_outcome=overridden_outcome,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to
-            )
-            
-            return self.api_response(
-                message="Decision overrides retrieved successfully.",
-                data=DecisionOverrideListSerializer(overrides, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving decision overrides: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving decision overrides.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        overrides = DecisionOverrideService.get_by_filters(
+            case_id=str(query_serializer.validated_data.get('case_id')) if query_serializer.validated_data.get('case_id') else None,
+            reviewer_id=str(query_serializer.validated_data.get('reviewer_id')) if query_serializer.validated_data.get('reviewer_id') else None,
+            original_result_id=str(query_serializer.validated_data.get('original_result_id')) if query_serializer.validated_data.get('original_result_id') else None,
+            overridden_outcome=query_serializer.validated_data.get('overridden_outcome'),
+            date_from=query_serializer.validated_data.get('date_from'),
+            date_to=query_serializer.validated_data.get('date_to')
+        )
+        
+        return self.api_response(
+            message="Decision overrides retrieved successfully.",
+            data=DecisionOverrideListSerializer(overrides, many=True).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class DecisionOverrideAdminDetailAPI(AuthAPI):
+class DecisionOverrideAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed decision override information.
     
@@ -81,31 +67,20 @@ class DecisionOverrideAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            override = DecisionOverrideService.get_by_id(id)
-            if not override:
-                return self.api_response(
-                    message=f"Decision override with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Decision override retrieved successfully.",
-                data=DecisionOverrideSerializer(override).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving decision override {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving decision override.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Decision override"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get decision override by ID."""
+        return DecisionOverrideService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return DecisionOverrideSerializer
 
 
-class DecisionOverrideAdminUpdateAPI(AuthAPI):
+class DecisionOverrideAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update decision override.
     
@@ -114,48 +89,34 @@ class DecisionOverrideAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Decision override"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get decision override by ID."""
+        return DecisionOverrideService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return DecisionOverrideAdminUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return DecisionOverrideSerializer
+    
+    def update_entity(self, entity, validated_data):
+        """Update the decision override."""
+        # Filter only the fields that are present in validated_data
+        update_fields = {k: v for k, v in validated_data.items() if v is not None}
+        return DecisionOverrideService.update_decision_override(str(entity.id), **update_fields)
+    
     def put(self, request, id):
-        serializer = DecisionOverrideAdminUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        try:
-            override = DecisionOverrideService.get_by_id(id)
-            if not override:
-                return self.api_response(
-                    message=f"Decision override with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            update_fields = {}
-            if 'overridden_outcome' in serializer.validated_data:
-                update_fields['overridden_outcome'] = serializer.validated_data['overridden_outcome']
-            if 'reason' in serializer.validated_data:
-                update_fields['reason'] = serializer.validated_data['reason']
-            
-            updated_override = DecisionOverrideService.update_decision_override(id, **update_fields)
-            if not updated_override:
-                return self.api_response(
-                    message="Error updating decision override.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
-            return self.api_response(
-                message="Decision override updated successfully.",
-                data=DecisionOverrideSerializer(updated_override).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error updating decision override {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error updating decision override.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        """Override to support PUT method (base class uses PATCH)."""
+        return self.patch(request, id)
 
 
-class DecisionOverrideAdminDeleteAPI(AuthAPI):
+class DecisionOverrideAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete decision override.
     
@@ -164,39 +125,20 @@ class DecisionOverrideAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            override = DecisionOverrideService.get_by_id(id)
-            if not override:
-                return self.api_response(
-                    message=f"Decision override with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = DecisionOverrideService.delete_decision_override(id)
-            if not deleted:
-                return self.api_response(
-                    message="Error deleting decision override.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
-            return self.api_response(
-                message="Decision override deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting decision override {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting decision override.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Decision override"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get decision override by ID."""
+        return DecisionOverrideService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the decision override."""
+        return DecisionOverrideService.delete_decision_override(str(entity.id))
 
 
-class BulkDecisionOverrideOperationAPI(AuthAPI):
+class BulkDecisionOverrideOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on decision overrides.
     
@@ -205,45 +147,29 @@ class BulkDecisionOverrideOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkDecisionOverrideOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        override_ids = serializer.validated_data['decision_override_ids']
-        operation = serializer.validated_data['operation']
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        try:
-            for override_id in override_ids:
-                try:
-                    if operation == 'delete':
-                        deleted = DecisionOverrideService.delete_decision_override(str(override_id))
-                        if deleted:
-                            results['success'].append(str(override_id))
-                        else:
-                            results['failed'].append({
-                                'override_id': str(override_id),
-                                'error': 'Decision override not found or failed to delete'
-                            })
-                except Exception as e:
-                    results['failed'].append({
-                        'override_id': str(override_id),
-                        'error': str(e)
-                    })
-            
-            return self.api_response(
-                message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-                data=results,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error performing bulk operation on decision overrides: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_serializer_class(self):
+        """Return the bulk decision override operation serializer."""
+        return BulkDecisionOverrideOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Decision override"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get decision override by ID."""
+        return DecisionOverrideService.get_by_id(entity_id)
+    
+    def get_entity_ids(self, validated_data):
+        """Override to use decision_override_ids field name."""
+        return validated_data.get('decision_override_ids', [])
+    
+    def get_entity_id_field_name(self):
+        """Override to use override_id field name."""
+        return 'override_id'
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the decision override."""
+        if operation == 'delete':
+            return DecisionOverrideService.delete_decision_override(str(entity.id))
+        else:
+            raise ValueError(f"Invalid operation: {operation}")
