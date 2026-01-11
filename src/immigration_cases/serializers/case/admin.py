@@ -5,55 +5,42 @@ Serializers for admin case management operations.
 """
 from rest_framework import serializers
 from django.utils.dateparse import parse_datetime
-from helpers.date_helper import DateValidator
+from main_system.serializers.admin.base import BaseAdminListQuerySerializer
 from immigration_cases.models.case import Case
 
 
-class CaseAdminListQuerySerializer(serializers.Serializer):
+class CaseAdminListQuerySerializer(BaseAdminListQuerySerializer):
     """Serializer for validating CaseAdminListAPI query parameters."""
     
     user_id = serializers.UUIDField(required=False, allow_null=True)
     jurisdiction = serializers.ChoiceField(choices=Case.JURISDICTION_CHOICES, required=False, allow_null=True)
     status = serializers.ChoiceField(choices=Case.STATUS_CHOICES, required=False, allow_null=True)
-    date_from = serializers.DateTimeField(required=False, allow_null=True)
-    date_to = serializers.DateTimeField(required=False, allow_null=True)
     updated_date_from = serializers.DateTimeField(required=False, allow_null=True)
     updated_date_to = serializers.DateTimeField(required=False, allow_null=True)
-    page = serializers.IntegerField(required=False, min_value=1, default=1)
-    page_size = serializers.IntegerField(required=False, min_value=1, max_value=100, default=20)
     
     def validate(self, attrs):
         """Validate date ranges."""
-        # Validate date_from <= date_to
-        date_from = attrs.get('date_from')
-        date_to = attrs.get('date_to')
-        if date_from and date_to and date_to < date_from:
-            raise serializers.ValidationError({
-                'date_to': 'End date cannot be before start date.'
-            })
+        # Validate date_from <= date_to (from base class)
+        attrs = super().validate(attrs)
         
         # Validate updated_date_from <= updated_date_to
         updated_date_from = attrs.get('updated_date_from')
         updated_date_to = attrs.get('updated_date_to')
-        if updated_date_from and updated_date_to and updated_date_to < updated_date_from:
-            raise serializers.ValidationError({
-                'updated_date_to': 'End date cannot be before start date.'
-            })
+        self.validate_date_range(
+            updated_date_from,
+            updated_date_to,
+            field_name='updated_date_to'
+        )
         
         return attrs
     
     def to_internal_value(self, data):
         """Parse date strings to datetime objects."""
-        # Parse date strings if provided as strings
-        if 'date_from' in data and isinstance(data['date_from'], str):
-            data['date_from'] = parse_datetime(data['date_from'])
-        if 'date_to' in data and isinstance(data['date_to'], str):
-            data['date_to'] = parse_datetime(data['date_to'])
-        if 'updated_date_from' in data and isinstance(data['updated_date_from'], str):
-            data['updated_date_from'] = parse_datetime(data['updated_date_from'])
-        if 'updated_date_to' in data and isinstance(data['updated_date_to'], str):
-            data['updated_date_to'] = parse_datetime(data['updated_date_to'])
+        # Parse updated_date fields
+        self.parse_datetime_string(data, 'updated_date_from')
+        self.parse_datetime_string(data, 'updated_date_to')
         
+        # Parse base class date fields
         return super().to_internal_value(data)
 
 
