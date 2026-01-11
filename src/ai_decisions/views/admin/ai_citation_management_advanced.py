@@ -9,6 +9,8 @@ import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import BaseAdminUpdateAPI
 from ai_decisions.services.ai_citation_service import AICitationService
 from ai_decisions.serializers.ai_citation.read import AICitationSerializer
 from ai_decisions.serializers.ai_citation.admin import (
@@ -19,7 +21,7 @@ from ai_decisions.serializers.ai_citation.admin import (
 logger = logging.getLogger('django')
 
 
-class AICitationAdminUpdateAPI(AuthAPI):
+class AICitationAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update AI citation.
     
@@ -28,30 +30,31 @@ class AICitationAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def patch(self, request, id):
-        serializer = AICitationAdminUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        updated_citation = AICitationService.update_citation(
-            id,
-            **serializer.validated_data
-        )
-        
-        if not updated_citation:
-            return self.api_response(
-                message=f"AI citation with ID '{id}' not found.",
-                data=None,
-                status_code=status.HTTP_404_NOT_FOUND
-            )
-        
-        return self.api_response(
-            message="AI citation updated successfully.",
-            data=AICitationSerializer(updated_citation).data,
-            status_code=status.HTTP_200_OK
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "AI citation"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get AI citation by ID."""
+        return AICitationService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return AICitationAdminUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return AICitationSerializer
+    
+    def update_entity(self, entity, validated_data):
+        """Update the AI citation."""
+        return AICitationService.update_citation(
+            str(entity.id),
+            **validated_data
         )
 
 
-class BulkAICitationOperationAPI(AuthAPI):
+class BulkAICitationOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on AI citations.
     
@@ -60,31 +63,21 @@ class BulkAICitationOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkAICitationOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        citation_ids = serializer.validated_data['citation_ids']
-        operation = serializer.validated_data['operation']
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        for citation_id in citation_ids:
-            if operation == 'delete':
-                deleted = AICitationService.delete_citation(str(citation_id))
-                if deleted:
-                    results['success'].append(str(citation_id))
-                else:
-                    results['failed'].append({
-                        'citation_id': str(citation_id),
-                        'error': 'Failed to delete or citation not found'
-                    })
-        
-        return self.api_response(
-            message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-            data=results,
-            status_code=status.HTTP_200_OK
-        )
+    def get_serializer_class(self):
+        """Return the bulk AI citation operation serializer."""
+        return BulkAICitationOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "AI citation"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get AI citation by ID."""
+        return AICitationService.get_by_id(entity_id)
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the AI citation."""
+        if operation == 'delete':
+            return AICitationService.delete_citation(str(entity.id))
+        else:
+            raise ValueError(f"Invalid operation: {operation}")
