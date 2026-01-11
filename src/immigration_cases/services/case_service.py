@@ -1,7 +1,7 @@
 import logging
 import time
 from typing import Optional, Tuple
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from immigration_cases.models.case import Case
 from immigration_cases.repositories.case_repository import CaseRepository
 from immigration_cases.selectors.case_selector import CaseSelector
