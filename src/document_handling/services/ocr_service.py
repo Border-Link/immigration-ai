@@ -5,9 +5,11 @@ Service for extracting text from documents using OCR.
 Supports multiple OCR backends: Tesseract, AWS Textract, Google Vision API.
 """
 import logging
+import time
 from typing import Tuple, Optional, Dict
 from django.conf import settings
 from pathlib import Path
+from document_handling.helpers.metrics import track_ocr_operation
 
 logger = logging.getLogger('django')
 
@@ -33,21 +35,41 @@ class OCRService:
             - metadata: Dict with confidence scores, page count, etc.
             - error_message: Error message if extraction failed
         """
+        start_time = time.time()
         try:
             # Determine OCR backend from settings
             ocr_backend = getattr(settings, 'OCR_BACKEND', 'tesseract')
             
             if ocr_backend == 'aws_textract':
-                return OCRService._extract_with_textract(file_path, mime_type)
+                result = OCRService._extract_with_textract(file_path, mime_type)
             elif ocr_backend == 'google_vision':
-                return OCRService._extract_with_google_vision(file_path, mime_type)
+                result = OCRService._extract_with_google_vision(file_path, mime_type)
             elif ocr_backend == 'tesseract':
-                return OCRService._extract_with_tesseract(file_path, mime_type)
+                result = OCRService._extract_with_tesseract(file_path, mime_type)
             else:
                 logger.error(f"Unknown OCR backend: {ocr_backend}")
-                return None, None, f"Unknown OCR backend: {ocr_backend}"
+                result = (None, None, f"Unknown OCR backend: {ocr_backend}")
+            
+            # Track metrics
+            duration = time.time() - start_time
+            extracted_text, metadata, error_message = result
+            status = 'success' if extracted_text else 'failure'
+            confidence = metadata.get('confidence', 0.0) if metadata else None
+            text_length = len(extracted_text) if extracted_text else None
+            
+            track_ocr_operation(
+                backend=ocr_backend,
+                status=status,
+                duration=duration,
+                confidence=confidence,
+                text_length=text_length
+            )
+            
+            return result
                 
         except Exception as e:
+            duration = time.time() - start_time
+            track_ocr_operation(backend=getattr(settings, 'OCR_BACKEND', 'tesseract'), status='failure', duration=duration)
             logger.error(f"Error in OCR extraction: {e}", exc_info=True)
             return None, None, str(e)
 
