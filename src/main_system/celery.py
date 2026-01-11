@@ -7,8 +7,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "main_system.settings")
 # Ensure Django is fully initialized before importing models
 django.setup()
 
-from main_system.tasks_base import BaseTaskWithMeta  # Import AFTER django.setup()
-from main_system.celery_beat_schedule import CELERY_BEAT_SCHEDULE
+from main_system.utils.tasks_base import BaseTaskWithMeta  # Import AFTER django.setup()
+from main_system.utils.celery_beat_schedule import CELERY_BEAT_SCHEDULE
 
 app = Celery("main_system")
 app.config_from_object("django.conf:settings", namespace="CELERY")
