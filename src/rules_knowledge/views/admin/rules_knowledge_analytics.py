@@ -4,7 +4,6 @@ Admin API Views for Rules Knowledge Analytics and Statistics
 Admin-only endpoints for rules knowledge analytics, statistics, and reporting.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
@@ -15,8 +14,6 @@ from rules_knowledge.services.visa_requirement_service import VisaRequirementSer
 from rules_knowledge.services.visa_document_requirement_service import VisaDocumentRequirementService
 from django.db.models import Count, Q
 from django.utils import timezone
-
-logger = logging.getLogger('django')
 
 
 class RulesKnowledgeStatisticsAPI(AuthAPI):
@@ -29,7 +26,6 @@ class RulesKnowledgeStatisticsAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        try:
             from rules_knowledge.models.document_type import DocumentType
             from rules_knowledge.models.visa_type import VisaType
             from rules_knowledge.models.visa_rule_version import VisaRuleVersion
@@ -109,15 +105,8 @@ class RulesKnowledgeStatisticsAPI(AuthAPI):
                 },
             }
             
-            return self.api_response(
-                message="Rules knowledge statistics retrieved successfully.",
-                data=statistics,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving rules knowledge statistics: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving rules knowledge statistics.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return self.api_response(
+            message="Rules knowledge statistics retrieved successfully.",
+            data=statistics,
+            status_code=status.HTTP_200_OK
+        )
