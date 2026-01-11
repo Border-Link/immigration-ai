@@ -15,7 +15,7 @@ from ai_decisions.serializers.ai_reasoning_log.read import (
     AIReasoningLogSerializer,
     AIReasoningLogListSerializer
 )
-from ai_decisions.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 logger = logging.getLogger('django')
 
