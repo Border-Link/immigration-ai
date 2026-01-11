@@ -4,18 +4,16 @@ Admin Serializers for Review Management
 Serializers for admin review management operations.
 """
 from rest_framework import serializers
-from django.utils.dateparse import parse_datetime
+from main_system.serializers.admin.base import BaseAdminListQuerySerializer
 from human_reviews.models.review import Review
 
 
-class ReviewAdminListQuerySerializer(serializers.Serializer):
+class ReviewAdminListQuerySerializer(BaseAdminListQuerySerializer):
     """Serializer for validating ReviewAdminListAPI query parameters."""
     
     case_id = serializers.UUIDField(required=False, allow_null=True)
     reviewer_id = serializers.UUIDField(required=False, allow_null=True)
     status = serializers.ChoiceField(choices=Review.STATUS_CHOICES, required=False, allow_null=True)
-    date_from = serializers.DateTimeField(required=False, allow_null=True)
-    date_to = serializers.DateTimeField(required=False, allow_null=True)
     assigned_date_from = serializers.DateTimeField(required=False, allow_null=True)
     assigned_date_to = serializers.DateTimeField(required=False, allow_null=True)
     completed_date_from = serializers.DateTimeField(required=False, allow_null=True)
@@ -23,46 +21,38 @@ class ReviewAdminListQuerySerializer(serializers.Serializer):
     
     def validate(self, attrs):
         """Validate date ranges."""
-        # Validate date_from <= date_to
-        date_from = attrs.get('date_from')
-        date_to = attrs.get('date_to')
-        if date_from and date_to and date_to < date_from:
-            raise serializers.ValidationError({
-                'date_to': 'End date cannot be before start date.'
-            })
+        # Validate date_from <= date_to (from base class)
+        attrs = super().validate(attrs)
         
         # Validate assigned_date_from <= assigned_date_to
         assigned_date_from = attrs.get('assigned_date_from')
         assigned_date_to = attrs.get('assigned_date_to')
-        if assigned_date_from and assigned_date_to and assigned_date_to < assigned_date_from:
-            raise serializers.ValidationError({
-                'assigned_date_to': 'End date cannot be before start date.'
-            })
+        self.validate_date_range(
+            assigned_date_from,
+            assigned_date_to,
+            field_name='assigned_date_to'
+        )
         
         # Validate completed_date_from <= completed_date_to
         completed_date_from = attrs.get('completed_date_from')
         completed_date_to = attrs.get('completed_date_to')
-        if completed_date_from and completed_date_to and completed_date_to < completed_date_from:
-            raise serializers.ValidationError({
-                'completed_date_to': 'End date cannot be before start date.'
-            })
+        self.validate_date_range(
+            completed_date_from,
+            completed_date_to,
+            field_name='completed_date_to'
+        )
         
         return attrs
     
     def to_internal_value(self, data):
         """Parse date strings to datetime objects."""
-        if 'date_from' in data and isinstance(data['date_from'], str):
-            data['date_from'] = parse_datetime(data['date_from'])
-        if 'date_to' in data and isinstance(data['date_to'], str):
-            data['date_to'] = parse_datetime(data['date_to'])
-        if 'assigned_date_from' in data and isinstance(data['assigned_date_from'], str):
-            data['assigned_date_from'] = parse_datetime(data['assigned_date_from'])
-        if 'assigned_date_to' in data and isinstance(data['assigned_date_to'], str):
-            data['assigned_date_to'] = parse_datetime(data['assigned_date_to'])
-        if 'completed_date_from' in data and isinstance(data['completed_date_from'], str):
-            data['completed_date_from'] = parse_datetime(data['completed_date_from'])
-        if 'completed_date_to' in data and isinstance(data['completed_date_to'], str):
-            data['completed_date_to'] = parse_datetime(data['completed_date_to'])
+        # Parse additional date fields
+        self.parse_datetime_string(data, 'assigned_date_from')
+        self.parse_datetime_string(data, 'assigned_date_to')
+        self.parse_datetime_string(data, 'completed_date_from')
+        self.parse_datetime_string(data, 'completed_date_to')
+        
+        # Parse base class date fields
         return super().to_internal_value(data)
 
 
