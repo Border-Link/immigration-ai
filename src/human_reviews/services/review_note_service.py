@@ -14,9 +14,26 @@ class ReviewNoteService:
 
     @staticmethod
     def create_review_note(review_id: str, note: str, is_internal: bool = False) -> Optional[ReviewNote]:
-        """Create a new review note."""
+        """
+        Create a new review note.
+        
+        Requires: Case must have a completed payment before review notes can be created.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review = ReviewSelector.get_by_id(review_id)
+            if not review:
+                logger.error(f"Review {review_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review note creation")
+            if not is_valid:
+                logger.warning(f"Review note creation blocked for case {review.case.id}: {error}")
+                raise ValidationError(error)
+            
             return ReviewNoteRepository.create_review_note(review, note, is_internal)
         except Exception as e:
             logger.error(f"Error creating review note: {e}")
@@ -69,9 +86,29 @@ class ReviewNoteService:
 
     @staticmethod
     def update_review_note(note_id: str, **fields) -> Optional[ReviewNote]:
-        """Update review note fields."""
+        """
+        Update review note fields.
+        
+        Requires: Case must have a completed payment before review notes can be updated.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review_note = ReviewNoteSelector.get_by_id(note_id)
+            if not review_note:
+                logger.error(f"Review note {note_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(
+                review_note.review.case, 
+                operation_name="review note update"
+            )
+            if not is_valid:
+                logger.warning(f"Review note update blocked for case {review_note.review.case.id}: {error}")
+                raise ValidationError(error)
+            
             return ReviewNoteRepository.update_review_note(review_note, **fields)
         except ReviewNote.DoesNotExist:
             logger.error(f"Review note {note_id} not found")
@@ -82,9 +119,30 @@ class ReviewNoteService:
 
     @staticmethod
     def delete_review_note(note_id: str) -> bool:
-        """Delete a review note."""
+        """
+        Delete a review note.
+        
+        Requires: Case must have a completed payment before review notes can be deleted.
+        This prevents abuse and ensures only paid cases can manage their review notes.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review_note = ReviewNoteSelector.get_by_id(note_id)
+            if not review_note:
+                logger.error(f"Review note {note_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(
+                review_note.review.case, 
+                operation_name="review note deletion"
+            )
+            if not is_valid:
+                logger.warning(f"Review note deletion blocked for case {review_note.review.case.id}: {error}")
+                raise ValidationError(error)
+            
             ReviewNoteRepository.delete_review_note(review_note)
             return True
         except ReviewNote.DoesNotExist:

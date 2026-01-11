@@ -24,6 +24,8 @@ class DecisionOverrideService:
         """
         Create a decision override following the workflow from implementation.md.
         
+        Requires: Case must have a completed payment before decision overrides can be created.
+        
         Steps:
         1. Validate input
         2. Store override
@@ -34,10 +36,22 @@ class DecisionOverrideService:
         
         All steps are wrapped in a transaction to ensure atomicity.
         """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             with transaction.atomic():
                 # Step 1: Validate input
                 case = CaseSelector.get_by_id(case_id)
+                if not case:
+                    logger.error(f"Case {case_id} not found")
+                    return None
+                
+                # Validate payment requirement
+                is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="decision override creation")
+                if not is_valid:
+                    logger.warning(f"Decision override creation blocked for case {case_id}: {error}")
+                    raise ValidationError(error)
                 original_result = EligibilityResultSelector.get_by_id(original_result_id)
                 
                 # Verify original result belongs to the case
@@ -185,9 +199,29 @@ class DecisionOverrideService:
 
     @staticmethod
     def update_decision_override(override_id: str, **fields) -> Optional[DecisionOverride]:
-        """Update decision override fields."""
+        """
+        Update decision override fields.
+        
+        Requires: Case must have a completed payment before decision overrides can be updated.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             override = DecisionOverrideSelector.get_by_id(override_id)
+            if not override:
+                logger.error(f"Decision override {override_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(
+                override.case, 
+                operation_name="decision override update"
+            )
+            if not is_valid:
+                logger.warning(f"Decision override update blocked for case {override.case.id}: {error}")
+                raise ValidationError(error)
+            
             return DecisionOverrideRepository.update_decision_override(override, **fields)
         except DecisionOverride.DoesNotExist:
             logger.error(f"Decision override {override_id} not found")
@@ -198,9 +232,30 @@ class DecisionOverrideService:
 
     @staticmethod
     def delete_decision_override(override_id: str) -> bool:
-        """Delete a decision override."""
+        """
+        Delete a decision override.
+        
+        Requires: Case must have a completed payment before decision overrides can be deleted.
+        This prevents abuse and ensures only paid cases can manage their decision overrides.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             override = DecisionOverrideSelector.get_by_id(override_id)
+            if not override:
+                logger.error(f"Decision override {override_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(
+                override.case, 
+                operation_name="decision override deletion"
+            )
+            if not is_valid:
+                logger.warning(f"Decision override deletion blocked for case {override.case.id}: {error}")
+                raise ValidationError(error)
+            
             DecisionOverrideRepository.delete_decision_override(override)
             return True
         except DecisionOverride.DoesNotExist:

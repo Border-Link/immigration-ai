@@ -90,6 +90,9 @@ class RuleEngineService:
         """
         Step 1: Load case facts and convert to dictionary.
         
+        Requires: Case must have a completed payment before case facts can be loaded.
+        This ensures only paid cases can have their facts evaluated.
+        
         Args:
             case_id: UUID of the case
             
@@ -98,13 +101,20 @@ class RuleEngineService:
             Example: {"age": 29, "salary": 42000, "nationality": "NG", "has_sponsor": true}
             
         Raises:
-            ValueError: If case not found
+            ValueError: If case not found or payment not completed
         """
         from immigration_cases.selectors.case_selector import CaseSelector
+        from payments.helpers.payment_validator import PaymentValidator
         
         case = CaseSelector.get_by_id(case_id)
         if not case:
             raise ValueError(f"Case with ID '{case_id}' not found")
+        
+        # Validate payment requirement (defense in depth)
+        is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="case facts loading")
+        if not is_valid:
+            logger.warning(f"Case facts loading blocked for case {case_id}: {error}")
+            raise ValueError(error)
         
         # Get all facts for the case, ordered by created_at DESC (most recent first)
         facts = CaseFactSelector.get_by_case(case)
@@ -749,6 +759,9 @@ class RuleEngineService:
         """
         Main orchestration method: Run complete eligibility evaluation.
         
+        Requires: Case must have a completed payment before eligibility can be evaluated.
+        This ensures only paid cases can have their eligibility evaluated.
+        
         This method combines all steps:
         1. Load case facts
         2. Load active rule version
@@ -764,8 +777,22 @@ class RuleEngineService:
             RuleEngineEvaluationResult or None if evaluation cannot be performed
             
         Raises:
-            ValueError: If case or visa type not found
+            ValueError: If case or visa type not found, or payment not completed
         """
+        from immigration_cases.selectors.case_selector import CaseSelector
+        from payments.helpers.payment_validator import PaymentValidator
+        
+        # Validate payment requirement early (defense in depth)
+        # This ensures payment validation even if called directly, not through EligibilityCheckService
+        case = CaseSelector.get_by_id(case_id)
+        if not case:
+            raise ValueError(f"Case with ID '{case_id}' not found")
+        
+        is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="eligibility evaluation")
+        if not is_valid:
+            logger.warning(f"Eligibility evaluation blocked for case {case_id}: {error}")
+            raise ValueError(error)
+        
         start_time = time.time()
         visa_type_code = 'unknown'
         

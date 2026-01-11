@@ -139,6 +139,15 @@ class EligibilityCheckService:
                 logger.error(result.error)
                 return result
             
+            # Validate payment requirement
+            from payments.helpers.payment_validator import PaymentValidator
+            is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="eligibility check")
+            if not is_valid:
+                result.error = error
+                result.warnings.append("Payment validation failed")
+                logger.warning(f"Eligibility check blocked for case {case_id}: {error}")
+                return result
+            
             visa_type = VisaTypeSelector.get_by_id(visa_type_id)
             if not visa_type:
                 result.error = f"Visa type {visa_type_id} not found"

@@ -22,8 +22,28 @@ class CaseService:
 
     @staticmethod
     def create_case(user_id: str, jurisdiction: str, status: str = 'draft') -> Optional[Case]:
-        """Create a new case."""
+        """
+        Create a new case.
+        
+        Note: Payment validation is not enforced at case creation to allow the flow:
+        1. Create case (draft status)
+        2. Create payment for case
+        3. Payment must be completed before case can be used for operations
+        
+        If you want to require payment BEFORE case creation, uncomment the validation below.
+        """
         try:
+            from payments.helpers.payment_validator import PaymentValidator
+            
+            # Option 1: Allow case creation, payment required before operations (current)
+            # This allows: Create case → Create payment → Complete payment → Use case
+            
+            # Option 2: Require payment before case creation (uncomment to enable)
+            # can_create, error = PaymentValidator.can_create_case_for_user(user_id)
+            # if not can_create:
+            #     logger.warning(f"Case creation blocked for user {user_id}: {error}")
+            #     return None
+            
             user = UserSelector.get_by_id(user_id)
             case = CaseRepository.create_case(user, jurisdiction, status)
             
@@ -101,14 +121,44 @@ class CaseService:
         transition_start = None
         
         try:
+            from payments.helpers.payment_validator import PaymentValidator
+            
             case = CaseSelector.get_by_id(case_id)
             if not case:
                 return None, f"Case with ID '{case_id}' not found.", 404
             
             # Track status transition if status is being updated
             previous_status = case.status
-            if 'status' in fields and fields['status'] != previous_status:
+            new_status = fields.get('status', previous_status)
+            
+            # Validate payment requirement for status transitions beyond 'draft'
+            # Payment is required before case can be moved to 'evaluated' or beyond
+            if 'status' in fields and new_status != previous_status:
                 transition_start = time.time()
+                
+                # Require payment for status transitions to 'evaluated' or beyond
+                statuses_requiring_payment = ['evaluated', 'awaiting_review', 'reviewed']
+                if new_status in statuses_requiring_payment:
+                    is_valid, error = PaymentValidator.validate_case_has_payment(
+                        case, 
+                        operation_name=f"case status update to '{new_status}'"
+                    )
+                    if not is_valid:
+                        logger.warning(f"Case status update blocked for case {case_id}: {error}")
+                        return None, error, 400
+            
+            # Validate payment requirement for general case updates (jurisdiction, etc.)
+            # Payment is required for any case modifications to ensure data integrity
+            # Note: This is in addition to status update validation above
+            if fields and 'status' not in fields:
+                # General update (not status change) - require payment
+                is_valid, error = PaymentValidator.validate_case_has_payment(
+                    case,
+                    operation_name="case update"
+                )
+                if not is_valid:
+                    logger.warning(f"Case update blocked for case {case_id}: {error}")
+                    return None, error, 400
             
             updated_by = None
             if updated_by_id:
@@ -166,11 +216,28 @@ class CaseService:
 
     @staticmethod
     def delete_case(case_id: str, deleted_by_id: str = None, hard_delete: bool = False) -> bool:
-        """Delete a case (soft delete by default, hard delete if hard_delete=True)."""
+        """
+        Delete a case (soft delete by default, hard delete if hard_delete=True).
+        
+        Requires: Case must have a completed payment before it can be deleted.
+        This prevents abuse and ensures only paid cases can be deleted.
+        Note: For unpaid cases, users should contact support for deletion.
+        """
         from users_access.selectors.user_selector import UserSelector
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
         
         try:
             case = CaseSelector.get_by_id(case_id)
+            if not case:
+                logger.error(f"Case {case_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="case deletion")
+            if not is_valid:
+                logger.warning(f"Case deletion blocked for case {case_id}: {error}")
+                raise ValidationError(error)
             
             deleted_by = None
             if deleted_by_id:
@@ -204,8 +271,15 @@ class CaseService:
     
     @staticmethod
     def restore_case(case_id: str, restored_by_id: str = None) -> Optional[Case]:
-        """Restore a soft-deleted case."""
+        """
+        Restore a soft-deleted case.
+        
+        Requires: Case must have a completed payment before it can be restored.
+        This ensures only paid cases can be restored.
+        """
         from users_access.selectors.user_selector import UserSelector
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
         
         try:
             # Get case including soft-deleted ones
@@ -214,6 +288,13 @@ class CaseService:
             if not case.is_deleted:
                 logger.warning(f"Case {case_id} is not soft-deleted, no restoration needed.")
                 return case
+            
+            # Validate payment requirement (check before restoring)
+            # Note: We validate payment even for soft-deleted cases to ensure they had payment before deletion
+            is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="case restoration")
+            if not is_valid:
+                logger.warning(f"Case restoration blocked for case {case_id}: {error}")
+                raise ValidationError(error)
             
             restored_by = None
             if restored_by_id:

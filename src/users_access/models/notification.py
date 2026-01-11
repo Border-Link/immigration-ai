@@ -19,6 +19,7 @@ class Notification(models.Model):
         ('missing_documents', 'Missing Documents'),
         ('sla_deadline', 'SLA Deadline'),
         ('rule_validation_task', 'Rule Validation Task'),
+        ('payment_status', 'Payment Status'),
     ]
 
     PRIORITY_CHOICES = [

@@ -39,5 +39,19 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=10, minute=0),  # Run daily at 10 AM UTC
         'options': {'expires': 1800}
     },
+    
+    # Poll pending/processing payments every 15 minutes
+    'poll-pending-payments': {
+        'task': 'payments.tasks.payment_tasks.poll_pending_payments_task',
+        'schedule': crontab(minute='*/15'),  # Run every 15 minutes
+        'options': {'expires': 900}  # Task expires after 15 minutes
+    },
+    
+    # Retry failed payments every hour
+    'retry-failed-payments': {
+        'task': 'payments.tasks.payment_tasks.retry_failed_payments_task',
+        'schedule': crontab(minute=0),  # Run every hour
+        'options': {'expires': 3600}  # Task expires after 1 hour
+    },
 }
 
