@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from main_system.utils.cache_utils import cache_result
 from document_handling.models.document_check import DocumentCheck
 from document_handling.models.case_document import CaseDocument
 from document_handling.repositories.document_check_repository import DocumentCheckRepository
@@ -33,6 +34,7 @@ class DocumentCheckService:
             return None
 
     @staticmethod
+    @cache_result(timeout=300, keys=[])  # 5 minutes - document checks change frequently
     def get_all():
         """Get all document checks."""
         try:
@@ -42,6 +44,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['case_document_id'])  # 5 minutes - cache checks by case document
     def get_by_case_document(case_document_id: str):
         """Get checks by case document."""
         try:
@@ -55,6 +58,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['check_type'])  # 5 minutes - cache checks by type
     def get_by_check_type(check_type: str):
         """Get checks by check type."""
         try:
@@ -64,6 +68,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['result'])  # 5 minutes - cache checks by result
     def get_by_result(result: str):
         """Get checks by result."""
         try:
@@ -73,6 +78,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=600, keys=['check_id'])  # 10 minutes - cache check by ID
     def get_by_id(check_id: str) -> Optional[DocumentCheck]:
         """Get document check by ID."""
         try:
