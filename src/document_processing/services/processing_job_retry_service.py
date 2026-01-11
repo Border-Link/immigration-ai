@@ -42,17 +42,31 @@ class ProcessingJobRetryService:
         """
         Retry a failed processing job.
         
+        Requires: Case must have a completed payment before processing jobs can be retried.
+        
         Args:
             job_id: UUID of the processing job
             
         Returns:
             Updated ProcessingJob instance or None if retry failed
         """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             job = ProcessingJobService.get_by_id(job_id)
             if not job:
                 logger.error(f"Processing job {job_id} not found")
                 return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(
+                job.case_document.case, 
+                operation_name="processing job retry"
+            )
+            if not is_valid:
+                logger.warning(f"Processing job retry blocked for case {job.case_document.case.id}: {error}")
+                raise ValidationError(error)
             
             if not ProcessingJobRetryService.should_retry(job):
                 logger.warning(f"Job {job_id} should not be retried")

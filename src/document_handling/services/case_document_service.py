@@ -18,10 +18,23 @@ class CaseDocumentService:
     def create_case_document(case_id: str, document_type_id: str, file_path: str,
                             file_name: str, file_size: int = None, mime_type: str = None,
                             status: str = 'uploaded'):
-        """Create a new case document."""
+        """
+        Create a new case document.
+        
+        Requires: Case must have a completed payment before documents can be uploaded.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             # Get case
             case = CaseSelector.get_by_id(case_id)
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="document upload")
+            if not is_valid:
+                logger.warning(f"Document upload blocked for case {case_id}: {error}")
+                raise ValidationError(error)
             
             # Get document type
             document_type = DocumentTypeSelector.get_by_id(document_type_id)
@@ -104,9 +117,25 @@ class CaseDocumentService:
 
     @staticmethod
     def update_case_document(document_id: str, **fields) -> Optional[CaseDocument]:
-        """Update case document."""
+        """
+        Update case document.
+        
+        Requires: Case must have a completed payment before documents can be updated.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             case_document = CaseDocumentSelector.get_by_id(document_id)
+            if not case_document:
+                logger.error(f"Case document {document_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case_document.case, operation_name="document update")
+            if not is_valid:
+                logger.warning(f"Document update blocked for case {case_document.case.id}: {error}")
+                raise ValidationError(error)
             
             # Handle document_type_id separately (convert to ForeignKey)
             if 'document_type_id' in fields:
@@ -128,9 +157,31 @@ class CaseDocumentService:
 
     @staticmethod
     def update_status(document_id: str, status: str) -> Optional[CaseDocument]:
-        """Update document status."""
+        """
+        Update document status.
+        
+        Requires: Case must have a completed payment before document status can be updated.
+        Note: Internal status updates during processing may bypass this if payment was already validated,
+        but user-initiated status updates require payment.
+        """
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             case_document = CaseDocumentSelector.get_by_id(document_id)
+            if not case_document:
+                logger.error(f"Case document {document_id} not found")
+                return None
+            
+            # Validate payment requirement (uses cache, so fast even if called multiple times)
+            # This provides defense in depth even for internal status updates
+            is_valid, error = PaymentValidator.validate_case_has_payment(case_document.case, operation_name="document status update")
+            if not is_valid:
+                logger.warning(f"Document status update blocked for case {case_document.case.id}: {error}")
+                # For internal processing, we might want to allow status updates to 'rejected' or 'failed'
+                # But for user-initiated updates, we should block
+                # For now, we block all status updates without payment for consistency
+                return None
+            
             return CaseDocumentRepository.update_status(case_document, status)
         except CaseDocument.DoesNotExist:
             logger.error(f"Case document {document_id} not found")
@@ -141,9 +192,26 @@ class CaseDocumentService:
 
     @staticmethod
     def delete_case_document(document_id: str) -> bool:
-        """Delete case document and its stored file."""
+        """
+        Delete case document and its stored file.
+        
+        Requires: Case must have a completed payment before documents can be deleted.
+        This prevents abuse and ensures only paid cases can manage their documents.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             case_document = CaseDocumentSelector.get_by_id(document_id)
+            if not case_document:
+                logger.error(f"Case document {document_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case_document.case, operation_name="document deletion")
+            if not is_valid:
+                logger.warning(f"Document deletion blocked for case {case_document.case.id}: {error}")
+                raise ValidationError(error)
             
             # Delete the stored file
             if case_document.file_path:

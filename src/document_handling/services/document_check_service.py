@@ -16,9 +16,28 @@ class DocumentCheckService:
     @staticmethod
     def create_document_check(case_document_id: str, check_type: str, result: str,
                              details: dict = None, performed_by: str = None):
-        """Create a new document check."""
+        """
+        Create a new document check.
+        
+        Requires: Case must have a completed payment before document checks can be created.
+        Note: Internal system checks (from processing tasks) may bypass this, but user-initiated checks require payment.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             case_document = CaseDocumentSelector.get_by_id(case_document_id)
+            if not case_document:
+                logger.error(f"Case document {case_document_id} not found")
+                return None
+            
+            # Validate payment requirement (for user-initiated checks)
+            # System-initiated checks during processing may bypass this, but we validate for safety
+            is_valid, error = PaymentValidator.validate_case_has_payment(case_document.case, operation_name="document check creation")
+            if not is_valid:
+                logger.warning(f"Document check creation blocked for case {case_document.case.id}: {error}")
+                raise ValidationError(error)
+            
             return DocumentCheckRepository.create_document_check(
                 case_document=case_document,
                 check_type=check_type,
@@ -92,9 +111,29 @@ class DocumentCheckService:
 
     @staticmethod
     def update_document_check(check_id: str, **fields) -> Optional[DocumentCheck]:
-        """Update document check."""
+        """
+        Update document check.
+        
+        Requires: Case must have a completed payment before document checks can be updated.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             document_check = DocumentCheckSelector.get_by_id(check_id)
+            if not document_check:
+                logger.error(f"Document check {check_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(
+                document_check.case_document.case, 
+                operation_name="document check update"
+            )
+            if not is_valid:
+                logger.warning(f"Document check update blocked for case {document_check.case_document.case.id}: {error}")
+                raise ValidationError(error)
+            
             return DocumentCheckRepository.update_document_check(document_check, **fields)
         except DocumentCheck.DoesNotExist:
             logger.error(f"Document check {check_id} not found")
@@ -105,9 +144,30 @@ class DocumentCheckService:
 
     @staticmethod
     def delete_document_check(check_id: str) -> bool:
-        """Delete document check."""
+        """
+        Delete document check.
+        
+        Requires: Case must have a completed payment before document checks can be deleted.
+        This prevents abuse and ensures only paid cases can manage their document checks.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             document_check = DocumentCheckSelector.get_by_id(check_id)
+            if not document_check:
+                logger.error(f"Document check {check_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(
+                document_check.case_document.case, 
+                operation_name="document check deletion"
+            )
+            if not is_valid:
+                logger.warning(f"Document check deletion blocked for case {document_check.case_document.case.id}: {error}")
+                raise ValidationError(error)
+            
             DocumentCheckRepository.delete_document_check(document_check)
             return True
         except DocumentCheck.DoesNotExist:

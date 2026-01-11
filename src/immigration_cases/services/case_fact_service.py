@@ -15,14 +15,25 @@ class CaseFactService:
 
     @staticmethod
     def create_case_fact(case_id: str, fact_key: str, fact_value, source: str = 'user') -> Optional[CaseFact]:
-        """Create a new case fact."""
+        """
+        Create a new case fact.
+        
+        Requires: Case must have a completed payment before facts can be submitted.
+        """
         from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
         
         try:
             case = CaseSelector.get_by_id(case_id)
             if not case:
                 logger.error(f"Case {case_id} not found when creating case fact")
                 return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="case fact creation")
+            if not is_valid:
+                logger.warning(f"Case fact creation blocked for case {case_id}: {error}")
+                raise ValidationError(error)
             
             return CaseFactRepository.create_case_fact(case, fact_key, fact_value, source)
         except ValidationError as e:
@@ -68,9 +79,23 @@ class CaseFactService:
 
     @staticmethod
     def update_case_fact(fact_id: str, **fields) -> Optional[CaseFact]:
-        """Update case fact fields."""
+        """
+        Update case fact fields.
+        
+        Requires: Case must have a completed payment before facts can be updated.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             fact = CaseFactSelector.get_by_id(fact_id)
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(fact.case, operation_name="case fact update")
+            if not is_valid:
+                logger.warning(f"Case fact update blocked for case {fact.case.id}: {error}")
+                raise ValidationError(error)
+            
             return CaseFactRepository.update_case_fact(fact, **fields)
         except CaseFact.DoesNotExist:
             logger.error(f"Case fact {fact_id} not found")
@@ -81,9 +106,27 @@ class CaseFactService:
 
     @staticmethod
     def delete_case_fact(fact_id: str) -> bool:
-        """Delete a case fact."""
+        """
+        Delete a case fact.
+        
+        Requires: Case must have a completed payment before case facts can be deleted.
+        This prevents abuse and ensures only paid cases can manage their facts.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             fact = CaseFactSelector.get_by_id(fact_id)
+            if not fact:
+                logger.error(f"Case fact {fact_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(fact.case, operation_name="case fact deletion")
+            if not is_valid:
+                logger.warning(f"Case fact deletion blocked for case {fact.case.id}: {error}")
+                raise ValidationError(error)
+            
             CaseFactRepository.delete_case_fact(fact)
             
             # Log audit event

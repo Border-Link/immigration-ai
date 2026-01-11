@@ -14,5 +14,14 @@ class PaymentUpdateSerializer(serializers.Serializer):
         required=False,
         allow_null=True
     )
-    provider_transaction_id = serializers.CharField(required=False, max_length=255, allow_null=True, allow_blank=True)
+    provider_transaction_id = serializers.CharField(
+        required=False,
+        max_length=255,
+        allow_null=True,
+        allow_blank=True
+    )
+    version = serializers.IntegerField(
+        required=False,
+        help_text="Version number for optimistic locking"
+    )
 

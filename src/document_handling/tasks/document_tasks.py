@@ -38,6 +38,28 @@ def process_document_task(self, document_id: str):
     try:
         logger.info(f"Starting document processing for document: {document_id}")
         
+        # Get document early to validate payment before expensive operations
+        document = CaseDocumentSelector.get_by_id(document_id)
+        if not document:
+            logger.error(f"Document {document_id} not found")
+            return {'success': False, 'error': 'Document not found'}
+        
+        # Validate payment requirement early (before expensive processing operations)
+        from payments.helpers.payment_validator import PaymentValidator
+        is_valid, error = PaymentValidator.validate_case_has_payment(document.case, operation_name="document processing task")
+        if not is_valid:
+            logger.warning(f"Document processing task blocked for case {document.case.id}: {error}")
+            # Update document status to indicate processing failed due to payment
+            # Use repository directly to bypass payment validation (since payment validation already failed)
+            from document_handling.repositories.case_document_repository import CaseDocumentRepository
+            CaseDocumentRepository.update_status(document, 'rejected')
+            return {
+                'success': False,
+                'error': error,
+                'document_id': document_id,
+                'case_id': str(document.case.id)
+            }
+        
         # Create processing job
         processing_job = ProcessingJobService.create_processing_job(
             case_document_id=document_id,
@@ -62,10 +84,6 @@ def process_document_task(self, document_id: str):
             document_id=document_id,
             status='processing'
         )
-        
-        document = CaseDocumentSelector.get_by_id(document_id)
-        if not document:
-            logger.error(f"Document {document_id} not found")
             if processing_job:
                 ProcessingJobService.update_status(str(processing_job.id), 'failed')
                 ProcessingHistoryService.create_history_entry(

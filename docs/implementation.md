@@ -382,6 +382,11 @@ The Rules Knowledge module follows a strict layered architecture pattern:
    - Depends on: Database, Notification Service
    - Publishes events: `review.assigned`, `review.completed`, `override.created`
 
+7. **Payments Service**
+   - Manages payment processing, provider integration, payment tracking
+   - Depends on: Database, Case Service
+   - Features: Payment status management, provider transaction tracking, revenue analytics
+
 ### Human Review Service Architecture
 
 The Human Review module follows a strict layered architecture pattern:
