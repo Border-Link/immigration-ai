@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 from django.utils import timezone
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from rules_knowledge.models.visa_rule_version import VisaRuleVersion
 from rules_knowledge.repositories.visa_rule_version_repository import VisaRuleVersionRepository
 from rules_knowledge.selectors.visa_rule_version_selector import VisaRuleVersionSelector
