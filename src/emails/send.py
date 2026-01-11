@@ -6,7 +6,6 @@ import logging
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
 from .email_service_interface import EmailServiceInterface
-from helpers import fields as input_fields
 import base64
 
 logger = logging.getLogger('django')
@@ -14,7 +13,7 @@ logger = logging.getLogger('django')
 
 class SendEmailService(EmailServiceInterface):
     def __init__(self):
-        self.from_email = getattr(settings, input_fields.DEFAULT_FROM_EMAIL, settings.DEFAULT_FROM_EMAIL)
+        self.from_email = getattr(settings, "DEFAULT_FROM_EMAIL", settings.DEFAULT_FROM_EMAIL)
         self.api_key = getattr(settings, "EMAIL_HOST_PASSWORD", None)
         self.env = getattr(settings, "APP_ENV", "local")
 
@@ -43,14 +42,14 @@ class SendEmailService(EmailServiceInterface):
 
                 if attachments:
                     for attachment in attachments:
-                        with open(attachment[input_fields.PATH], "rb") as f:
+                        with open(attachment["path"], "rb") as f:
                             encoded_file = base64.b64encode(f.read()).decode()
                         message.add_attachment(
                             Attachment(
                                 FileContent(encoded_file),
-                                FileName(attachment[input_fields.FILENAME]),
-                                FileType(attachment[input_fields.MIME_TYPE]),
-                                Disposition(input_fields.ATTACHMENT)
+                                FileName(attachment["filename"]),
+                                FileType(attachment["mime_type"]),
+                                Disposition("attachment")
                             )
                         )
                 sg = SendGridAPIClient(self.api_key)
@@ -73,11 +72,11 @@ class SendEmailService(EmailServiceInterface):
                 from_email=self.from_email,
                 to=recipient_list,
             )
-            email.attach_alternative(html_content, input_fields.TEXT_HTML)
+            email.attach_alternative(html_content, "text/html")
 
             if attachments:
                 for attachment in attachments:
-                    email.attach_file(attachment[input_fields.PATH], attachment[input_fields.MIME_TYPE])
+                    email.attach_file(attachment["path"], attachment["mime_type"])
 
             email.send(fail_silently=False)
             logger.info(f"[Default SMTP] Email sent successfully to: {recipient_list}")
