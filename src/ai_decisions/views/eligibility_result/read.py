@@ -6,7 +6,7 @@ from ai_decisions.serializers.eligibility_result.read import (
     EligibilityResultSerializer,
     EligibilityResultListSerializer
 )
-from ai_decisions.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 
 class EligibilityResultListAPI(AuthAPI):
