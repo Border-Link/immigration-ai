@@ -5,7 +5,7 @@ from rules_knowledge.serializers.visa_document_requirement.read import (
     VisaDocumentRequirementSerializer,
     VisaDocumentRequirementListSerializer
 )
-from rules_knowledge.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 
 class VisaDocumentRequirementListAPI(AuthAPI):
