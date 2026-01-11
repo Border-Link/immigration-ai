@@ -1,4 +1,5 @@
 from typing import Optional
+from helpers.cache_utils import cache_result
 from users_access.models.user_profile import UserProfile
 from users_access.repositories.user_profile_repository import UserProfileRepository
 from users_access.selectors.user_profile_selector import UserProfileSelector

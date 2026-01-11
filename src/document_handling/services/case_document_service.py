@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from document_handling.models.case_document import CaseDocument
 from document_handling.repositories.case_document_repository import CaseDocumentRepository
 from document_handling.selectors.case_document_selector import CaseDocumentSelector
@@ -45,15 +46,17 @@ class CaseDocumentService:
             return None
 
     @staticmethod
+    @cache_result(timeout=300, keys=[])  # 5 minutes - document list changes frequently
     def get_all():
         """Get all case documents."""
         try:
             return CaseDocumentSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all case documents: {e}")
-            return CaseDocument.objects.none()
+            return CaseDocumentSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['case_id'])  # 5 minutes - cache documents by case
     def get_by_case(case_id: str):
         """Get documents by case."""
         try:
@@ -61,30 +64,33 @@ class CaseDocumentService:
             return CaseDocumentSelector.get_by_case(case)
         except Case.DoesNotExist:
             logger.error(f"Case {case_id} not found")
-            return CaseDocument.objects.none()
+            return CaseDocumentSelector.get_none()
         except Exception as e:
             logger.error(f"Error fetching documents for case {case_id}: {e}")
-            return CaseDocument.objects.none()
+            return CaseDocumentSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['status'])  # 5 minutes - cache documents by status
     def get_by_status(status: str):
         """Get documents by status."""
         try:
             return CaseDocumentSelector.get_by_status(status)
         except Exception as e:
             logger.error(f"Error fetching documents by status {status}: {e}")
-            return CaseDocument.objects.none()
+            return CaseDocumentSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['document_type_id'])  # 5 minutes - cache documents by type
     def get_by_document_type(document_type_id: str):
         """Get documents by document type."""
         try:
             return CaseDocumentSelector.get_by_document_type(document_type_id)
         except Exception as e:
             logger.error(f"Error fetching documents by document type {document_type_id}: {e}")
-            return CaseDocument.objects.none()
+            return CaseDocumentSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=600, keys=['document_id'])  # 10 minutes - cache document by ID
     def get_by_id(document_id: str) -> Optional[CaseDocument]:
         """Get case document by ID."""
         try:
@@ -176,8 +182,44 @@ class CaseDocumentService:
             return CaseDocumentSelector.get_verified_by_case(case)
         except Case.DoesNotExist:
             logger.error(f"Case {case_id} not found")
-            return CaseDocument.objects.none()
+            return CaseDocumentSelector.get_none()
         except Exception as e:
             logger.error(f"Error fetching verified documents for case {case_id}: {e}")
-            return CaseDocument.objects.none()
+            return CaseDocumentSelector.get_none()
+
+    @staticmethod
+    def get_by_filters(case_id: str = None, document_type_id: str = None, status: str = None,
+                       has_ocr_text: bool = None, min_confidence: float = None,
+                       date_from=None, date_to=None, mime_type: str = None,
+                       has_expiry_date: bool = None, expiry_date_from=None, expiry_date_to=None,
+                       content_validation_status: str = None, is_expired: bool = None):
+        """Get case documents with filters."""
+        try:
+            return CaseDocumentSelector.get_by_filters(
+                case_id=case_id,
+                document_type_id=document_type_id,
+                status=status,
+                has_ocr_text=has_ocr_text,
+                min_confidence=min_confidence,
+                date_from=date_from,
+                date_to=date_to,
+                mime_type=mime_type,
+                has_expiry_date=has_expiry_date,
+                expiry_date_from=expiry_date_from,
+                expiry_date_to=expiry_date_to,
+                content_validation_status=content_validation_status,
+                is_expired=is_expired
+            )
+        except Exception as e:
+            logger.error(f"Error fetching filtered case documents: {e}")
+            return CaseDocumentSelector.get_none()
+
+    @staticmethod
+    def get_statistics():
+        """Get case document statistics."""
+        try:
+            return CaseDocumentSelector.get_statistics()
+        except Exception as e:
+            logger.error(f"Error getting case document statistics: {e}")
+            return {}
 

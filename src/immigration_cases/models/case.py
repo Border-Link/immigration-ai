@@ -48,6 +48,13 @@ class Case(models.Model):
         help_text="Current status of the case"
     )
     
+    # Optimistic locking
+    version = models.IntegerField(default=1, db_index=True, help_text="Version number for optimistic locking")
+    
+    # Soft delete fields
+    is_deleted = models.BooleanField(default=False, db_index=True, help_text="Whether this case is soft deleted")
+    deleted_at = models.DateTimeField(null=True, blank=True, help_text="When this case was deleted")
+    
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -57,6 +64,13 @@ class Case(models.Model):
         indexes = [
             models.Index(fields=['user', 'status']),
             models.Index(fields=['jurisdiction', 'status']),
+            models.Index(fields=['is_deleted', '-created_at']),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(status__in=[choice[0] for choice in STATUS_CHOICES]),
+                name='valid_case_status'
+            ),
         ]
         verbose_name_plural = 'Cases'
 

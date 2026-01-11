@@ -45,3 +45,26 @@ class ReviewNoteSelector:
             'review__reviewer'
         ).get(id=note_id)
 
+    @staticmethod
+    def get_by_filters(review_id=None, is_internal=None, date_from=None, date_to=None):
+        """Get review notes with advanced filtering for admin."""
+        queryset = ReviewNote.objects.select_related(
+            'review',
+            'review__case',
+            'review__case__user',
+            'review__reviewer'
+        ).all()
+        
+        if review_id:
+            queryset = queryset.filter(review_id=review_id)
+        
+        if is_internal is not None:
+            queryset = queryset.filter(is_internal=is_internal)
+        
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        
+        if date_to:
+            queryset = queryset.filter(created_at__lte=date_to)
+        
+        return queryset.order_by('-created_at')

@@ -12,6 +12,18 @@ from .review_note.update_delete import ReviewNoteUpdateAPI, ReviewNoteDeleteAPI
 from .decision_override.create import DecisionOverrideCreateAPI
 from .decision_override.read import DecisionOverrideListAPI, DecisionOverrideDetailAPI, DecisionOverrideLatestAPI
 
+# Review actions
+from .review.actions import (
+    ReviewReassignAPI,
+    ReviewEscalateAPI,
+    ReviewApproveAPI,
+    ReviewRejectAPI,
+    ReviewRequestChangesAPI,
+)
+
+# ReviewStatusHistory views
+from .review_status_history.read import ReviewStatusHistoryListAPI, ReviewStatusHistoryDetailAPI
+
 __all__ = [
     # Review
     'ReviewCreateAPI',
@@ -36,5 +48,14 @@ __all__ = [
     'DecisionOverrideListAPI',
     'DecisionOverrideDetailAPI',
     'DecisionOverrideLatestAPI',
+    # Review Actions
+    'ReviewReassignAPI',
+    'ReviewEscalateAPI',
+    'ReviewApproveAPI',
+    'ReviewRejectAPI',
+    'ReviewRequestChangesAPI',
+    # ReviewStatusHistory
+    'ReviewStatusHistoryListAPI',
+    'ReviewStatusHistoryDetailAPI',
 ]
 

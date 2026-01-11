@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from rules_knowledge.models.visa_requirement import VisaRequirement
 from rules_knowledge.repositories.visa_requirement_repository import VisaRequirementRepository
 from rules_knowledge.selectors.visa_requirement_selector import VisaRequirementSelector
@@ -25,6 +26,7 @@ class VisaRequirementService:
             return None
 
     @staticmethod
+    @cache_result(timeout=600, keys=[])  # 10 minutes - can change when requirements are updated
     def get_all():
         """Get all requirements."""
         try:
@@ -34,6 +36,7 @@ class VisaRequirementService:
             return VisaRequirement.objects.none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['rule_version_id'])  # 1 hour - requirements per version change infrequently
     def get_by_rule_version(rule_version_id: str):
         """Get requirements by rule version."""
         try:
@@ -44,6 +47,7 @@ class VisaRequirementService:
             return VisaRequirement.objects.none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['requirement_id'])  # 1 hour - cache by requirement ID
     def get_by_id(requirement_id: str) -> Optional[VisaRequirement]:
         """Get requirement by ID."""
         try:
@@ -82,3 +86,20 @@ class VisaRequirementService:
             logger.error(f"Error deleting requirement {requirement_id}: {e}")
             return False
 
+    @staticmethod
+    def get_by_filters(rule_version_id=None, rule_type=None, is_mandatory=None, requirement_code=None, visa_type_id=None, jurisdiction=None, date_from=None, date_to=None):
+        """Get requirements with advanced filtering for admin."""
+        try:
+            return VisaRequirementSelector.get_by_filters(
+                rule_version_id=rule_version_id,
+                rule_type=rule_type,
+                is_mandatory=is_mandatory,
+                requirement_code=requirement_code,
+                visa_type_id=visa_type_id,
+                jurisdiction=jurisdiction,
+                date_from=date_from,
+                date_to=date_to
+            )
+        except Exception as e:
+            logger.error(f"Error filtering requirements: {e}")
+            return VisaRequirement.objects.none()

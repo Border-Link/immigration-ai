@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from human_reviews.models.review_note import ReviewNote
 from human_reviews.repositories.review_note_repository import ReviewNoteRepository
 from human_reviews.selectors.review_note_selector import ReviewNoteSelector
@@ -22,6 +23,7 @@ class ReviewNoteService:
             return None
 
     @staticmethod
+    @cache_result(timeout=300, keys=[])  # 5 minutes - notes change when reviewers add notes
     def get_all():
         """Get all review notes."""
         try:
@@ -31,6 +33,7 @@ class ReviewNoteService:
             return ReviewNote.objects.none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['review_id'])  # 5 minutes - cache notes by review
     def get_by_review(review_id: str):
         """Get notes by review."""
         try:
@@ -41,6 +44,7 @@ class ReviewNoteService:
             return ReviewNote.objects.none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['review_id'])  # 5 minutes - cache public notes by review
     def get_public_by_review(review_id: str):
         """Get public notes (not internal) by review."""
         try:
@@ -51,6 +55,7 @@ class ReviewNoteService:
             return ReviewNote.objects.none()
 
     @staticmethod
+    @cache_result(timeout=600, keys=['note_id'])  # 10 minutes - cache note by ID
     def get_by_id(note_id: str) -> Optional[ReviewNote]:
         """Get review note by ID."""
         try:
@@ -89,3 +94,16 @@ class ReviewNoteService:
             logger.error(f"Error deleting review note {note_id}: {e}")
             return False
 
+    @staticmethod
+    def get_by_filters(review_id=None, is_internal=None, date_from=None, date_to=None):
+        """Get review notes with advanced filtering for admin."""
+        try:
+            return ReviewNoteSelector.get_by_filters(
+                review_id=review_id,
+                is_internal=is_internal,
+                date_from=date_from,
+                date_to=date_to
+            )
+        except Exception as e:
+            logger.error(f"Error filtering review notes: {e}")
+            return ReviewNote.objects.none()

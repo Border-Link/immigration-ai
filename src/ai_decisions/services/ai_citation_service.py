@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from ai_decisions.models.ai_citation import AICitation
 from ai_decisions.repositories.ai_citation_repository import AICitationRepository
 from ai_decisions.selectors.ai_citation_selector import AICitationSelector
@@ -31,6 +32,7 @@ class AICitationService:
             return None
 
     @staticmethod
+    @cache_result(timeout=300, keys=[])  # 5 minutes - citations change when new reasoning occurs
     def get_all():
         """Get all AI citations."""
         try:
@@ -40,6 +42,7 @@ class AICitationService:
             return AICitationSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['reasoning_log_id'])  # 5 minutes - cache citations by reasoning log
     def get_by_reasoning_log(reasoning_log_id: str):
         """Get citations by reasoning log."""
         try:
@@ -50,6 +53,7 @@ class AICitationService:
             return AICitationSelector.get_none()
     
     @staticmethod
+    @cache_result(timeout=300, keys=['document_version_id'])  # 5 minutes - cache citations by document version
     def get_by_document_version(document_version_id: str):
         """Get citations by document version."""
         try:
@@ -60,6 +64,7 @@ class AICitationService:
             return AICitationSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=600, keys=['citation_id'])  # 10 minutes - cache citation by ID
     def get_by_id(citation_id: str) -> Optional[AICitation]:
         """Get citation by ID."""
         try:

@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from rules_knowledge.models.document_type import DocumentType
 from rules_knowledge.repositories.document_type_repository import DocumentTypeRepository
 from rules_knowledge.selectors.document_type_selector import DocumentTypeSelector
@@ -28,6 +29,7 @@ class DocumentTypeService:
             return None
 
     @staticmethod
+    @cache_result(timeout=1800, keys=[])  # 30 minutes - rarely changes
     def get_all():
         """Get all document types."""
         try:
@@ -37,6 +39,7 @@ class DocumentTypeService:
             return DocumentType.objects.none()
 
     @staticmethod
+    @cache_result(timeout=1800, keys=[])  # 30 minutes - rarely changes
     def get_active():
         """Get all active document types."""
         try:
@@ -46,6 +49,7 @@ class DocumentTypeService:
             return DocumentType.objects.none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['code'])  # 1 hour - cache by code
     def get_by_code(code: str) -> Optional[DocumentType]:
         """Get document type by code."""
         try:
@@ -58,6 +62,7 @@ class DocumentTypeService:
             return None
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['type_id'])  # 1 hour - cache by ID
     def get_by_id(type_id: str) -> Optional[DocumentType]:
         """Get document type by ID."""
         try:
@@ -96,3 +101,25 @@ class DocumentTypeService:
             logger.error(f"Error deleting document type {type_id}: {e}")
             return False
 
+    @staticmethod
+    def get_by_filters(is_active=None, code=None, date_from=None, date_to=None):
+        """Get document types with advanced filtering for admin."""
+        try:
+            return DocumentTypeSelector.get_by_filters(
+                is_active=is_active,
+                code=code,
+                date_from=date_from,
+                date_to=date_to
+            )
+        except Exception as e:
+            logger.error(f"Error filtering document types: {e}")
+            return DocumentType.objects.none()
+
+    @staticmethod
+    def activate_document_type(document_type, is_active: bool) -> Optional[DocumentType]:
+        """Activate or deactivate a document type."""
+        try:
+            return DocumentTypeRepository.update_document_type(document_type, is_active=is_active)
+        except Exception as e:
+            logger.error(f"Error activating/deactivating document type: {e}")
+            return None

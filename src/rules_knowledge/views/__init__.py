@@ -23,6 +23,37 @@ from .visa_document_requirement.create import VisaDocumentRequirementCreateAPI
 from .visa_document_requirement.read import VisaDocumentRequirementListAPI, VisaDocumentRequirementDetailAPI
 from .visa_document_requirement.update_delete import VisaDocumentRequirementUpdateAPI, VisaDocumentRequirementDeleteAPI
 
+# Admin views
+from .admin import (
+    DocumentTypeAdminListAPI,
+    DocumentTypeAdminDetailAPI,
+    DocumentTypeAdminActivateAPI,
+    DocumentTypeAdminDeleteAPI,
+    BulkDocumentTypeOperationAPI,
+    VisaTypeAdminListAPI,
+    VisaTypeAdminDetailAPI,
+    VisaTypeAdminActivateAPI,
+    VisaTypeAdminDeleteAPI,
+    BulkVisaTypeOperationAPI,
+    VisaRuleVersionAdminListAPI,
+    VisaRuleVersionAdminDetailAPI,
+    VisaRuleVersionAdminUpdateAPI,
+    VisaRuleVersionAdminPublishAPI,
+    VisaRuleVersionAdminDeleteAPI,
+    BulkVisaRuleVersionOperationAPI,
+    VisaRequirementAdminListAPI,
+    VisaRequirementAdminDetailAPI,
+    VisaRequirementAdminUpdateAPI,
+    VisaRequirementAdminDeleteAPI,
+    BulkVisaRequirementOperationAPI,
+    VisaDocumentRequirementAdminListAPI,
+    VisaDocumentRequirementAdminDetailAPI,
+    VisaDocumentRequirementAdminUpdateAPI,
+    VisaDocumentRequirementAdminDeleteAPI,
+    BulkVisaDocumentRequirementOperationAPI,
+    RulesKnowledgeStatisticsAPI,
+)
+
 __all__ = [
     # DocumentType
     'DocumentTypeCreateAPI',
@@ -54,5 +85,33 @@ __all__ = [
     'VisaDocumentRequirementDetailAPI',
     'VisaDocumentRequirementUpdateAPI',
     'VisaDocumentRequirementDeleteAPI',
+    # Admin views
+    'DocumentTypeAdminListAPI',
+    'DocumentTypeAdminDetailAPI',
+    'DocumentTypeAdminActivateAPI',
+    'DocumentTypeAdminDeleteAPI',
+    'BulkDocumentTypeOperationAPI',
+    'VisaTypeAdminListAPI',
+    'VisaTypeAdminDetailAPI',
+    'VisaTypeAdminActivateAPI',
+    'VisaTypeAdminDeleteAPI',
+    'BulkVisaTypeOperationAPI',
+    'VisaRuleVersionAdminListAPI',
+    'VisaRuleVersionAdminDetailAPI',
+    'VisaRuleVersionAdminUpdateAPI',
+    'VisaRuleVersionAdminPublishAPI',
+    'VisaRuleVersionAdminDeleteAPI',
+    'BulkVisaRuleVersionOperationAPI',
+    'VisaRequirementAdminListAPI',
+    'VisaRequirementAdminDetailAPI',
+    'VisaRequirementAdminUpdateAPI',
+    'VisaRequirementAdminDeleteAPI',
+    'BulkVisaRequirementOperationAPI',
+    'VisaDocumentRequirementAdminListAPI',
+    'VisaDocumentRequirementAdminDetailAPI',
+    'VisaDocumentRequirementAdminUpdateAPI',
+    'VisaDocumentRequirementAdminDeleteAPI',
+    'BulkVisaDocumentRequirementOperationAPI',
+    'RulesKnowledgeStatisticsAPI',
 ]
 

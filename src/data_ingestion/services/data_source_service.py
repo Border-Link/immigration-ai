@@ -1,4 +1,5 @@
 import logging
+from helpers.cache_utils import cache_result
 from data_ingestion.models.data_source import DataSource
 from data_ingestion.repositories.data_source_repository import DataSourceRepository
 from data_ingestion.selectors.data_source_selector import DataSourceSelector
@@ -26,6 +27,7 @@ class DataSourceService:
             return None
 
     @staticmethod
+    @cache_result(timeout=1800, keys=[])  # 30 minutes - data sources change infrequently
     def get_all():
         """Get all data sources."""
         try:
@@ -35,6 +37,7 @@ class DataSourceService:
             return DataSourceSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=1800, keys=[])  # 30 minutes - active sources change infrequently
     def get_active():
         """Get all active data sources."""
         try:
@@ -44,6 +47,7 @@ class DataSourceService:
             return DataSourceSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=1800, keys=['jurisdiction'])  # 30 minutes - cache by jurisdiction
     def get_by_jurisdiction(jurisdiction: str):
         """Get data sources by jurisdiction."""
         try:
@@ -53,6 +57,7 @@ class DataSourceService:
             return DataSourceSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['data_source_id'])  # 1 hour - cache by ID
     def get_by_id(data_source_id):
         """Get data source by ID."""
         try:

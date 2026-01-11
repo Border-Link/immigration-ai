@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from immigration_cases.models.case_fact import CaseFact
 from immigration_cases.models.case import Case
 
@@ -6,16 +7,38 @@ class CaseFactSelector:
     """Selector for CaseFact read operations."""
 
     @staticmethod
-    def get_all():
+    def get_all(use_cache: bool = False):
         """Get all case facts."""
-        return CaseFact.objects.select_related('case', 'case__user').all().order_by('-created_at')
+        if use_cache:
+            cache_key = "case_facts:all"
+            cached = cache.get(cache_key)
+            if cached:
+                return cached
+        
+        queryset = CaseFact.objects.select_related('case', 'case__user').all().order_by('-created_at')
+        
+        if use_cache:
+            cache.set(cache_key, queryset, timeout=300)  # 5 minutes
+        
+        return queryset
 
     @staticmethod
-    def get_by_case(case: Case):
+    def get_by_case(case: Case, use_cache: bool = True):
         """Get facts by case."""
-        return CaseFact.objects.select_related('case', 'case__user').filter(
+        if use_cache:
+            cache_key = f"case_facts:case:{case.id}"
+            cached = cache.get(cache_key)
+            if cached:
+                return cached
+        
+        queryset = CaseFact.objects.select_related('case', 'case__user').filter(
             case=case
         ).order_by('-created_at')
+        
+        if use_cache:
+            cache.set(cache_key, queryset, timeout=600)  # 10 minutes
+        
+        return queryset
 
     @staticmethod
     def get_by_fact_key(case: Case, fact_key: str):
@@ -45,3 +68,28 @@ class CaseFactSelector:
         """Get case fact by ID."""
         return CaseFact.objects.select_related('case', 'case__user').get(id=fact_id)
 
+    @staticmethod
+    def get_by_filters(case_id=None, fact_key=None, source=None, date_from=None, date_to=None):
+        """Get case facts with advanced filtering for admin."""
+        queryset = CaseFact.objects.select_related(
+            'case',
+            'case__user',
+            'case__user__profile'
+        ).all()
+        
+        if case_id:
+            queryset = queryset.filter(case_id=case_id)
+        
+        if fact_key:
+            queryset = queryset.filter(fact_key=fact_key)
+        
+        if source:
+            queryset = queryset.filter(source=source)
+        
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        
+        if date_to:
+            queryset = queryset.filter(created_at__lte=date_to)
+        
+        return queryset.order_by('-created_at')
