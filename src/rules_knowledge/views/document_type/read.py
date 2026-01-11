@@ -2,7 +2,7 @@ from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from rules_knowledge.services.document_type_service import DocumentTypeService
 from rules_knowledge.serializers.document_type.read import DocumentTypeSerializer, DocumentTypeListSerializer
-from rules_knowledge.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 
 class DocumentTypeListAPI(AuthAPI):
