@@ -9,12 +9,18 @@ This service:
 4. Extracts citations and stores reasoning logs
 """
 import logging
+import time
 from typing import Dict, List, Optional, Any
 from django.conf import settings
 from ai_decisions.services.vector_db_service import PgVectorService
 from ai_decisions.services.embedding_service import EmbeddingService
 from ai_decisions.services.ai_reasoning_log_service import AIReasoningLogService
 from ai_decisions.services.ai_citation_service import AICitationService
+from ai_decisions.helpers.metrics import (
+    track_ai_reasoning,
+    track_vector_search,
+    track_citations_extracted
+)
 
 logger = logging.getLogger('django')
 
@@ -77,15 +83,18 @@ class AIReasoningService:
                 filters['jurisdiction'] = jurisdiction
             
             # Search similar chunks using pgvector
+            search_start = time.time()
             chunks = PgVectorService.search_similar(
                 query_embedding=query_embedding,
                 limit=limit,
                 filters=filters,
                 similarity_threshold=similarity_threshold
             )
+            search_duration = time.time() - search_start
             
             # Format context
             context = []
+            similarity_scores = []
             for chunk in chunks:
                 # Calculate similarity from distance
                 # distance = 0 means similarity = 1.0
@@ -96,6 +105,8 @@ class AIReasoningService:
                 else:
                     similarity = 0.8  # Default if distance not available
                 
+                similarity_scores.append(similarity)
+                
                 context.append({
                     'text': chunk.chunk_text,
                     'source': chunk.document_version.source_document.source_url,
@@ -104,10 +115,21 @@ class AIReasoningService:
                     'chunk_id': str(chunk.id)
                 })
             
+            # Track vector search metrics
+            track_vector_search(
+                status='success',
+                duration=search_duration,
+                results_count=len(context),
+                similarity_scores=similarity_scores
+            )
+            
             logger.info(f"Retrieved {len(context)} context chunks for reasoning")
             return context
             
         except Exception as e:
+            # Track failure
+            search_duration = time.time() - search_start if 'search_start' in locals() else 0
+            track_vector_search(status='failure', duration=search_duration, results_count=0)
             logger.error(f"Error retrieving context: {e}", exc_info=True)
             return []
 
@@ -230,6 +252,7 @@ class AIReasoningService:
         Returns:
             Dict with 'response', 'model', 'tokens_used', 'citations'
         """
+        call_start = time.time()
         try:
             # Import OpenAI client
             try:
@@ -257,12 +280,41 @@ class AIReasoningService:
                 max_tokens=2000
             )
             
+            call_duration = time.time() - call_start
+            
             # Extract response
             llm_response = response.choices[0].message.content
             tokens_used = response.usage.total_tokens if response.usage else None
+            tokens_prompt = response.usage.prompt_tokens if response.usage else None
+            tokens_completion = response.usage.completion_tokens if response.usage else None
+            
+            # Calculate cost (approximate, model-specific pricing)
+            cost_usd = None
+            if tokens_used:
+                # Approximate pricing (update with actual rates)
+                if 'gpt-4' in model:
+                    cost_usd = (tokens_prompt or 0) * 0.00003 + (tokens_completion or 0) * 0.00006
+                elif 'gpt-3.5' in model:
+                    cost_usd = tokens_used * 0.000002
             
             # Extract citations from response
             citations = AIReasoningService._extract_citations(llm_response)
+            
+            # Track AI reasoning metrics
+            track_ai_reasoning(
+                model=model,
+                status='success',
+                duration=call_duration,
+                tokens_prompt=tokens_prompt,
+                tokens_completion=tokens_completion,
+                cost_usd=cost_usd
+            )
+            
+            # Track citations
+            if citations:
+                for citation in citations:
+                    source_type = citation.get('type', 'unknown')
+                    track_citations_extracted(source_type=source_type, count=1)
             
             logger.info(f"LLM call completed: {tokens_used} tokens used, {len(citations)} citations")
             
@@ -274,6 +326,13 @@ class AIReasoningService:
             }
             
         except Exception as e:
+            call_duration = time.time() - call_start
+            # Track failure
+            track_ai_reasoning(
+                model=model,
+                status='failure',
+                duration=call_duration
+            )
             logger.error(f"Error calling LLM: {e}", exc_info=True)
             raise
 

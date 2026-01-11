@@ -4,7 +4,17 @@ Admin Serializers for EligibilityResult Management
 Serializers for admin eligibility result management operations.
 """
 from rest_framework import serializers
+from main_system.serializers.admin.base import BaseAdminListQuerySerializer
 from ai_decisions.models.eligibility_result import EligibilityResult
+
+
+class EligibilityResultAdminListQuerySerializer(BaseAdminListQuerySerializer):
+    """Serializer for validating EligibilityResultAdminListAPI query parameters."""
+    
+    case_id = serializers.UUIDField(required=False, allow_null=True)
+    visa_type_id = serializers.UUIDField(required=False, allow_null=True)
+    outcome = serializers.ChoiceField(choices=EligibilityResult.OUTCOME_CHOICES, required=False, allow_null=True)
+    min_confidence = serializers.FloatField(required=False, allow_null=True, min_value=0.0, max_value=1.0)
 
 
 class EligibilityResultAdminUpdateSerializer(serializers.Serializer):

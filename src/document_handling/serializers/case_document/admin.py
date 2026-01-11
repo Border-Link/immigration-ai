@@ -2,7 +2,79 @@
 Admin serializers for CaseDocument operations.
 """
 from rest_framework import serializers
+from django.utils.dateparse import parse_datetime, parse_date
+from main_system.serializers.admin.base import BaseAdminListQuerySerializer, DateRangeMixin
 from document_handling.models.case_document import CaseDocument
+
+
+class CaseDocumentAdminListQuerySerializer(BaseAdminListQuerySerializer):
+    """Serializer for validating query parameters in admin list view."""
+    case_id = serializers.UUIDField(required=False, allow_null=True)
+    document_type_id = serializers.UUIDField(required=False, allow_null=True)
+    status = serializers.CharField(required=False, allow_null=True)
+    has_ocr_text = serializers.BooleanField(required=False, allow_null=True)
+    min_confidence = serializers.FloatField(required=False, allow_null=True, min_value=0.0, max_value=1.0)
+    mime_type = serializers.CharField(required=False, allow_null=True)
+    has_expiry_date = serializers.BooleanField(required=False, allow_null=True)
+    expiry_date_from = serializers.DateField(required=False, allow_null=True)
+    expiry_date_to = serializers.DateField(required=False, allow_null=True)
+    content_validation_status = serializers.CharField(required=False, allow_null=True)
+    is_expired = serializers.BooleanField(required=False, allow_null=True)
+
+    def validate(self, attrs):
+        """Validate that end date is not smaller than start date."""
+        # Validate base date_from/date_to
+        super().validate(attrs)
+        
+        # Validate expiry date range
+        expiry_date_from = attrs.get('expiry_date_from')
+        expiry_date_to = attrs.get('expiry_date_to')
+        
+        if expiry_date_from and expiry_date_to and expiry_date_to < expiry_date_from:
+            raise serializers.ValidationError({
+                'expiry_date_to': 'End expiry date cannot be smaller than start expiry date.'
+            })
+        
+        return attrs
+
+    def to_internal_value(self, data):
+        """Parse string dates to datetime/date objects."""
+        # Parse expiry dates
+        if 'expiry_date_from' in data and data['expiry_date_from']:
+            if isinstance(data['expiry_date_from'], str):
+                parsed = parse_date(data['expiry_date_from'])
+                if parsed:
+                    data['expiry_date_from'] = parsed
+        
+        if 'expiry_date_to' in data and data['expiry_date_to']:
+            if isinstance(data['expiry_date_to'], str):
+                parsed = parse_date(data['expiry_date_to'])
+                if parsed:
+                    data['expiry_date_to'] = parsed
+        
+        # Parse boolean strings
+        if 'has_ocr_text' in data and data['has_ocr_text'] is not None:
+            if isinstance(data['has_ocr_text'], str):
+                data['has_ocr_text'] = data['has_ocr_text'].lower() == 'true'
+        
+        if 'has_expiry_date' in data and data['has_expiry_date'] is not None:
+            if isinstance(data['has_expiry_date'], str):
+                data['has_expiry_date'] = data['has_expiry_date'].lower() == 'true'
+        
+        if 'is_expired' in data and data['is_expired'] is not None:
+            if isinstance(data['is_expired'], str):
+                data['is_expired'] = data['is_expired'].lower() == 'true'
+        
+        # Parse float strings
+        if 'min_confidence' in data and data['min_confidence']:
+            if isinstance(data['min_confidence'], str):
+                try:
+                    data['min_confidence'] = float(data['min_confidence'])
+                except (ValueError, TypeError):
+                    pass
+        
+        # Call parent to handle base date_from/date_to parsing
+        return super().to_internal_value(data)
 
 
 class CaseDocumentAdminListSerializer(serializers.ModelSerializer):

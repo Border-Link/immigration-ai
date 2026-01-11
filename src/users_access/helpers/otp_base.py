@@ -3,7 +3,7 @@ from django.utils.crypto import get_random_string
 from users_access.constants.otp_constants import ALLOWED_OTP_NUMBERS
 from users_access.services.otp_services import OTPService
 from users_access.tasks.otp_tasks import send_otp_email
-from helpers.generate_hash import GenerateHash
+from main_system.utils.generate_hash import GenerateHash
 
 
 class OTPBaseHandler:

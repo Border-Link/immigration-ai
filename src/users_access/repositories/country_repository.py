@@ -1,4 +1,5 @@
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from users_access.models.country import Country
 
 
@@ -23,13 +24,11 @@ class CountryRepository:
     @staticmethod
     def update_country(country, **fields):
         """Update country fields."""
-        with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(country, key):
-                    setattr(country, key, value)
-            country.full_clean()
-            country.save()
-            return country
+        return BaseRepositoryMixin.update_model_fields(
+            country,
+            **fields,
+            cache_keys=[f'country:{country.id}', f'country:code:{country.code}']
+        )
 
     @staticmethod
     def set_jurisdiction(country, is_jurisdiction: bool):

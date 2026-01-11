@@ -14,7 +14,14 @@ class VisaRuleVersionUpdateAPI(AuthAPI):
         serializer = VisaRuleVersionUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        rule_version = VisaRuleVersionService.update_visa_rule_version(id, **serializer.validated_data)
+        # Extract version for optimistic locking if provided
+        expected_version = serializer.validated_data.pop('version', None)
+        updated_by = request.user if request.user.is_authenticated else None
+        
+        rule_version = VisaRuleVersionService.update_rule_version(
+            id, updated_by=updated_by, expected_version=expected_version, **serializer.validated_data
+        )
+        
         if not rule_version:
             return self.api_response(
                 message=f"Visa rule version with ID '{id}' not found.",

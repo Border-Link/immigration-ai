@@ -1,6 +1,6 @@
 from celery import shared_task
 import logging
-from main_system.tasks_base import BaseTaskWithMeta
+from main_system.utils.tasks_base import BaseTaskWithMeta
 from data_ingestion.selectors.rule_validation_task_selector import RuleValidationTaskSelector
 from users_access.services.notification_service import NotificationService
 from users_access.tasks.email_tasks import send_rule_validation_task_email_task

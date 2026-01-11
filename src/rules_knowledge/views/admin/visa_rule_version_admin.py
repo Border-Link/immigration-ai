@@ -4,20 +4,24 @@ Admin API Views for VisaRuleVersion Management
 Admin-only endpoints for managing visa rule versions.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
+from django.core.exceptions import ValidationError
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+    BaseAdminUpdateAPI,
+)
 from rules_knowledge.services.visa_rule_version_service import VisaRuleVersionService
 from rules_knowledge.serializers.visa_rule_version.read import VisaRuleVersionSerializer, VisaRuleVersionListSerializer
 from rules_knowledge.serializers.visa_rule_version.admin import (
+    VisaRuleVersionAdminListQuerySerializer,
     VisaRuleVersionPublishSerializer,
     VisaRuleVersionUpdateSerializer,
     BulkVisaRuleVersionOperationSerializer,
 )
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
 
 
 class VisaRuleVersionAdminListAPI(AuthAPI):
@@ -38,48 +42,39 @@ class VisaRuleVersionAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        visa_type_id = request.query_params.get('visa_type_id', None)
-        is_published = request.query_params.get('is_published', None)
-        jurisdiction = request.query_params.get('jurisdiction', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
-        effective_from = request.query_params.get('effective_from', None)
-        effective_to = request.query_params.get('effective_to', None)
+        # Validate query parameters
+        query_serializer = VisaRuleVersionAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        try:
-            # Parse dates
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            parsed_effective_from = parse_datetime(effective_from) if effective_from and isinstance(effective_from, str) else effective_from
-            parsed_effective_to = parse_datetime(effective_to) if effective_to and isinstance(effective_to, str) else effective_to
-            is_published_bool = is_published.lower() == 'true' if is_published is not None else None
-            
-            # Use service method with filters
-            rule_versions = VisaRuleVersionService.get_by_filters(
-                visa_type_id=visa_type_id,
-                is_published=is_published_bool,
-                jurisdiction=jurisdiction,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to,
-                effective_from=parsed_effective_from,
-                effective_to=parsed_effective_to
-            )
-            
-            return self.api_response(
-                message="Visa rule versions retrieved successfully.",
-                data=VisaRuleVersionListSerializer(rule_versions, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving visa rule versions: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving visa rule versions.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # Use service method with filters
+        rule_versions = VisaRuleVersionService.get_by_filters(
+            visa_type_id=str(validated_params.get('visa_type_id')) if validated_params.get('visa_type_id') else None,
+            is_published=validated_params.get('is_published'),
+            jurisdiction=validated_params.get('jurisdiction'),
+            date_from=validated_params.get('date_from'),
+            date_to=validated_params.get('date_to'),
+            effective_from=validated_params.get('effective_from'),
+            effective_to=validated_params.get('effective_to')
+        )
+        
+        # Paginate results
+        from main_system.utils import paginate_queryset
+        page = validated_params.get('page', 1)
+        page_size = validated_params.get('page_size', 20)
+        paginated_items, pagination_metadata = paginate_queryset(rule_versions, page=page, page_size=page_size)
+        
+        return self.api_response(
+            message="Visa rule versions retrieved successfully.",
+            data={
+                'items': VisaRuleVersionListSerializer(paginated_items, many=True).data,
+                'pagination': pagination_metadata
+            },
+            status_code=status.HTTP_200_OK
+        )
 
 
-class VisaRuleVersionAdminDetailAPI(AuthAPI):
+class VisaRuleVersionAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed visa rule version information.
     
@@ -88,31 +83,20 @@ class VisaRuleVersionAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            rule_version = VisaRuleVersionService.get_by_id(id)
-            if not rule_version:
-                return self.api_response(
-                    message=f"Visa rule version with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Visa rule version retrieved successfully.",
-                data=VisaRuleVersionSerializer(rule_version).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving visa rule version {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving visa rule version.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa rule version"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa rule version by ID."""
+        return VisaRuleVersionService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return VisaRuleVersionSerializer
 
 
-class VisaRuleVersionAdminUpdateAPI(AuthAPI):
+class VisaRuleVersionAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update visa rule version.
     
@@ -121,36 +105,66 @@ class VisaRuleVersionAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa rule version"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa rule version by ID."""
+        return VisaRuleVersionService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return VisaRuleVersionUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return VisaRuleVersionSerializer
+    
     def patch(self, request, id):
-        serializer = VisaRuleVersionUpdateSerializer(data=request.data)
+        """Override to handle optimistic locking and user context."""
+        entity = self.get_entity_by_id(id)
+        if not entity:
+            return self.api_response(
+                message=f"{self.get_entity_name()} with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        try:
-            rule_version = VisaRuleVersionService.get_by_id(id)
-            if not rule_version:
-                return self.api_response(
-                    message=f"Visa rule version with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            updated_rule_version = VisaRuleVersionService.update_rule_version(
-                id,
-                **serializer.validated_data
-            )
-            
+        # Extract version for optimistic locking if provided
+        validated_data = serializer.validated_data.copy()
+        expected_version = validated_data.pop('version', None)
+        updated_by = request.user if request.user.is_authenticated else None
+        
+        updated_rule_version = VisaRuleVersionService.update_rule_version(
+            str(entity.id),
+            updated_by=updated_by,
+            expected_version=expected_version,
+            **validated_data
+        )
+        
+        if not updated_rule_version:
             return self.api_response(
-                message="Visa rule version updated successfully.",
-                data=VisaRuleVersionSerializer(updated_rule_version).data,
-                status_code=status.HTTP_200_OK
+                message=f"{self.get_entity_name()} with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
-            logger.error(f"Error updating visa rule version {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error updating visa rule version.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        response_serializer = self.get_response_serializer_class()
+        if response_serializer:
+            response_data = response_serializer(updated_rule_version).data
+        else:
+            response_data = serializer_class(updated_rule_version).data
+        
+        return self.api_response(
+            message=f"{self.get_entity_name()} updated successfully.",
+            data=response_data,
+            status_code=status.HTTP_200_OK
+        )
 
 
 class VisaRuleVersionAdminPublishAPI(AuthAPI):
@@ -166,36 +180,45 @@ class VisaRuleVersionAdminPublishAPI(AuthAPI):
         serializer = VisaRuleVersionPublishSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        try:
-            rule_version = VisaRuleVersionService.get_by_id(id)
-            if not rule_version:
-                return self.api_response(
-                    message=f"Visa rule version with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            updated_rule_version = VisaRuleVersionService.publish_rule_version_by_flag(
-                rule_version,
-                serializer.validated_data['is_published']
-            )
-            
-            action = "published" if serializer.validated_data['is_published'] else "unpublished"
+        rule_version = VisaRuleVersionService.get_by_id(id)
+        if not rule_version:
             return self.api_response(
-                message=f"Visa rule version {action} successfully.",
-                data=VisaRuleVersionSerializer(updated_rule_version).data,
-                status_code=status.HTTP_200_OK
+                message=f"Visa rule version with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
-            logger.error(f"Error publishing/unpublishing visa rule version {id}: {e}", exc_info=True)
+        
+        # Extract version for optimistic locking if provided
+        expected_version = serializer.validated_data.get('version')
+        published_by = request.user if request.user.is_authenticated else None
+        
+        # Use publish_rule_version for proper optimistic locking support
+        if serializer.validated_data['is_published']:
+            updated_rule_version = VisaRuleVersionService.publish_rule_version(
+                id, published_by=published_by, expected_version=expected_version
+            )
+        else:
+            # For unpublish, use update_rule_version
+            updated_rule_version = VisaRuleVersionService.update_rule_version(
+                id, updated_by=published_by, expected_version=expected_version, is_published=False
+            )
+        
+        if not updated_rule_version:
             return self.api_response(
-                message="Error publishing/unpublishing visa rule version.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+                message=f"Visa rule version with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
+        
+        action = "published" if serializer.validated_data['is_published'] else "unpublished"
+        return self.api_response(
+            message=f"Visa rule version {action} successfully.",
+            data=VisaRuleVersionSerializer(updated_rule_version).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class VisaRuleVersionAdminDeleteAPI(AuthAPI):
+class VisaRuleVersionAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete visa rule version.
     
@@ -204,39 +227,20 @@ class VisaRuleVersionAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            rule_version = VisaRuleVersionService.get_by_id(id)
-            if not rule_version:
-                return self.api_response(
-                    message=f"Visa rule version with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = VisaRuleVersionService.delete_rule_version(id)
-            if not deleted:
-                return self.api_response(
-                    message="Error deleting visa rule version.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
-            return self.api_response(
-                message="Visa rule version deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting visa rule version {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting visa rule version.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa rule version"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa rule version by ID."""
+        return VisaRuleVersionService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the visa rule version."""
+        return VisaRuleVersionService.delete_rule_version(str(entity.id))
 
 
-class BulkVisaRuleVersionOperationAPI(AuthAPI):
+class BulkVisaRuleVersionOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on visa rule versions.
     
@@ -245,59 +249,35 @@ class BulkVisaRuleVersionOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkVisaRuleVersionOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        rule_version_ids = serializer.validated_data['rule_version_ids']
-        operation = serializer.validated_data['operation']
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        try:
-            for rule_version_id in rule_version_ids:
-                try:
-                    rule_version = VisaRuleVersionService.get_by_id(str(rule_version_id))
-                    if not rule_version:
-                        results['failed'].append({
-                            'rule_version_id': str(rule_version_id),
-                            'error': 'Visa rule version not found'
-                        })
-                        continue
-                    
-                    if operation == 'publish':
-                        VisaRuleVersionService.publish_rule_version_by_flag(rule_version, True)
-                        results['success'].append(str(rule_version_id))
-                    elif operation == 'unpublish':
-                        VisaRuleVersionService.publish_rule_version_by_flag(rule_version, False)
-                        results['success'].append(str(rule_version_id))
-                    elif operation == 'delete':
-                        deleted = VisaRuleVersionService.delete_rule_version(str(rule_version_id))
-                        if deleted:
-                            results['success'].append(str(rule_version_id))
-                        else:
-                            results['failed'].append({
-                                'rule_version_id': str(rule_version_id),
-                                'error': 'Failed to delete'
-                            })
-                except Exception as e:
-                    results['failed'].append({
-                        'rule_version_id': str(rule_version_id),
-                        'error': str(e)
-                    })
-            
-            return self.api_response(
-                message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-                data=results,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error in bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_serializer_class(self):
+        """Return the bulk visa rule version operation serializer."""
+        return BulkVisaRuleVersionOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa rule version"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa rule version by ID."""
+        return VisaRuleVersionService.get_by_id(entity_id)
+    
+    def get_entity_ids(self, validated_data):
+        """Override to use rule_version_ids field name."""
+        return validated_data.get('rule_version_ids', [])
+    
+    def get_entity_id_field_name(self):
+        """Override to use rule_version_id field name."""
+        return 'rule_version_id'
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the visa rule version."""
+        if operation == 'publish':
+            VisaRuleVersionService.publish_rule_version_by_flag(entity, True)
+            return entity
+        elif operation == 'unpublish':
+            VisaRuleVersionService.publish_rule_version_by_flag(entity, False)
+            return entity
+        elif operation == 'delete':
+            return VisaRuleVersionService.delete_rule_version(str(entity.id))
+        else:
+            raise ValueError(f"Invalid operation: {operation}")

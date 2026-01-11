@@ -2,6 +2,7 @@ from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from rules_knowledge.services.visa_type_service import VisaTypeService
 from rules_knowledge.serializers.visa_type.read import VisaTypeSerializer, VisaTypeListSerializer
+from main_system.utils import paginate_queryset
 
 
 class VisaTypeListAPI(AuthAPI):
@@ -10,6 +11,8 @@ class VisaTypeListAPI(AuthAPI):
     def get(self, request):
         jurisdiction = request.query_params.get('jurisdiction', None)
         is_active = request.query_params.get('is_active', None)
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('page_size', 20)
 
         if jurisdiction:
             visa_types = VisaTypeService.get_by_jurisdiction(jurisdiction)
@@ -22,9 +25,15 @@ class VisaTypeListAPI(AuthAPI):
         else:
             visa_types = VisaTypeService.get_all()
 
+        # Paginate results
+        paginated_items, pagination_metadata = paginate_queryset(visa_types, page=page, page_size=page_size)
+
         return self.api_response(
             message="Visa types retrieved successfully.",
-            data=VisaTypeListSerializer(visa_types, many=True).data,
+            data={
+                'items': VisaTypeListSerializer(paginated_items, many=True).data,
+                'pagination': pagination_metadata
+            },
             status_code=status.HTTP_200_OK
         )
 

@@ -4,22 +4,25 @@ Admin API Views for VisaDocumentRequirement Management
 Admin-only endpoints for managing visa document requirements.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+    BaseAdminUpdateAPI,
+)
 from rules_knowledge.services.visa_document_requirement_service import VisaDocumentRequirementService
 from rules_knowledge.serializers.visa_document_requirement.read import (
     VisaDocumentRequirementSerializer,
     VisaDocumentRequirementListSerializer
 )
 from rules_knowledge.serializers.visa_document_requirement.admin import (
+    VisaDocumentRequirementAdminListQuerySerializer,
     VisaDocumentRequirementUpdateSerializer,
     BulkVisaDocumentRequirementOperationSerializer,
 )
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
 
 
 class VisaDocumentRequirementAdminListAPI(AuthAPI):
@@ -40,46 +43,37 @@ class VisaDocumentRequirementAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        rule_version_id = request.query_params.get('rule_version_id', None)
-        document_type_id = request.query_params.get('document_type_id', None)
-        mandatory = request.query_params.get('mandatory', None)
-        visa_type_id = request.query_params.get('visa_type_id', None)
-        jurisdiction = request.query_params.get('jurisdiction', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        query_serializer = VisaDocumentRequirementAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        try:
-            # Parse dates
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            mandatory_bool = mandatory.lower() == 'true' if mandatory is not None else None
-            
-            # Use service method with filters
-            document_requirements = VisaDocumentRequirementService.get_by_filters(
-                rule_version_id=rule_version_id,
-                document_type_id=document_type_id,
-                mandatory=mandatory_bool,
-                visa_type_id=visa_type_id,
-                jurisdiction=jurisdiction,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to
-            )
-            
-            return self.api_response(
-                message="Visa document requirements retrieved successfully.",
-                data=VisaDocumentRequirementListSerializer(document_requirements, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving visa document requirements: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving visa document requirements.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        document_requirements = VisaDocumentRequirementService.get_by_filters(
+            rule_version_id=str(validated_params.get('rule_version_id')) if validated_params.get('rule_version_id') else None,
+            document_type_id=str(validated_params.get('document_type_id')) if validated_params.get('document_type_id') else None,
+            mandatory=validated_params.get('mandatory'),
+            visa_type_id=str(validated_params.get('visa_type_id')) if validated_params.get('visa_type_id') else None,
+            jurisdiction=validated_params.get('jurisdiction'),
+            date_from=validated_params.get('date_from'),
+            date_to=validated_params.get('date_to')
+        )
+        
+        # Paginate results
+        from main_system.utils import paginate_queryset
+        page = validated_params.get('page', 1)
+        page_size = validated_params.get('page_size', 20)
+        paginated_items, pagination_metadata = paginate_queryset(document_requirements, page=page, page_size=page_size)
+        
+        return self.api_response(
+            message="Visa document requirements retrieved successfully.",
+            data={
+                'items': VisaDocumentRequirementListSerializer(paginated_items, many=True).data,
+                'pagination': pagination_metadata
+            },
+            status_code=status.HTTP_200_OK
+        )
 
 
-class VisaDocumentRequirementAdminDetailAPI(AuthAPI):
+class VisaDocumentRequirementAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed visa document requirement information.
     
@@ -88,31 +82,20 @@ class VisaDocumentRequirementAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            document_requirement = VisaDocumentRequirementService.get_by_id(id)
-            if not document_requirement:
-                return self.api_response(
-                    message=f"Visa document requirement with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Visa document requirement retrieved successfully.",
-                data=VisaDocumentRequirementSerializer(document_requirement).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving visa document requirement {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving visa document requirement.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa document requirement"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa document requirement by ID."""
+        return VisaDocumentRequirementService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return VisaDocumentRequirementSerializer
 
 
-class VisaDocumentRequirementAdminUpdateAPI(AuthAPI):
+class VisaDocumentRequirementAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update visa document requirement.
     
@@ -121,39 +104,30 @@ class VisaDocumentRequirementAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def patch(self, request, id):
-        serializer = VisaDocumentRequirementUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        try:
-            document_requirement = VisaDocumentRequirementService.get_by_id(id)
-            if not document_requirement:
-                return self.api_response(
-                    message=f"Visa document requirement with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            updated_document_requirement = VisaDocumentRequirementService.update_document_requirement(
-                id,
-                **serializer.validated_data
-            )
-            
-            return self.api_response(
-                message="Visa document requirement updated successfully.",
-                data=VisaDocumentRequirementSerializer(updated_document_requirement).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error updating visa document requirement {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error updating visa document requirement.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa document requirement"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa document requirement by ID."""
+        return VisaDocumentRequirementService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return VisaDocumentRequirementUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return VisaDocumentRequirementSerializer
+    
+    def update_entity(self, entity, validated_data):
+        """Update the visa document requirement."""
+        # Filter only the fields that are present in validated_data
+        update_fields = {k: v for k, v in validated_data.items() if v is not None}
+        return VisaDocumentRequirementService.update_document_requirement(str(entity.id), **update_fields)
 
 
-class VisaDocumentRequirementAdminDeleteAPI(AuthAPI):
+class VisaDocumentRequirementAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete visa document requirement.
     
@@ -162,39 +136,20 @@ class VisaDocumentRequirementAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            document_requirement = VisaDocumentRequirementService.get_by_id(id)
-            if not document_requirement:
-                return self.api_response(
-                    message=f"Visa document requirement with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = VisaDocumentRequirementService.delete_document_requirement(id)
-            if not deleted:
-                return self.api_response(
-                    message="Error deleting visa document requirement.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
-            return self.api_response(
-                message="Visa document requirement deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting visa document requirement {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting visa document requirement.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa document requirement"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa document requirement by ID."""
+        return VisaDocumentRequirementService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the visa document requirement."""
+        return VisaDocumentRequirementService.delete_document_requirement(str(entity.id))
 
 
-class BulkVisaDocumentRequirementOperationAPI(AuthAPI):
+class BulkVisaDocumentRequirementOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on visa document requirements.
     
@@ -203,65 +158,33 @@ class BulkVisaDocumentRequirementOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkVisaDocumentRequirementOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        document_requirement_ids = serializer.validated_data['document_requirement_ids']
-        operation = serializer.validated_data['operation']
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        try:
-            for document_requirement_id in document_requirement_ids:
-                try:
-                    document_requirement = VisaDocumentRequirementService.get_by_id(str(document_requirement_id))
-                    if not document_requirement:
-                        results['failed'].append({
-                            'document_requirement_id': str(document_requirement_id),
-                            'error': 'Visa document requirement not found'
-                        })
-                        continue
-                    
-                    if operation == 'set_mandatory':
-                        VisaDocumentRequirementService.update_document_requirement(
-                            str(document_requirement_id),
-                            mandatory=True
-                        )
-                        results['success'].append(str(document_requirement_id))
-                    elif operation == 'set_optional':
-                        VisaDocumentRequirementService.update_document_requirement(
-                            str(document_requirement_id),
-                            mandatory=False
-                        )
-                        results['success'].append(str(document_requirement_id))
-                    elif operation == 'delete':
-                        deleted = VisaDocumentRequirementService.delete_document_requirement(str(document_requirement_id))
-                        if deleted:
-                            results['success'].append(str(document_requirement_id))
-                        else:
-                            results['failed'].append({
-                                'document_requirement_id': str(document_requirement_id),
-                                'error': 'Failed to delete'
-                            })
-                except Exception as e:
-                    results['failed'].append({
-                        'document_requirement_id': str(document_requirement_id),
-                        'error': str(e)
-                    })
-            
-            return self.api_response(
-                message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-                data=results,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error in bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_serializer_class(self):
+        """Return the bulk visa document requirement operation serializer."""
+        return BulkVisaDocumentRequirementOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa document requirement"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa document requirement by ID."""
+        return VisaDocumentRequirementService.get_by_id(entity_id)
+    
+    def get_entity_ids(self, validated_data):
+        """Override to use document_requirement_ids field name."""
+        return validated_data.get('document_requirement_ids', [])
+    
+    def get_entity_id_field_name(self):
+        """Override to use document_requirement_id field name."""
+        return 'document_requirement_id'
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the visa document requirement."""
+        if operation == 'set_mandatory':
+            return VisaDocumentRequirementService.update_document_requirement(str(entity.id), mandatory=True)
+        elif operation == 'set_optional':
+            return VisaDocumentRequirementService.update_document_requirement(str(entity.id), mandatory=False)
+        elif operation == 'delete':
+            return VisaDocumentRequirementService.delete_document_requirement(str(entity.id))
+        else:
+            raise ValueError(f"Invalid operation: {operation}")

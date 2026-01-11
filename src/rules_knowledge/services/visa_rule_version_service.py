@@ -1,11 +1,12 @@
 import logging
 from typing import Optional
 from django.utils import timezone
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from rules_knowledge.models.visa_rule_version import VisaRuleVersion
 from rules_knowledge.repositories.visa_rule_version_repository import VisaRuleVersionRepository
 from rules_knowledge.selectors.visa_rule_version_selector import VisaRuleVersionSelector
 from rules_knowledge.selectors.visa_type_selector import VisaTypeSelector
+from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
 
@@ -24,11 +25,25 @@ class VisaRuleVersionService:
                 from data_ingestion.selectors.document_version_selector import DocumentVersionSelector
                 source_doc_version = DocumentVersionSelector.get_by_id(source_document_version_id)
             
-            return VisaRuleVersionRepository.create_rule_version(
+            rule_version = VisaRuleVersionRepository.create_rule_version(
                 visa_type, effective_from, effective_to, source_doc_version, is_published, created_by
             )
+            
+            # Log audit event
+            try:
+                AuditLogService.create_audit_log(
+                    level='INFO',
+                    logger_name='rules_knowledge',
+                    message=f"Rule version created for visa type {visa_type_id}: effective_from={effective_from}, is_published={is_published}",
+                    func_name='create_rule_version',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
+            return rule_version
         except Exception as e:
-            logger.error(f"Error creating rule version for visa type {visa_type_id}: {e}")
+            logger.error(f"Error creating rule version for visa type {visa_type_id}: {e}", exc_info=True)
             return None
 
     @staticmethod
@@ -77,29 +92,95 @@ class VisaRuleVersionService:
             return None
 
     @staticmethod
-    def publish_rule_version(version_id: str, published_by=None) -> Optional[VisaRuleVersion]:
-        """Publish a rule version."""
+    def publish_rule_version(version_id: str, published_by=None, expected_version=None) -> Optional[VisaRuleVersion]:
+        """
+        Publish a rule version with optimistic locking support.
+        
+        Args:
+            version_id: UUID of rule version to publish
+            published_by: User performing the publish
+            expected_version: Expected version number for optimistic locking (None to skip check)
+            
+        Returns:
+            Published VisaRuleVersion instance or None if not found
+            
+        Raises:
+            ValidationError: If version conflict detected (caller should handle)
+        """
         try:
             rule_version = VisaRuleVersionSelector.get_by_id(version_id)
-            return VisaRuleVersionRepository.publish_rule_version(rule_version, published_by)
+            published_version = VisaRuleVersionRepository.publish_rule_version(
+                rule_version, published_by, expected_version=expected_version
+            )
+            
+            # Log audit event
+            try:
+                AuditLogService.create_audit_log(
+                    level='INFO',
+                    logger_name='rules_knowledge',
+                    message=f"Rule version {version_id} published for visa type {rule_version.visa_type.code}",
+                    func_name='publish_rule_version',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
+            return published_version
         except VisaRuleVersion.DoesNotExist:
             logger.error(f"Rule version {version_id} not found")
             return None
+        except ValidationError:
+            # Re-raise ValidationError for version conflicts - let views handle it
+            raise
         except Exception as e:
-            logger.error(f"Error publishing rule version {version_id}: {e}")
+            logger.error(f"Error publishing rule version {version_id}: {e}", exc_info=True)
             return None
 
     @staticmethod
-    def update_rule_version(version_id: str, updated_by=None, **fields) -> Optional[VisaRuleVersion]:
-        """Update rule version."""
+    def update_rule_version(version_id: str, updated_by=None, expected_version=None, **fields) -> Optional[VisaRuleVersion]:
+        """
+        Update rule version with optimistic locking support.
+        
+        Args:
+            version_id: UUID of rule version to update
+            updated_by: User performing the update
+            expected_version: Expected version number for optimistic locking (None to skip check)
+            **fields: Fields to update
+            
+        Returns:
+            Updated VisaRuleVersion instance or None if not found
+            
+        Raises:
+            ValidationError: If version conflict detected (caller should handle)
+        """
         try:
             rule_version = VisaRuleVersionSelector.get_by_id(version_id)
-            return VisaRuleVersionRepository.update_rule_version(rule_version, updated_by, **fields)
+            updated_version = VisaRuleVersionRepository.update_rule_version(
+                rule_version, updated_by, expected_version=expected_version, **fields
+            )
+            
+            # Log audit event
+            try:
+                changes = ', '.join([f"{k}={v}" for k, v in fields.items()])
+                AuditLogService.create_audit_log(
+                    level='INFO',
+                    logger_name='rules_knowledge',
+                    message=f"Rule version {version_id} updated: {changes}",
+                    func_name='update_rule_version',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
+            return updated_version
         except VisaRuleVersion.DoesNotExist:
             logger.error(f"Rule version {version_id} not found")
             return None
+        except ValidationError:
+            # Re-raise ValidationError for version conflicts - let views handle it
+            raise
         except Exception as e:
-            logger.error(f"Error updating rule version {version_id}: {e}")
+            logger.error(f"Error updating rule version {version_id}: {e}", exc_info=True)
             return None
 
     @staticmethod
@@ -108,12 +189,25 @@ class VisaRuleVersionService:
         try:
             rule_version = VisaRuleVersionSelector.get_by_id(version_id)
             VisaRuleVersionRepository.delete_rule_version(rule_version)
+            
+            # Log audit event
+            try:
+                AuditLogService.create_audit_log(
+                    level='WARNING',
+                    logger_name='rules_knowledge',
+                    message=f"Rule version {version_id} deleted (soft delete) for visa type {rule_version.visa_type.code}",
+                    func_name='delete_rule_version',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
             return True
         except VisaRuleVersion.DoesNotExist:
             logger.error(f"Rule version {version_id} not found")
             return False
         except Exception as e:
-            logger.error(f"Error deleting rule version {version_id}: {e}")
+            logger.error(f"Error deleting rule version {version_id}: {e}", exc_info=True)
             return False
 
     @staticmethod

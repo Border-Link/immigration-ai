@@ -4,7 +4,6 @@ Admin API Views for Human Reviews Analytics and Statistics
 Admin-only endpoints for human reviews analytics, statistics, and reporting.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
@@ -18,8 +17,6 @@ from django.db.models import Count, Avg, Q
 from django.utils import timezone
 from datetime import timedelta
 
-logger = logging.getLogger('django')
-
 
 class HumanReviewsStatisticsAPI(AuthAPI):
     """
@@ -31,7 +28,6 @@ class HumanReviewsStatisticsAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        try:
             # Review statistics
             total_reviews = Review.objects.count()
             reviews_by_status = Review.objects.values('status').annotate(count=Count('id'))
@@ -128,15 +124,8 @@ class HumanReviewsStatisticsAPI(AuthAPI):
                 ],
             }
             
-            return self.api_response(
-                message="Human reviews statistics retrieved successfully.",
-                data=statistics,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving human reviews statistics: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving human reviews statistics.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return self.api_response(
+            message="Human reviews statistics retrieved successfully.",
+            data=statistics,
+            status_code=status.HTTP_200_OK
+        )

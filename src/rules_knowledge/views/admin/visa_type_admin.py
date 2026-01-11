@@ -8,13 +8,19 @@ import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+    BaseAdminActivateAPI,
+)
 from rules_knowledge.services.visa_type_service import VisaTypeService
 from rules_knowledge.serializers.visa_type.read import VisaTypeSerializer, VisaTypeListSerializer
 from rules_knowledge.serializers.visa_type.admin import (
+    VisaTypeAdminListQuerySerializer,
     VisaTypeActivateSerializer,
     BulkVisaTypeOperationSerializer,
 )
-from django.utils.dateparse import parse_datetime
 
 logger = logging.getLogger('django')
 
@@ -35,42 +41,37 @@ class VisaTypeAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        jurisdiction = request.query_params.get('jurisdiction', None)
-        is_active = request.query_params.get('is_active', None)
-        code = request.query_params.get('code', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        # Validate query parameters
+        query_serializer = VisaTypeAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        try:
-            # Parse dates
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            is_active_bool = is_active.lower() == 'true' if is_active is not None else None
-            
-            # Use service method with filters
-            visa_types = VisaTypeService.get_by_filters(
-                jurisdiction=jurisdiction,
-                is_active=is_active_bool,
-                code=code,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to
-            )
-            
-            return self.api_response(
-                message="Visa types retrieved successfully.",
-                data=VisaTypeListSerializer(visa_types, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving visa types: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving visa types.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # Use service method with filters
+        visa_types = VisaTypeService.get_by_filters(
+            jurisdiction=validated_params.get('jurisdiction'),
+            is_active=validated_params.get('is_active'),
+            code=validated_params.get('code'),
+            date_from=validated_params.get('date_from'),
+            date_to=validated_params.get('date_to')
+        )
+        
+        # Paginate results
+        from main_system.utils import paginate_queryset
+        page = validated_params.get('page', 1)
+        page_size = validated_params.get('page_size', 20)
+        paginated_items, pagination_metadata = paginate_queryset(visa_types, page=page, page_size=page_size)
+        
+        return self.api_response(
+            message="Visa types retrieved successfully.",
+            data={
+                'items': VisaTypeListSerializer(paginated_items, many=True).data,
+                'pagination': pagination_metadata
+            },
+            status_code=status.HTTP_200_OK
+        )
 
 
-class VisaTypeAdminDetailAPI(AuthAPI):
+class VisaTypeAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed visa type information.
     
@@ -79,31 +80,20 @@ class VisaTypeAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            visa_type = VisaTypeService.get_by_id(id)
-            if not visa_type:
-                return self.api_response(
-                    message=f"Visa type with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Visa type retrieved successfully.",
-                data=VisaTypeSerializer(visa_type).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving visa type {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving visa type.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa type"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa type by ID."""
+        return VisaTypeService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return VisaTypeSerializer
 
 
-class VisaTypeAdminActivateAPI(AuthAPI):
+class VisaTypeAdminActivateAPI(BaseAdminActivateAPI):
     """
     Admin: Activate or deactivate a visa type.
     
@@ -112,40 +102,61 @@ class VisaTypeAdminActivateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa type"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa type by ID."""
+        return VisaTypeService.get_by_id(entity_id)
+    
+    def activate_entity(self, entity, is_active):
+        """Activate or deactivate the visa type."""
+        updated = VisaTypeService.activate_visa_type(entity, is_active)
+        return updated is not None
+    
     def post(self, request, id):
-        serializer = VisaTypeActivateSerializer(data=request.data)
+        """Override to return serialized data in response."""
+        from main_system.serializers.admin.base import ActivateSerializer
+        
+        serializer = ActivateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        is_active = serializer.validated_data['is_active']
+        
+        entity = self.get_entity_by_id(str(id))
+        if not entity:
+            return self.api_response(
+                message=f"{self.get_entity_name()} not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        
         try:
-            visa_type = VisaTypeService.get_by_id(id)
-            if not visa_type:
+            updated = VisaTypeService.activate_visa_type(entity, is_active)
+            if updated:
+                action = "activated" if is_active else "deactivated"
                 return self.api_response(
-                    message=f"Visa type with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
+                    message=f"{self.get_entity_name()} {action} successfully.",
+                    data=VisaTypeSerializer(updated).data,
+                    status_code=status.HTTP_200_OK
                 )
-            
-            updated_visa_type = VisaTypeService.activate_visa_type(
-                visa_type,
-                serializer.validated_data['is_active']
-            )
-            
-            action = "activated" if serializer.validated_data['is_active'] else "deactivated"
-            return self.api_response(
-                message=f"Visa type {action} successfully.",
-                data=VisaTypeSerializer(updated_visa_type).data,
-                status_code=status.HTTP_200_OK
-            )
+            else:
+                return self.api_response(
+                    message=f"Failed to update {self.get_entity_name()}.",
+                    data=None,
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
         except Exception as e:
-            logger.error(f"Error activating/deactivating visa type {id}: {e}", exc_info=True)
+            logger.error(f"Error updating {self.get_entity_name()} {id}: {e}", exc_info=True)
             return self.api_response(
-                message="Error activating/deactivating visa type.",
-                data={'error': str(e)},
+                message=f"Error updating {self.get_entity_name()}: {str(e)}",
+                data=None,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
-class VisaTypeAdminDeleteAPI(AuthAPI):
+class VisaTypeAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete visa type.
     
@@ -154,39 +165,20 @@ class VisaTypeAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            visa_type = VisaTypeService.get_by_id(id)
-            if not visa_type:
-                return self.api_response(
-                    message=f"Visa type with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = VisaTypeService.delete_visa_type(id)
-            if not deleted:
-                return self.api_response(
-                    message="Error deleting visa type.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
-            return self.api_response(
-                message="Visa type deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting visa type {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting visa type.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa type"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa type by ID."""
+        return VisaTypeService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the visa type."""
+        return VisaTypeService.delete_visa_type(str(entity.id))
 
 
-class BulkVisaTypeOperationAPI(AuthAPI):
+class BulkVisaTypeOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on visa types.
     
@@ -195,59 +187,25 @@ class BulkVisaTypeOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkVisaTypeOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        visa_type_ids = serializer.validated_data['visa_type_ids']
-        operation = serializer.validated_data['operation']
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        try:
-            for visa_type_id in visa_type_ids:
-                try:
-                    visa_type = VisaTypeService.get_by_id(str(visa_type_id))
-                    if not visa_type:
-                        results['failed'].append({
-                            'visa_type_id': str(visa_type_id),
-                            'error': 'Visa type not found'
-                        })
-                        continue
-                    
-                    if operation == 'activate':
-                        VisaTypeService.activate_visa_type(visa_type, True)
-                        results['success'].append(str(visa_type_id))
-                    elif operation == 'deactivate':
-                        VisaTypeService.activate_visa_type(visa_type, False)
-                        results['success'].append(str(visa_type_id))
-                    elif operation == 'delete':
-                        deleted = VisaTypeService.delete_visa_type(str(visa_type_id))
-                        if deleted:
-                            results['success'].append(str(visa_type_id))
-                        else:
-                            results['failed'].append({
-                                'visa_type_id': str(visa_type_id),
-                                'error': 'Failed to delete'
-                            })
-                except Exception as e:
-                    results['failed'].append({
-                        'visa_type_id': str(visa_type_id),
-                        'error': str(e)
-                    })
-            
-            return self.api_response(
-                message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-                data=results,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error in bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_serializer_class(self):
+        """Return the bulk visa type operation serializer."""
+        return BulkVisaTypeOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Visa type"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get visa type by ID."""
+        return VisaTypeService.get_by_id(entity_id)
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the visa type."""
+        if operation == 'activate':
+            return VisaTypeService.activate_visa_type(entity, True)
+        elif operation == 'deactivate':
+            return VisaTypeService.activate_visa_type(entity, False)
+        elif operation == 'delete':
+            return VisaTypeService.delete_visa_type(str(entity.id))
+        else:
+            raise ValueError(f"Invalid operation: {operation}")

@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .password_validation import PasswordValidation
-from helpers import fields as input_fields
 from users_access.services.user_service import UserService
 
 
@@ -10,18 +9,18 @@ class ResetPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
     def validate_new_password(self, new_password):
-        email = self.initial_data.get(input_fields.EMAIL)
+        email = self.initial_data.get("email")
         return PasswordValidation(new_password, email).validate()
 
     def validate_retype_password(self, retype_password):
-        if self.initial_data.get(input_fields.NEW_PASSWORD) != retype_password:
-            raise serializers.ValidationError(input_fields.PASSWORD_DO_NOT_MATCH)
+        if self.initial_data.get("new_password") != retype_password:
+            raise serializers.ValidationError("Passwords do not match")
         return retype_password
 
     def validate_email(self, email):
         email = email.strip().lower()
         user = UserService().get_by_email(email)
         if not user:
-            raise serializers.ValidationError(input_fields.EMAIL_DOES_NOT_EXIST)
+            raise serializers.ValidationError("Email does not exist")
         return user
 

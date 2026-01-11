@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from ai_decisions.models.ai_citation import AICitation
 from ai_decisions.repositories.ai_citation_repository import AICitationRepository
 from ai_decisions.selectors.ai_citation_selector import AICitationSelector

@@ -1,24 +1,31 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from immigration_cases.services.case_service import CaseService
-from immigration_cases.serializers.case.read import CaseSerializer, CaseListSerializer
-from immigration_cases.helpers.pagination import paginate_queryset
+from immigration_cases.serializers.case.read import (
+    CaseListQuerySerializer,
+    CaseSerializer,
+    CaseListSerializer
+)
+from main_system.utils import paginate_queryset
 
 
 class CaseListAPI(AuthAPI):
     """Get list of cases. Supports filtering by user_id, status, jurisdiction and pagination."""
 
     def get(self, request):
-        user_id = request.query_params.get('user_id', None)
-        status_filter = request.query_params.get('status', None)
-        jurisdiction = request.query_params.get('jurisdiction', None)
+        # Validate query parameters
+        query_serializer = CaseListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        # Pagination parameters
-        page = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 20)
+        user_id = validated_params.get('user_id')
+        status_filter = validated_params.get('status')
+        jurisdiction = validated_params.get('jurisdiction')
+        page = validated_params.get('page', 1)
+        page_size = validated_params.get('page_size', 20)
 
         if user_id:
-            cases = CaseService.get_by_user(user_id)
+            cases = CaseService.get_by_user(str(user_id))
         else:
             cases = CaseService.get_all()
 

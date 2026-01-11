@@ -4,11 +4,23 @@ Admin Serializers for VisaType Management
 Serializers for admin visa type management operations.
 """
 from rest_framework import serializers
+from main_system.serializers.admin.base import (
+    BaseAdminListQuerySerializer,
+    ActivateSerializer as BaseActivateSerializer
+)
 
 
-class VisaTypeActivateSerializer(serializers.Serializer):
+class VisaTypeAdminListQuerySerializer(BaseAdminListQuerySerializer):
+    """Serializer for validating VisaTypeAdminListAPI query parameters."""
+    
+    jurisdiction = serializers.CharField(required=False, allow_null=True, max_length=10)
+    is_active = serializers.BooleanField(required=False, allow_null=True)
+    code = serializers.CharField(required=False, allow_null=True, max_length=50)
+
+
+class VisaTypeActivateSerializer(BaseActivateSerializer):
     """Serializer for activating/deactivating a visa type."""
-    is_active = serializers.BooleanField(required=True)
+    pass
 
 
 class BulkVisaTypeOperationSerializer(serializers.Serializer):

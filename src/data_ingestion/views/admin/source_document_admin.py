@@ -4,16 +4,20 @@ Admin API Views for SourceDocument Management
 Admin-only endpoints for managing source documents.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+)
 from data_ingestion.services.source_document_service import SourceDocumentService
 from data_ingestion.serializers.source_document.read import SourceDocumentSerializer, SourceDocumentListSerializer
-from data_ingestion.serializers.source_document.admin import BulkSourceDocumentOperationSerializer
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
+from data_ingestion.serializers.source_document.admin import (
+    SourceDocumentAdminListQuerySerializer,
+    BulkSourceDocumentOperationSerializer,
+)
 
 
 class SourceDocumentAdminListAPI(AuthAPI):
@@ -32,43 +36,25 @@ class SourceDocumentAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        data_source_id = request.query_params.get('data_source_id', None)
-        has_error = request.query_params.get('has_error', None)
-        http_status = request.query_params.get('http_status', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        query_serializer = SourceDocumentAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
         
-        try:
-            # Parse parameters
-            has_error_bool = has_error.lower() == 'true' if has_error is not None else None
-            http_status_int = int(http_status) if http_status else None
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            
-            # Use service method with filters
-            documents = SourceDocumentService.get_by_filters(
-                data_source_id=data_source_id,
-                has_error=has_error_bool,
-                http_status=http_status_int,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to
-            )
-            
-            return self.api_response(
-                message="Source documents retrieved successfully.",
-                data=SourceDocumentListSerializer(documents, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving source documents: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving source documents.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        documents = SourceDocumentService.get_by_filters(
+            data_source_id=str(query_serializer.validated_data.get('data_source_id')) if query_serializer.validated_data.get('data_source_id') else None,
+            has_error=query_serializer.validated_data.get('has_error'),
+            http_status=query_serializer.validated_data.get('http_status'),
+            date_from=query_serializer.validated_data.get('date_from'),
+            date_to=query_serializer.validated_data.get('date_to')
+        )
+        
+        return self.api_response(
+            message="Source documents retrieved successfully.",
+            data=SourceDocumentListSerializer(documents, many=True).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class SourceDocumentAdminDetailAPI(AuthAPI):
+class SourceDocumentAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed source document information.
     
@@ -77,31 +63,20 @@ class SourceDocumentAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            document = SourceDocumentService.get_by_id(id)
-            if not document:
-                return self.api_response(
-                    message=f"Source document with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Source document retrieved successfully.",
-                data=SourceDocumentSerializer(document).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving source document {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving source document.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Source document"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get source document by ID."""
+        return SourceDocumentService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return SourceDocumentSerializer
 
 
-class SourceDocumentAdminDeleteAPI(AuthAPI):
+class SourceDocumentAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete source document.
     
@@ -110,39 +85,20 @@ class SourceDocumentAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            document = SourceDocumentService.get_by_id(id)
-            if not document:
-                return self.api_response(
-                    message=f"Source document with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = SourceDocumentService.delete_source_document(id)
-            if not deleted:
-                return self.api_response(
-                    message="Error deleting source document.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
-            return self.api_response(
-                message="Source document deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting source document {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting source document.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Source document"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get source document by ID."""
+        return SourceDocumentService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the source document."""
+        return SourceDocumentService.delete_source_document(str(entity.id))
 
 
-class BulkSourceDocumentOperationAPI(AuthAPI):
+class BulkSourceDocumentOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on source documents.
     
@@ -151,45 +107,21 @@ class BulkSourceDocumentOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkSourceDocumentOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        document_ids = serializer.validated_data['document_ids']
-        operation = serializer.validated_data['operation']
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        try:
-            for document_id in document_ids:
-                try:
-                    if operation == 'delete':
-                        deleted = SourceDocumentService.delete_source_document(str(document_id))
-                        if deleted:
-                            results['success'].append(str(document_id))
-                        else:
-                            results['failed'].append({
-                                'document_id': str(document_id),
-                                'error': 'Source document not found or failed to delete'
-                            })
-                except Exception as e:
-                    results['failed'].append({
-                        'document_id': str(document_id),
-                        'error': str(e)
-                    })
-            
-            return self.api_response(
-                message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-                data=results,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error in bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_serializer_class(self):
+        """Return the bulk source document operation serializer."""
+        return BulkSourceDocumentOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Source document"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get source document by ID."""
+        return SourceDocumentService.get_by_id(entity_id)
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the source document."""
+        if operation == 'delete':
+            return SourceDocumentService.delete_source_document(str(entity.id))
+        else:
+            raise ValueError(f"Invalid operation: {operation}")

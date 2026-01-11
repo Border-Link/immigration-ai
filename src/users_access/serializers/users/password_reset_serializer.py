@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from users_access.services.user_service import UserService
-from helpers import fields as input_fields
 
 
 class PasswordResetSerializer(serializers.Serializer):
@@ -10,6 +9,6 @@ class PasswordResetSerializer(serializers.Serializer):
         email = email.strip().lower()
         user = UserService().get_by_email(email)
         if not user:
-            raise serializers.ValidationError(input_fields.EMAIL_DOES_NOT_EXIST)
+            raise serializers.ValidationError("Email does not exist")
 
         return user

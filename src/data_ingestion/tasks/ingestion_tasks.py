@@ -1,6 +1,6 @@
 from celery import shared_task
 import logging
-from main_system.tasks_base import BaseTaskWithMeta
+from main_system.utils.tasks_base import BaseTaskWithMeta
 from data_ingestion.services.ingestion_service import IngestionService
 
 logger = logging.getLogger('django')

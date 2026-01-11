@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from data_ingestion.models.parsed_rule import ParsedRule
 from data_ingestion.repositories.parsed_rule_repository import ParsedRuleRepository
 from data_ingestion.selectors.parsed_rule_selector import ParsedRuleSelector

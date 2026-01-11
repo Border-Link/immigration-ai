@@ -1,4 +1,5 @@
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from document_handling.models.case_document import CaseDocument
 from immigration_cases.models.case import Case
 from rules_knowledge.models.document_type import DocumentType
@@ -29,13 +30,11 @@ class CaseDocumentRepository:
     @staticmethod
     def update_case_document(case_document, **fields):
         """Update case document fields."""
-        with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(case_document, key):
-                    setattr(case_document, key, value)
-            case_document.full_clean()
-            case_document.save()
-            return case_document
+        return BaseRepositoryMixin.update_model_fields(
+            case_document,
+            **fields,
+            cache_keys=[f'case_document:{case_document.id}']
+        )
 
     @staticmethod
     def update_status(case_document, status: str):

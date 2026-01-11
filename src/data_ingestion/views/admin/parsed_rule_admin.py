@@ -4,19 +4,22 @@ Admin API Views for ParsedRule Management
 Admin-only endpoints for managing parsed rules.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+    BaseAdminUpdateAPI,
+)
 from data_ingestion.services.parsed_rule_service import ParsedRuleService
 from data_ingestion.serializers.parsed_rule.read import ParsedRuleSerializer, ParsedRuleListSerializer
 from data_ingestion.serializers.parsed_rule.admin import (
+    ParsedRuleAdminListQuerySerializer,
     ParsedRuleAdminUpdateSerializer,
     BulkParsedRuleOperationSerializer,
 )
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
 
 
 class ParsedRuleAdminListAPI(AuthAPI):
@@ -36,44 +39,26 @@ class ParsedRuleAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        status_filter = request.query_params.get('status', None)
-        visa_code = request.query_params.get('visa_code', None)
-        rule_type = request.query_params.get('rule_type', None)
-        min_confidence = request.query_params.get('min_confidence', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        query_serializer = ParsedRuleAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
         
-        try:
-            # Parse parameters
-            min_confidence_float = float(min_confidence) if min_confidence else None
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            
-            # Use service method with filters
-            rules = ParsedRuleService.get_by_filters(
-                status=status_filter,
-                visa_code=visa_code,
-                rule_type=rule_type,
-                min_confidence=min_confidence_float,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to
-            )
-            
-            return self.api_response(
-                message="Parsed rules retrieved successfully.",
-                data=ParsedRuleListSerializer(rules, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving parsed rules: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving parsed rules.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        rules = ParsedRuleService.get_by_filters(
+            status=query_serializer.validated_data.get('status'),
+            visa_code=query_serializer.validated_data.get('visa_code'),
+            rule_type=query_serializer.validated_data.get('rule_type'),
+            min_confidence=query_serializer.validated_data.get('min_confidence'),
+            date_from=query_serializer.validated_data.get('date_from'),
+            date_to=query_serializer.validated_data.get('date_to')
+        )
+        
+        return self.api_response(
+            message="Parsed rules retrieved successfully.",
+            data=ParsedRuleListSerializer(rules, many=True).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class ParsedRuleAdminDetailAPI(AuthAPI):
+class ParsedRuleAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed parsed rule information.
     
@@ -82,31 +67,20 @@ class ParsedRuleAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            rule = ParsedRuleService.get_by_id(id)
-            if not rule:
-                return self.api_response(
-                    message=f"Parsed rule with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Parsed rule retrieved successfully.",
-                data=ParsedRuleSerializer(rule).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving parsed rule {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving parsed rule.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Parsed rule"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get parsed rule by ID."""
+        return ParsedRuleService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return ParsedRuleSerializer
 
 
-class ParsedRuleAdminUpdateAPI(AuthAPI):
+class ParsedRuleAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update parsed rule.
     
@@ -115,46 +89,31 @@ class ParsedRuleAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def patch(self, request, id):
-        serializer = ParsedRuleAdminUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        try:
-            rule = ParsedRuleService.get_by_id(id)
-            if not rule:
-                return self.api_response(
-                    message=f"Parsed rule with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            updated_rule = ParsedRuleService.update_parsed_rule(
-                id,
-                **serializer.validated_data
-            )
-            
-            if updated_rule:
-                return self.api_response(
-                    message="Parsed rule updated successfully.",
-                    data=ParsedRuleSerializer(updated_rule).data,
-                    status_code=status.HTTP_200_OK
-                )
-            else:
-                return self.api_response(
-                    message="Error updating parsed rule.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        except Exception as e:
-            logger.error(f"Error updating parsed rule {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error updating parsed rule.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Parsed rule"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get parsed rule by ID."""
+        return ParsedRuleService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return ParsedRuleAdminUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return ParsedRuleSerializer
+    
+    def update_entity(self, entity, validated_data):
+        """Update the parsed rule."""
+        return ParsedRuleService.update_parsed_rule(
+            str(entity.id),
+            **validated_data
+        )
 
 
-class ParsedRuleAdminDeleteAPI(AuthAPI):
+class ParsedRuleAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete parsed rule.
     
@@ -163,39 +122,20 @@ class ParsedRuleAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            rule = ParsedRuleService.get_by_id(id)
-            if not rule:
-                return self.api_response(
-                    message=f"Parsed rule with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = ParsedRuleService.delete_parsed_rule(id)
-            if not deleted:
-                return self.api_response(
-                    message="Error deleting parsed rule.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
-            return self.api_response(
-                message="Parsed rule deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting parsed rule {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting parsed rule.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Parsed rule"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get parsed rule by ID."""
+        return ParsedRuleService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the parsed rule."""
+        return ParsedRuleService.delete_parsed_rule(str(entity.id))
 
 
-class BulkParsedRuleOperationAPI(AuthAPI):
+class BulkParsedRuleOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on parsed rules.
     
@@ -204,80 +144,27 @@ class BulkParsedRuleOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkParsedRuleOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        rule_ids = serializer.validated_data['rule_ids']
-        operation = serializer.validated_data['operation']
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        try:
-            for rule_id in rule_ids:
-                try:
-                    rule = ParsedRuleService.get_by_id(str(rule_id))
-                    if not rule:
-                        results['failed'].append({
-                            'rule_id': str(rule_id),
-                            'error': 'Parsed rule not found'
-                        })
-                        continue
-                    
-                    if operation == 'delete':
-                        deleted = ParsedRuleService.delete_parsed_rule(str(rule_id))
-                        if deleted:
-                            results['success'].append(str(rule_id))
-                        else:
-                            results['failed'].append({
-                                'rule_id': str(rule_id),
-                                'error': 'Failed to delete'
-                            })
-                    elif operation == 'approve':
-                        updated = ParsedRuleService.update_status(str(rule_id), 'approved')
-                        if updated:
-                            results['success'].append(str(rule_id))
-                        else:
-                            results['failed'].append({
-                                'rule_id': str(rule_id),
-                                'error': 'Failed to approve'
-                            })
-                    elif operation == 'reject':
-                        updated = ParsedRuleService.update_status(str(rule_id), 'rejected')
-                        if updated:
-                            results['success'].append(str(rule_id))
-                        else:
-                            results['failed'].append({
-                                'rule_id': str(rule_id),
-                                'error': 'Failed to reject'
-                            })
-                    elif operation == 'mark_pending':
-                        updated = ParsedRuleService.update_status(str(rule_id), 'pending')
-                        if updated:
-                            results['success'].append(str(rule_id))
-                        else:
-                            results['failed'].append({
-                                'rule_id': str(rule_id),
-                                'error': 'Failed to mark pending'
-                            })
-                except Exception as e:
-                    results['failed'].append({
-                        'rule_id': str(rule_id),
-                        'error': str(e)
-                    })
-            
-            return self.api_response(
-                message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-                data=results,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error in bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_serializer_class(self):
+        """Return the bulk parsed rule operation serializer."""
+        return BulkParsedRuleOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Parsed rule"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get parsed rule by ID."""
+        return ParsedRuleService.get_by_id(entity_id)
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the parsed rule."""
+        if operation == 'delete':
+            return ParsedRuleService.delete_parsed_rule(str(entity.id))
+        elif operation == 'approve':
+            return ParsedRuleService.update_status(str(entity.id), 'approved')
+        elif operation == 'reject':
+            return ParsedRuleService.update_status(str(entity.id), 'rejected')
+        elif operation == 'mark_pending':
+            return ParsedRuleService.update_status(str(entity.id), 'pending')
+        else:
+            raise ValueError(f"Invalid operation: {operation}")

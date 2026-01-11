@@ -1,4 +1,5 @@
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from ai_decisions.models.ai_citation import AICitation
 from ai_decisions.models.ai_reasoning_log import AIReasoningLog
 from data_ingestion.models.document_version import DocumentVersion
@@ -25,13 +26,11 @@ class AICitationRepository:
     @staticmethod
     def update_citation(citation: AICitation, **fields):
         """Update citation fields."""
-        with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(citation, key):
-                    setattr(citation, key, value)
-            citation.full_clean()
-            citation.save()
-            return citation
+        return BaseRepositoryMixin.update_model_fields(
+            citation,
+            **fields,
+            cache_keys=[f'ai_citation:{citation.id}']
+        )
 
     @staticmethod
     def delete_citation(citation: AICitation):

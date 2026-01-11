@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from ai_decisions.models.ai_reasoning_log import AIReasoningLog
 from ai_decisions.repositories.ai_reasoning_log_repository import AIReasoningLogRepository
 from ai_decisions.selectors.ai_reasoning_log_selector import AIReasoningLogSelector

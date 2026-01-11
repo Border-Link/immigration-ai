@@ -1,4 +1,5 @@
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from ai_decisions.models.ai_reasoning_log import AIReasoningLog
 from immigration_cases.models.case import Case
 
@@ -25,13 +26,11 @@ class AIReasoningLogRepository:
     @staticmethod
     def update_reasoning_log(log: AIReasoningLog, **fields):
         """Update reasoning log fields."""
-        with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(log, key):
-                    setattr(log, key, value)
-            log.full_clean()
-            log.save()
-            return log
+        return BaseRepositoryMixin.update_model_fields(
+            log,
+            **fields,
+            cache_keys=[f'ai_reasoning_log:{log.id}']
+        )
 
     @staticmethod
     def delete_reasoning_log(log: AIReasoningLog):

@@ -5,6 +5,7 @@ from rules_knowledge.serializers.visa_document_requirement.read import (
     VisaDocumentRequirementSerializer,
     VisaDocumentRequirementListSerializer
 )
+from main_system.utils import paginate_queryset
 
 
 class VisaDocumentRequirementListAPI(AuthAPI):
@@ -12,15 +13,23 @@ class VisaDocumentRequirementListAPI(AuthAPI):
 
     def get(self, request):
         rule_version_id = request.query_params.get('rule_version_id', None)
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('page_size', 20)
 
         if rule_version_id:
             doc_requirements = VisaDocumentRequirementService.get_by_rule_version(rule_version_id)
         else:
             doc_requirements = VisaDocumentRequirementService.get_all()
 
+        # Paginate results
+        paginated_items, pagination_metadata = paginate_queryset(doc_requirements, page=page, page_size=page_size)
+
         return self.api_response(
             message="Visa document requirements retrieved successfully.",
-            data=VisaDocumentRequirementListSerializer(doc_requirements, many=True).data,
+            data={
+                'items': VisaDocumentRequirementListSerializer(paginated_items, many=True).data,
+                'pagination': pagination_metadata
+            },
             status_code=status.HTTP_200_OK
         )
 

@@ -4,16 +4,20 @@ Admin API Views for DocumentDiff Management
 Admin-only endpoints for managing document diffs.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+)
 from data_ingestion.services.document_diff_service import DocumentDiffService
 from data_ingestion.serializers.document_diff.read import DocumentDiffSerializer, DocumentDiffListSerializer
-from data_ingestion.serializers.document_diff.admin import BulkDocumentDiffOperationSerializer
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
+from data_ingestion.serializers.document_diff.admin import (
+    DocumentDiffAdminListQuerySerializer,
+    BulkDocumentDiffOperationSerializer,
+)
 
 
 class DocumentDiffAdminListAPI(AuthAPI):
@@ -30,37 +34,23 @@ class DocumentDiffAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        change_type = request.query_params.get('change_type', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        query_serializer = DocumentDiffAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
         
-        try:
-            # Parse dates
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            
-            # Use service method with filters
-            diffs = DocumentDiffService.get_by_filters(
-                change_type=change_type,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to
-            )
-            
-            return self.api_response(
-                message="Document diffs retrieved successfully.",
-                data=DocumentDiffListSerializer(diffs, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving document diffs: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving document diffs.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        diffs = DocumentDiffService.get_by_filters(
+            change_type=query_serializer.validated_data.get('change_type'),
+            date_from=query_serializer.validated_data.get('date_from'),
+            date_to=query_serializer.validated_data.get('date_to')
+        )
+        
+        return self.api_response(
+            message="Document diffs retrieved successfully.",
+            data=DocumentDiffListSerializer(diffs, many=True).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class DocumentDiffAdminDetailAPI(AuthAPI):
+class DocumentDiffAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed document diff information.
     
@@ -69,31 +59,20 @@ class DocumentDiffAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            diff = DocumentDiffService.get_by_id(id)
-            if not diff:
-                return self.api_response(
-                    message=f"Document diff with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Document diff retrieved successfully.",
-                data=DocumentDiffSerializer(diff).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving document diff {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving document diff.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Document diff"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get document diff by ID."""
+        return DocumentDiffService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return DocumentDiffSerializer
 
 
-class DocumentDiffAdminDeleteAPI(AuthAPI):
+class DocumentDiffAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete document diff.
     
@@ -102,31 +81,20 @@ class DocumentDiffAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            deleted = DocumentDiffService.delete_document_diff(id)
-            if not deleted:
-                return self.api_response(
-                    message=f"Document diff with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Document diff deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting document diff {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting document diff.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Document diff"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get document diff by ID."""
+        return DocumentDiffService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the document diff."""
+        return DocumentDiffService.delete_document_diff(str(entity.id))
 
 
-class BulkDocumentDiffOperationAPI(AuthAPI):
+class BulkDocumentDiffOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on document diffs.
     
@@ -135,45 +103,21 @@ class BulkDocumentDiffOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkDocumentDiffOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        diff_ids = serializer.validated_data['diff_ids']
-        operation = serializer.validated_data['operation']
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        try:
-            for diff_id in diff_ids:
-                try:
-                    if operation == 'delete':
-                        deleted = DocumentDiffService.delete_document_diff(str(diff_id))
-                        if deleted:
-                            results['success'].append(str(diff_id))
-                        else:
-                            results['failed'].append({
-                                'diff_id': str(diff_id),
-                                'error': 'Document diff not found or failed to delete'
-                            })
-                except Exception as e:
-                    results['failed'].append({
-                        'diff_id': str(diff_id),
-                        'error': str(e)
-                    })
-            
-            return self.api_response(
-                message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-                data=results,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error in bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_serializer_class(self):
+        """Return the bulk document diff operation serializer."""
+        return BulkDocumentDiffOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Document diff"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get document diff by ID."""
+        return DocumentDiffService.get_by_id(entity_id)
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the document diff."""
+        if operation == 'delete':
+            return DocumentDiffService.delete_document_diff(str(entity.id))
+        else:
+            raise ValueError(f"Invalid operation: {operation}")

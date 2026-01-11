@@ -1,11 +1,18 @@
 import logging
-from typing import Optional
-from helpers.cache_utils import cache_result
+import time
+from typing import Optional, Tuple
+from main_system.utils.cache_utils import cache_result
 from immigration_cases.models.case import Case
 from immigration_cases.repositories.case_repository import CaseRepository
 from immigration_cases.selectors.case_selector import CaseSelector
 from users_access.selectors.user_selector import UserSelector
 from compliance.services.audit_log_service import AuditLogService
+from immigration_cases.helpers.metrics import (
+    track_case_creation,
+    track_case_update,
+    track_case_status_transition,
+    track_case_version_conflict
+)
 
 logger = logging.getLogger('django')
 
@@ -19,6 +26,9 @@ class CaseService:
         try:
             user = UserSelector.get_by_id(user_id)
             case = CaseRepository.create_case(user, jurisdiction, status)
+            
+            # Track metrics
+            track_case_creation(jurisdiction=jurisdiction, status=status)
             
             # Log audit event
             try:
@@ -75,13 +85,30 @@ class CaseService:
             return None
 
     @staticmethod
-    def update_case(case_id: str, updated_by_id: str = None, reason: str = None, version: int = None, **fields) -> Optional[Case]:
-        """Update case fields with optimistic locking and status history tracking."""
+    def update_case(case_id: str, updated_by_id: str = None, reason: str = None, version: int = None, **fields) -> Tuple[Optional[Case], Optional[str], Optional[int]]:
+        """
+        Update case fields with optimistic locking and status history tracking.
+        
+        Returns:
+            Tuple of (case, error_message, http_status_code)
+            - case: Updated case if successful, None otherwise
+            - error_message: Error message if failed, None if successful
+            - http_status_code: HTTP status code (409 for conflicts, 404 for not found, None for success)
+        """
         from users_access.selectors.user_selector import UserSelector
         from django.core.exceptions import ValidationError
         
+        transition_start = None
+        
         try:
             case = CaseSelector.get_by_id(case_id)
+            if not case:
+                return None, f"Case with ID '{case_id}' not found.", 404
+            
+            # Track status transition if status is being updated
+            previous_status = case.status
+            if 'status' in fields and fields['status'] != previous_status:
+                transition_start = time.time()
             
             updated_by = None
             if updated_by_id:
@@ -94,6 +121,20 @@ class CaseService:
                 reason=reason,
                 **fields
             )
+            
+            # Track metrics
+            operation = 'status_change' if 'status' in fields else 'general_update'
+            track_case_update(operation=operation)
+            
+            # Track status transition if status changed
+            if transition_start and 'status' in fields:
+                transition_duration = time.time() - transition_start
+                track_case_status_transition(
+                    from_status=previous_status,
+                    to_status=fields['status'],
+                    duration=transition_duration
+                )
+                track_case_status_history(to_status=fields['status'])
             
             # Log audit event
             try:
@@ -108,16 +149,20 @@ class CaseService:
             except Exception as audit_error:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
-            return updated_case
+            return updated_case, None, None
         except Case.DoesNotExist:
             logger.error(f"Case {case_id} not found")
-            return None
+            return None, f"Case with ID '{case_id}' not found.", 404
         except ValidationError as e:
+            # Check if it's a version conflict
+            if 'version' in str(e).lower() or 'modified by another user' in str(e):
+                track_case_version_conflict(operation='update')
+                return None, str(e), 409  # Conflict for optimistic locking
             logger.error(f"Validation error updating case {case_id}: {e}")
-            raise e  # Re-raise validation errors
+            return None, str(e), 400  # Bad request for other validation errors
         except Exception as e:
-            logger.error(f"Error updating case {case_id}: {e}")
-            return None
+            logger.error(f"Error updating case {case_id}: {e}", exc_info=True)
+            return None, f"Error updating case: {str(e)}", 500
 
     @staticmethod
     def delete_case(case_id: str, deleted_by_id: str = None, hard_delete: bool = False) -> bool:
@@ -210,5 +255,5 @@ class CaseService:
                 updated_date_to=updated_date_to
             )
         except Exception as e:
-            logger.error(f"Error filtering cases: {e}")
+            logger.error(f"Error filtering cases: {e}", exc_info=True)
             return Case.objects.none()
