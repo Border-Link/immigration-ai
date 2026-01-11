@@ -6,7 +6,7 @@ from immigration_cases.serializers.case.read import (
     CaseSerializer,
     CaseListSerializer
 )
-from immigration_cases.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 
 class CaseListAPI(AuthAPI):
