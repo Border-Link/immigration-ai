@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from ai_decisions.models.ai_reasoning_log import AIReasoningLog
 from ai_decisions.repositories.ai_reasoning_log_repository import AIReasoningLogRepository
 from ai_decisions.selectors.ai_reasoning_log_selector import AIReasoningLogSelector
@@ -29,6 +30,7 @@ class AIReasoningLogService:
             return None
 
     @staticmethod
+    @cache_result(timeout=300, keys=[])  # 5 minutes - logs change when new reasoning occurs
     def get_all():
         """Get all AI reasoning logs."""
         try:
@@ -38,6 +40,7 @@ class AIReasoningLogService:
             return AIReasoningLogSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['case_id'])  # 5 minutes - cache logs by case
     def get_by_case(case_id: str):
         """Get reasoning logs by case."""
         try:
@@ -48,6 +51,7 @@ class AIReasoningLogService:
             return AIReasoningLogSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=600, keys=['log_id'])  # 10 minutes - cache log by ID
     def get_by_id(log_id: str) -> Optional[AIReasoningLog]:
         """Get reasoning log by ID."""
         try:
@@ -60,6 +64,7 @@ class AIReasoningLogService:
             return None
     
     @staticmethod
+    @cache_result(timeout=300, keys=['model_name'])  # 5 minutes - cache logs by model
     def get_by_model(model_name: str):
         """Get reasoning logs by model name."""
         try:
