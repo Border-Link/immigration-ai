@@ -1,7 +1,7 @@
 from django.db import transaction
 from data_ingestion.models.document_version import DocumentVersion
 from data_ingestion.models.source_document import SourceDocument
-from helpers.file_hashing import ContentHash
+from main_system.utils.file_hashing import ContentHash
 
 
 class DocumentVersionRepository:

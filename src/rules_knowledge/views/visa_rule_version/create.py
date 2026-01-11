@@ -14,11 +14,13 @@ class VisaRuleVersionCreateAPI(AuthAPI):
         serializer = VisaRuleVersionCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        rule_version = VisaRuleVersionService.create_visa_rule_version(
+        created_by = request.user if request.user.is_authenticated else None
+        rule_version = VisaRuleVersionService.create_rule_version(
             visa_type_id=serializer.validated_data.get('visa_type_id'),
             effective_from=serializer.validated_data.get('effective_from'),
             effective_to=serializer.validated_data.get('effective_to'),
-            source_document_version_id=serializer.validated_data.get('source_document_version_id')
+            source_document_version_id=serializer.validated_data.get('source_document_version_id'),
+            created_by=created_by
         )
 
         if not rule_version:

@@ -4,6 +4,15 @@ Admin Serializers for AICitation Management
 Serializers for admin AI citation management operations.
 """
 from rest_framework import serializers
+from main_system.serializers.admin.base import BaseAdminListQuerySerializer
+
+
+class AICitationAdminListQuerySerializer(BaseAdminListQuerySerializer):
+    """Serializer for validating AICitationAdminListAPI query parameters."""
+    
+    reasoning_log_id = serializers.UUIDField(required=False, allow_null=True)
+    document_version_id = serializers.UUIDField(required=False, allow_null=True)
+    min_relevance = serializers.FloatField(required=False, allow_null=True, min_value=0.0, max_value=1.0)
 
 
 class AICitationAdminUpdateSerializer(serializers.Serializer):

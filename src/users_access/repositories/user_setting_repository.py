@@ -1,7 +1,8 @@
 from typing import Dict
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from users_access.models.user_settings import UserSetting
-from helpers.totp import TOTPAuthenticator
+from main_system.utils.totp import TOTPAuthenticator
 
 
 class UserSettingRepository:
@@ -18,13 +19,11 @@ class UserSettingRepository:
     @staticmethod
     def update_settings(settings, settings_data: Dict):
         """Update settings fields."""
-        with transaction.atomic():
-            for key, value in settings_data.items():
-                if hasattr(settings, key):
-                    setattr(settings, key, value)
-            settings.full_clean()
-            settings.save()
-            return settings
+        return BaseRepositoryMixin.update_model_fields(
+            settings,
+            **settings_data,
+            cache_keys=[f'user_settings:{settings.id}', f'user_settings:user:{settings.user.id}']
+        )
 
     @staticmethod
     def delete_settings(settings):

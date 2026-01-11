@@ -1,7 +1,6 @@
 from typing import Optional
 from django.contrib.auth import authenticate
-from helpers import fields as input_fields
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from users_access.repositories.user_repository import UserRepository
 from users_access.repositories.user_profile_repository import UserProfileRepository
 from users_access.selectors.user_selector import UserSelector
@@ -133,15 +132,15 @@ class UserService:
         try:
             user: Optional[CustomUser] = authenticate(request, email=email, password=password)
             if not user:
-                return None, input_fields.INVALID_CREDENTIALS
+                return None, "Invalid credentials entered."
             if not user.is_active:
-                return None, input_fields.USER_NOT_ACTIVE
+                return None, "User is not active"
             if not user.is_verified:
-                return None, input_fields.EMAIL_NOT_VERIFIED
+                return None, "Email is not verified"
             return user, None
         except Exception as e:
             logger.exception(f"Error during login for {email}: {e}")
-            return None, input_fields.INVALID_CREDENTIALS
+            return None, "Invalid credentials entered."
 
     @staticmethod
     @cache_result(timeout=600, keys=['email'])  # 10 minutes - cache user lookups by email
@@ -211,3 +210,90 @@ class UserService:
         except Exception as e:
             logger.error(f"Error fetching filtered users: {e}")
             return UserSelector.get_none()
+
+    @staticmethod
+    def activate_user_by_id(user_id: str):
+        """Activate a user by ID."""
+        try:
+            user = UserSelector.get_by_id(user_id)
+            if not user:
+                logger.error(f"User {user_id} not found")
+                return None
+            return UserRepository.activate_user(user)
+        except Exception as e:
+            logger.error(f"Error activating user {user_id}: {e}")
+            return None
+
+    @staticmethod
+    def deactivate_user_by_id(user_id: str):
+        """Deactivate a user by ID."""
+        try:
+            user = UserSelector.get_by_id(user_id)
+            if not user:
+                logger.error(f"User {user_id} not found")
+                return None
+            return UserRepository.update_user(user, is_active=False)
+        except Exception as e:
+            logger.error(f"Error deactivating user {user_id}: {e}")
+            return None
+
+    @staticmethod
+    def get_statistics():
+        """Get user statistics."""
+        try:
+            from users_access.models.user import User
+            from django.db.models import Count, Q
+            
+            total_users = User.objects.count()
+            active_users = User.objects.filter(is_active=True).count()
+            inactive_users = User.objects.filter(is_active=False).count()
+            verified_users = User.objects.filter(is_verified=True).count()
+            unverified_users = User.objects.filter(is_verified=False).count()
+            
+            users_by_role = dict(
+                User.objects.values('role')
+                .annotate(count=Count('id'))
+                .order_by('role')
+                .values_list('role', 'count')
+            )
+            
+            return {
+                'total_users': total_users,
+                'active_users': active_users,
+                'inactive_users': inactive_users,
+                'verified_users': verified_users,
+                'unverified_users': unverified_users,
+                'users_by_role': users_by_role,
+            }
+        except Exception as e:
+            logger.error(f"Error fetching user statistics: {e}")
+            return {
+                'total_users': 0,
+                'active_users': 0,
+                'inactive_users': 0,
+                'verified_users': 0,
+                'unverified_users': 0,
+                'users_by_role': {},
+            }
+
+    @staticmethod
+    def get_user_activity(user_id: str):
+        """Get user activity information."""
+        try:
+            user = UserSelector.get_by_id(user_id)
+            if not user:
+                logger.error(f"User {user_id} not found")
+                return None
+            
+            return {
+                'user_id': str(user.id),
+                'email': user.email,
+                'login_count': user.login_count,
+                'last_login': user.last_login.isoformat() if user.last_login else None,
+                'created_at': user.created_at.isoformat() if user.created_at else None,
+                'updated_at': user.updated_at.isoformat() if user.updated_at else None,
+                'last_assigned_at': user.last_assigned_at.isoformat() if user.last_assigned_at else None,
+            }
+        except Exception as e:
+            logger.error(f"Error fetching user activity for {user_id}: {e}")
+            return None

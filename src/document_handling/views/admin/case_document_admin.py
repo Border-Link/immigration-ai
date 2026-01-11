@@ -4,21 +4,23 @@ Admin API Views for CaseDocument Management
 Admin-only endpoints for managing case documents.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+    BaseAdminUpdateAPI,
+)
 from document_handling.services.case_document_service import CaseDocumentService
 from document_handling.services.document_reprocessing_service import DocumentReprocessingService
 from document_handling.serializers.case_document.admin import (
+    CaseDocumentAdminListQuerySerializer,
     CaseDocumentAdminListSerializer,
     CaseDocumentAdminDetailSerializer,
     CaseDocumentAdminUpdateSerializer,
     BulkCaseDocumentOperationSerializer,
 )
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
 
 
 class CaseDocumentAdminListAPI(AuthAPI):
@@ -45,64 +47,33 @@ class CaseDocumentAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        case_id = request.query_params.get('case_id', None)
-        document_type_id = request.query_params.get('document_type_id', None)
-        status_filter = request.query_params.get('status', None)
-        has_ocr_text = request.query_params.get('has_ocr_text', None)
-        min_confidence = request.query_params.get('min_confidence', None)
-        mime_type = request.query_params.get('mime_type', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
-        has_expiry_date = request.query_params.get('has_expiry_date', None)
-        expiry_date_from = request.query_params.get('expiry_date_from', None)
-        expiry_date_to = request.query_params.get('expiry_date_to', None)
-        content_validation_status = request.query_params.get('content_validation_status', None)
-        is_expired = request.query_params.get('is_expired', None)
+        query_serializer = CaseDocumentAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
         
-        try:
-            # Parse parameters
-            from django.utils.dateparse import parse_date
-            parsed_date_from = parse_datetime(date_from) if date_from else None
-            parsed_date_to = parse_datetime(date_to) if date_to else None
-            parsed_expiry_date_from = parse_date(expiry_date_from) if expiry_date_from else None
-            parsed_expiry_date_to = parse_date(expiry_date_to) if expiry_date_to else None
-            has_ocr_text_bool = has_ocr_text.lower() == 'true' if has_ocr_text is not None else None
-            has_expiry_date_bool = has_expiry_date.lower() == 'true' if has_expiry_date is not None else None
-            is_expired_bool = is_expired.lower() == 'true' if is_expired is not None else None
-            min_confidence_float = float(min_confidence) if min_confidence else None
-            
-            # Use service method with filters
-            documents = CaseDocumentService.get_by_filters(
-                case_id=case_id,
-                document_type_id=document_type_id,
-                status=status_filter,
-                has_ocr_text=has_ocr_text_bool,
-                min_confidence=min_confidence_float,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to,
-                mime_type=mime_type,
-                has_expiry_date=has_expiry_date_bool,
-                expiry_date_from=parsed_expiry_date_from,
-                expiry_date_to=parsed_expiry_date_to,
-                content_validation_status=content_validation_status,
-                is_expired=is_expired_bool
-            )
-            
-            return self.api_response(
-                message="Case documents retrieved successfully.",
-                data=CaseDocumentAdminListSerializer(documents, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving case documents: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving case documents.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        documents = CaseDocumentService.get_by_filters(
+            case_id=str(query_serializer.validated_data.get('case_id')) if query_serializer.validated_data.get('case_id') else None,
+            document_type_id=str(query_serializer.validated_data.get('document_type_id')) if query_serializer.validated_data.get('document_type_id') else None,
+            status=query_serializer.validated_data.get('status'),
+            has_ocr_text=query_serializer.validated_data.get('has_ocr_text'),
+            min_confidence=query_serializer.validated_data.get('min_confidence'),
+            date_from=query_serializer.validated_data.get('date_from'),
+            date_to=query_serializer.validated_data.get('date_to'),
+            mime_type=query_serializer.validated_data.get('mime_type'),
+            has_expiry_date=query_serializer.validated_data.get('has_expiry_date'),
+            expiry_date_from=query_serializer.validated_data.get('expiry_date_from'),
+            expiry_date_to=query_serializer.validated_data.get('expiry_date_to'),
+            content_validation_status=query_serializer.validated_data.get('content_validation_status'),
+            is_expired=query_serializer.validated_data.get('is_expired')
+        )
+        
+        return self.api_response(
+            message="Case documents retrieved successfully.",
+            data=CaseDocumentAdminListSerializer(documents, many=True).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class CaseDocumentAdminDetailAPI(AuthAPI):
+class CaseDocumentAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed case document information.
     
@@ -111,31 +82,20 @@ class CaseDocumentAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            document = CaseDocumentService.get_by_id(id)
-            if not document:
-                return self.api_response(
-                    message=f"Case document with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Case document retrieved successfully.",
-                data=CaseDocumentAdminDetailSerializer(document).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving case document {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving case document.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Case document"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get case document by ID."""
+        return CaseDocumentService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return CaseDocumentAdminDetailSerializer
 
 
-class CaseDocumentAdminUpdateAPI(AuthAPI):
+class CaseDocumentAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update case document.
     
@@ -144,57 +104,34 @@ class CaseDocumentAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Case document"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get case document by ID."""
+        return CaseDocumentService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return CaseDocumentAdminUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return CaseDocumentAdminDetailSerializer
+    
+    def update_entity(self, entity, validated_data):
+        """Update the case document."""
+        # Filter only the fields that are present in validated_data
+        update_fields = {k: v for k, v in validated_data.items() if v is not None}
+        return CaseDocumentService.update_case_document(str(entity.id), **update_fields)
+    
     def put(self, request, id):
-        serializer = CaseDocumentAdminUpdateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return self.api_response(
-                message="Invalid request data.",
-                data=serializer.errors,
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            update_fields = {}
-            if 'document_type_id' in serializer.validated_data:
-                update_fields['document_type_id'] = serializer.validated_data['document_type_id']
-            if 'status' in serializer.validated_data:
-                update_fields['status'] = serializer.validated_data['status']
-            if 'classification_confidence' in serializer.validated_data:
-                update_fields['classification_confidence'] = serializer.validated_data['classification_confidence']
-            if 'ocr_text' in serializer.validated_data:
-                update_fields['ocr_text'] = serializer.validated_data['ocr_text']
-            if 'expiry_date' in serializer.validated_data:
-                update_fields['expiry_date'] = serializer.validated_data['expiry_date']
-            if 'content_validation_status' in serializer.validated_data:
-                update_fields['content_validation_status'] = serializer.validated_data['content_validation_status']
-            if 'content_validation_details' in serializer.validated_data:
-                update_fields['content_validation_details'] = serializer.validated_data['content_validation_details']
-            if 'extracted_metadata' in serializer.validated_data:
-                update_fields['extracted_metadata'] = serializer.validated_data['extracted_metadata']
-            
-            updated_document = CaseDocumentService.update_case_document(id, **update_fields)
-            if not updated_document:
-                return self.api_response(
-                    message=f"Case document with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Case document updated successfully.",
-                data=CaseDocumentAdminDetailSerializer(updated_document).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error updating case document {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error updating case document.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        """Override to support PUT method (base class uses PATCH)."""
+        return self.patch(request, id)
 
 
-class CaseDocumentAdminDeleteAPI(AuthAPI):
+class CaseDocumentAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete a case document.
     
@@ -203,28 +140,17 @@ class CaseDocumentAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            success = CaseDocumentService.delete_case_document(id)
-            if not success:
-                return self.api_response(
-                    message=f"Case document with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Case document deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting case document {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting case document.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Case document"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get case document by ID."""
+        return CaseDocumentService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the case document."""
+        return CaseDocumentService.delete_case_document(str(entity.id))
 
 
 class BulkCaseDocumentOperationAPI(AuthAPI):
@@ -244,18 +170,12 @@ class BulkCaseDocumentOperationAPI(AuthAPI):
     
     def post(self, request):
         serializer = BulkCaseDocumentOperationSerializer(data=request.data)
-        if not serializer.is_valid():
-            return self.api_response(
-                message="Invalid request data.",
-                data=serializer.errors,
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
+        serializer.is_valid(raise_exception=True)
         
         document_ids = serializer.validated_data['document_ids']
         operation = serializer.validated_data['operation']
         
-        try:
-            if operation == 'delete':
+        if operation == 'delete':
                 deleted_count = 0
                 failed_count = 0
                 
@@ -389,10 +309,3 @@ class BulkCaseDocumentOperationAPI(AuthAPI):
                     data=None,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
-        except Exception as e:
-            logger.error(f"Error performing bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )

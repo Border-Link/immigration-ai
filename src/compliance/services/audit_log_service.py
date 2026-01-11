@@ -1,8 +1,10 @@
 import logging
+import time
 from typing import Optional
 from compliance.models.audit_log import AuditLog
 from compliance.repositories.audit_log_repository import AuditLogRepository
 from compliance.selectors.audit_log_selector import AuditLogSelector
+from compliance.helpers.metrics import track_audit_log_creation
 
 logger = logging.getLogger('django')
 
@@ -89,8 +91,9 @@ class AuditLogService:
         Returns:
             AuditLog instance or None if creation failed
         """
+        start_time = time.time()
         try:
-            return AuditLogRepository.create_audit_log(
+            audit_log = AuditLogRepository.create_audit_log(
                 level=level,
                 logger_name=logger_name,
                 message=message,
@@ -100,6 +103,16 @@ class AuditLogService:
                 process=process,
                 thread=thread
             )
+            
+            # Track metrics
+            duration = time.time() - start_time
+            track_audit_log_creation(
+                level=level,
+                logger_name=logger_name,
+                duration=duration
+            )
+            
+            return audit_log
         except Exception as e:
             logger.error(f"Error creating audit log: {e}", exc_info=True)
             return None

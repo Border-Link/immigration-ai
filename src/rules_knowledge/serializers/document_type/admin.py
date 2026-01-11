@@ -4,11 +4,22 @@ Admin Serializers for DocumentType Management
 Serializers for admin document type management operations.
 """
 from rest_framework import serializers
+from main_system.serializers.admin.base import (
+    BaseAdminListQuerySerializer,
+    ActivateSerializer as BaseActivateSerializer
+)
 
 
-class DocumentTypeActivateSerializer(serializers.Serializer):
+class DocumentTypeAdminListQuerySerializer(BaseAdminListQuerySerializer):
+    """Serializer for validating DocumentTypeAdminListAPI query parameters."""
+    
+    is_active = serializers.BooleanField(required=False, allow_null=True)
+    code = serializers.CharField(required=False, allow_null=True, max_length=50)
+
+
+class DocumentTypeActivateSerializer(BaseActivateSerializer):
     """Serializer for activating/deactivating a document type."""
-    is_active = serializers.BooleanField(required=True)
+    pass
 
 
 class BulkDocumentTypeOperationSerializer(serializers.Serializer):

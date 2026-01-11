@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 from rules_knowledge.models.visa_requirement import VisaRequirement
 from rules_knowledge.models.visa_rule_version import VisaRuleVersion
 from rules_knowledge.helpers.json_logic_validator import JSONLogicValidator
@@ -37,6 +38,17 @@ class VisaRequirementRepository:
             )
             requirement.full_clean()
             requirement.save()
+            
+            # Invalidate cache (try pattern deletion if available, otherwise delete specific keys)
+            try:
+                if hasattr(cache, 'delete_pattern'):
+                    cache.delete_pattern("visa_requirement:*")
+            except AttributeError:
+                pass
+            # Delete specific known cache keys
+            cache.delete(f"visa_requirement:{requirement.id}")
+            cache.delete(f"visa_requirement:rule_version:{rule_version.id}")
+            
             return requirement
 
     @staticmethod
@@ -64,11 +76,36 @@ class VisaRequirementRepository:
                     setattr(requirement, key, value)
             requirement.full_clean()
             requirement.save()
+            
+            # Invalidate cache (try pattern deletion if available, otherwise delete specific keys)
+            try:
+                if hasattr(cache, 'delete_pattern'):
+                    cache.delete_pattern("visa_requirement:*")
+            except AttributeError:
+                pass
+            # Delete specific known cache keys
+            cache.delete(f"visa_requirement:{requirement.id}")
+            cache.delete(f"visa_requirement:rule_version:{requirement.rule_version.id}")
+            
             return requirement
 
     @staticmethod
     def delete_requirement(requirement):
         """Delete a requirement."""
         with transaction.atomic():
+            # Store values before deletion for cache invalidation
+            requirement_id = requirement.id
+            rule_version_id = requirement.rule_version.id
+            
             requirement.delete()
+            
+            # Invalidate cache (try pattern deletion if available, otherwise delete specific keys)
+            try:
+                if hasattr(cache, 'delete_pattern'):
+                    cache.delete_pattern("visa_requirement:*")
+            except AttributeError:
+                pass
+            # Delete specific known cache keys
+            cache.delete(f"visa_requirement:{requirement_id}")
+            cache.delete(f"visa_requirement:rule_version:{rule_version_id}")
 

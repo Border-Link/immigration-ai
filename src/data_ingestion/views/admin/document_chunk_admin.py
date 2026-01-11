@@ -4,44 +4,41 @@ Admin API Views for DocumentChunk Management
 Admin-only endpoints for managing document chunks.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
+from rest_framework import serializers
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+)
 from data_ingestion.services.document_chunk_service import DocumentChunkService
-from data_ingestion.serializers.document_chunk.admin import BulkDocumentChunkOperationSerializer
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
-
-
-class DocumentChunkListSerializer:
-    """Simple serializer for document chunk list."""
-    @staticmethod
-    def to_dict(chunk):
-        return {
-            'id': str(chunk.id),
-            'document_version_id': str(chunk.document_version.id),
-            'chunk_index': chunk.chunk_index,
-            'has_embedding': chunk.embedding is not None,
-            'created_at': chunk.created_at.isoformat() if chunk.created_at else None,
-        }
+from data_ingestion.serializers.document_chunk.admin import (
+    DocumentChunkAdminListQuerySerializer,
+    BulkDocumentChunkOperationSerializer,
+)
 
 
-class DocumentChunkDetailSerializer:
-    """Simple serializer for document chunk detail."""
-    @staticmethod
-    def to_dict(chunk):
-        return {
-            'id': str(chunk.id),
-            'document_version_id': str(chunk.document_version.id),
-            'chunk_text': chunk.chunk_text,
-            'chunk_index': chunk.chunk_index,
-            'has_embedding': chunk.embedding is not None,
-            'metadata': chunk.metadata,
-            'created_at': chunk.created_at.isoformat() if chunk.created_at else None,
-            'updated_at': chunk.updated_at.isoformat() if chunk.updated_at else None,
-        }
+class DocumentChunkListSerializer(serializers.Serializer):
+    """Serializer for document chunk list."""
+    id = serializers.UUIDField()
+    document_version_id = serializers.UUIDField()
+    chunk_index = serializers.IntegerField()
+    has_embedding = serializers.BooleanField()
+    created_at = serializers.DateTimeField()
+
+
+class DocumentChunkDetailSerializer(serializers.Serializer):
+    """Serializer for document chunk detail."""
+    id = serializers.UUIDField()
+    document_version_id = serializers.UUIDField()
+    chunk_text = serializers.CharField()
+    chunk_index = serializers.IntegerField()
+    has_embedding = serializers.BooleanField()
+    metadata = serializers.JSONField(allow_null=True)
+    created_at = serializers.DateTimeField()
+    updated_at = serializers.DateTimeField(allow_null=True)
 
 
 class DocumentChunkAdminListAPI(AuthAPI):
@@ -57,34 +54,28 @@ class DocumentChunkAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        document_version_id = request.query_params.get('document_version_id', None)
-        has_embedding = request.query_params.get('has_embedding', None)
+        query_serializer = DocumentChunkAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
         
-        try:
-            # Parse parameters
-            has_embedding_bool = has_embedding.lower() == 'true' if has_embedding is not None else None
-            
-            # Use service method with filters
-            chunks = DocumentChunkService.get_by_filters(
-                document_version_id=document_version_id,
-                has_embedding=has_embedding_bool
-            )
-            
-            return self.api_response(
-                message="Document chunks retrieved successfully.",
-                data=[DocumentChunkListSerializer.to_dict(chunk) for chunk in chunks],
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving document chunks: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving document chunks.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        chunks = DocumentChunkService.get_by_filters(
+            document_version_id=str(query_serializer.validated_data.get('document_version_id')) if query_serializer.validated_data.get('document_version_id') else None,
+            has_embedding=query_serializer.validated_data.get('has_embedding')
+        )
+        
+        return self.api_response(
+            message="Document chunks retrieved successfully.",
+            data=[DocumentChunkListSerializer({
+                'id': chunk.id,
+                'document_version_id': chunk.document_version.id,
+                'chunk_index': chunk.chunk_index,
+                'has_embedding': chunk.embedding is not None,
+                'created_at': chunk.created_at,
+            }).data for chunk in chunks],
+            status_code=status.HTTP_200_OK
+        )
 
 
-class DocumentChunkAdminDetailAPI(AuthAPI):
+class DocumentChunkAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed document chunk information.
     
@@ -93,30 +84,47 @@ class DocumentChunkAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Document chunk"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get document chunk by ID."""
+        return DocumentChunkService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return DocumentChunkDetailSerializer
+    
     def get(self, request, id):
-        try:
-            chunk = DocumentChunkService.get_by_id(id)
-            if not chunk:
-                return self.api_response(
-                    message=f"Document chunk with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
+        """Override to use custom serializer with model instance."""
+        chunk = self.get_entity_by_id(id)
+        if not chunk:
             return self.api_response(
-                message="Document chunk retrieved successfully.",
-                data=DocumentChunkDetailSerializer.to_dict(chunk),
-                status_code=status.HTTP_200_OK
+                message=f"{self.get_entity_name()} with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
-            logger.error(f"Error retrieving document chunk {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving document chunk.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        serializer = DocumentChunkDetailSerializer({
+            'id': chunk.id,
+            'document_version_id': chunk.document_version.id,
+            'chunk_text': chunk.chunk_text,
+            'chunk_index': chunk.chunk_index,
+            'has_embedding': chunk.embedding is not None,
+            'metadata': chunk.metadata,
+            'created_at': chunk.created_at,
+            'updated_at': chunk.updated_at,
+        })
+        
+        return self.api_response(
+            message=f"{self.get_entity_name()} retrieved successfully.",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class DocumentChunkAdminDeleteAPI(AuthAPI):
+class DocumentChunkAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete document chunk.
     
@@ -125,31 +133,20 @@ class DocumentChunkAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            deleted = DocumentChunkService.delete_document_chunk(id)
-            if not deleted:
-                return self.api_response(
-                    message=f"Document chunk with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Document chunk deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting document chunk {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting document chunk.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Document chunk"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get document chunk by ID."""
+        return DocumentChunkService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the document chunk."""
+        return DocumentChunkService.delete_document_chunk(str(entity.id))
 
 
-class BulkDocumentChunkOperationAPI(AuthAPI):
+class BulkDocumentChunkOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on document chunks.
     
@@ -158,52 +155,25 @@ class BulkDocumentChunkOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkDocumentChunkOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        chunk_ids = serializer.validated_data['chunk_ids']
-        operation = serializer.validated_data['operation']
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        try:
-            for chunk_id in chunk_ids:
-                try:
-                    if operation == 'delete':
-                        deleted = DocumentChunkService.delete_document_chunk(str(chunk_id))
-                        if deleted:
-                            results['success'].append(str(chunk_id))
-                        else:
-                            results['failed'].append({
-                                'chunk_id': str(chunk_id),
-                                'error': 'Document chunk not found or failed to delete'
-                            })
-                    elif operation == 're_embed':
-                        # TODO: Implement re-embedding logic
-                        # This would require calling the embedding service
-                        results['failed'].append({
-                            'chunk_id': str(chunk_id),
-                            'error': 'Re-embedding not yet implemented'
-                        })
-                except Exception as e:
-                    results['failed'].append({
-                        'chunk_id': str(chunk_id),
-                        'error': str(e)
-                    })
-            
-            return self.api_response(
-                message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-                data=results,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error in bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_serializer_class(self):
+        """Return the bulk document chunk operation serializer."""
+        return BulkDocumentChunkOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Document chunk"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get document chunk by ID."""
+        return DocumentChunkService.get_by_id(entity_id)
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the document chunk."""
+        if operation == 'delete':
+            return DocumentChunkService.delete_document_chunk(str(entity.id))
+        elif operation == 're_embed':
+            # TODO: Implement re-embedding logic
+            # This would require calling the embedding service
+            raise ValueError('Re-embedding not yet implemented')
+        else:
+            raise ValueError(f"Invalid operation: {operation}")

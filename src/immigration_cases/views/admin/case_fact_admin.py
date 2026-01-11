@@ -8,14 +8,20 @@ import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+    BaseAdminUpdateAPI,
+)
 from immigration_cases.services.case_fact_service import CaseFactService
 from immigration_cases.serializers.case_fact.read import CaseFactSerializer, CaseFactListSerializer
 from immigration_cases.serializers.case_fact.admin import (
+    CaseFactAdminListQuerySerializer,
     CaseFactAdminUpdateSerializer,
     BulkCaseFactOperationSerializer,
 )
-from django.utils.dateparse import parse_datetime
-from immigration_cases.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 logger = logging.getLogger('django')
 
@@ -36,36 +42,27 @@ class CaseFactAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        case_id = request.query_params.get('case_id', None)
-        fact_key = request.query_params.get('fact_key', None)
-        source = request.query_params.get('source', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        # Validate query parameters
+        query_serializer = CaseFactAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        try:
-            facts = CaseFactService.get_by_filters(
-                case_id=case_id,
-                fact_key=fact_key,
-                source=source,
-                date_from=parse_datetime(date_from) if date_from else None,
-                date_to=parse_datetime(date_to) if date_to else None,
-            )
-            
-            return self.api_response(
-                message="Case facts retrieved successfully.",
-                data=CaseFactListSerializer(facts, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving case facts: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving case facts.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        facts = CaseFactService.get_by_filters(
+            case_id=str(validated_params.get('case_id')) if validated_params.get('case_id') else None,
+            fact_key=validated_params.get('fact_key'),
+            source=validated_params.get('source'),
+            date_from=validated_params.get('date_from'),
+            date_to=validated_params.get('date_to'),
+        )
+        
+        return self.api_response(
+            message="Case facts retrieved successfully.",
+            data=CaseFactListSerializer(facts, many=True).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class CaseFactAdminDetailAPI(AuthAPI):
+class CaseFactAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed case fact information.
     
@@ -74,31 +71,20 @@ class CaseFactAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            fact = CaseFactService.get_by_id(id)
-            if not fact:
-                return self.api_response(
-                    message=f"Case fact with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Case fact retrieved successfully.",
-                data=CaseFactSerializer(fact).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving case fact {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving case fact.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Case fact"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get case fact by ID."""
+        return CaseFactService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return CaseFactSerializer
 
 
-class CaseFactAdminUpdateAPI(AuthAPI):
+class CaseFactAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update case fact value or source.
     
@@ -107,36 +93,30 @@ class CaseFactAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def patch(self, request, id):
-        serializer = CaseFactAdminUpdateSerializer(data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        
-        try:
-            fact = CaseFactService.get_by_id(id)
-            if not fact:
-                return self.api_response(
-                    message=f"Case fact with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            updated_fact = CaseFactService.update_case_fact(id, **serializer.validated_data)
-            
-            return self.api_response(
-                message="Case fact updated successfully.",
-                data=CaseFactSerializer(updated_fact).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error updating case fact {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error updating case fact.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Case fact"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get case fact by ID."""
+        return CaseFactService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return CaseFactAdminUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return CaseFactSerializer
+    
+    def update_entity(self, entity, validated_data):
+        """Update the case fact."""
+        # Filter only the fields that are present in validated_data
+        update_fields = {k: v for k, v in validated_data.items() if v is not None}
+        return CaseFactService.update_case_fact(str(entity.id), **update_fields)
 
 
-class CaseFactAdminDeleteAPI(AuthAPI):
+class CaseFactAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete a case fact.
     
@@ -145,39 +125,20 @@ class CaseFactAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            fact = CaseFactService.get_by_id(id)
-            if not fact:
-                return self.api_response(
-                    message=f"Case fact with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = CaseFactService.delete_case_fact(id)
-            if not deleted:
-                return self.api_response(
-                    message="Error deleting case fact.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
-            return self.api_response(
-                message="Case fact deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting case fact {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting case fact.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Case fact"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get case fact by ID."""
+        return CaseFactService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the case fact."""
+        return CaseFactService.delete_case_fact(str(entity.id))
 
 
-class BulkCaseFactOperationAPI(AuthAPI):
+class BulkCaseFactOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on case facts (delete, update_source).
     
@@ -186,54 +147,35 @@ class BulkCaseFactOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkCaseFactOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    def get_serializer_class(self):
+        """Return the bulk case fact operation serializer."""
+        return BulkCaseFactOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Case fact"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get case fact by ID."""
+        return CaseFactService.get_by_id(entity_id)
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the case fact."""
+        source = validated_data.get('source')
         
-        case_fact_ids = serializer.validated_data['case_fact_ids']
-        operation = serializer.validated_data['operation']
-        source = serializer.validated_data.get('source')
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        for fact_id in case_fact_ids:
-            try:
-                fact = CaseFactService.get_by_id(str(fact_id))
-                if not fact:
-                    results['failed'].append({
-                        'case_fact_id': str(fact_id),
-                        'error': 'Case fact not found'
-                    })
-                    continue
-                
-                if operation == 'delete':
-                    deleted = CaseFactService.delete_case_fact(str(fact_id))
-                    if deleted:
-                        results['success'].append(str(fact_id))
-                    else:
-                        raise Exception("Failed to delete case fact.")
-                    continue # Skip serialization for deleted items
-                elif operation == 'update_source':
-                    if not source:
-                        raise ValueError("source is required for 'update_source' operation.")
-                    updated_fact = CaseFactService.update_case_fact(str(fact_id), source=source)
-                    if updated_fact:
-                        results['success'].append(CaseFactSerializer(updated_fact).data)
-                    else:
-                        raise Exception("Failed to update case fact.")
-                else:
-                    raise ValueError(f"Invalid operation: {operation}")
-            except Exception as e:
-                results['failed'].append({
-                    'case_fact_id': str(fact_id),
-                    'error': str(e)
-                })
-        
-        return self.api_response(
-            message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-            data=results,
-            status_code=status.HTTP_200_OK
-        )
+        if operation == 'delete':
+            return CaseFactService.delete_case_fact(str(entity.id))
+        elif operation == 'update_source':
+            if not source:
+                raise ValueError("source is required for 'update_source' operation.")
+            return CaseFactService.update_case_fact(str(entity.id), source=source)
+        else:
+            raise ValueError(f"Invalid operation: {operation}")
+    
+    def get_success_data(self, entity, operation_result):
+        """Get success data - return serialized fact for update operations, ID for delete."""
+        if operation_result and hasattr(operation_result, 'id'):
+            # For update operations, return serialized fact
+            return CaseFactSerializer(operation_result).data
+        # For delete operations, return ID
+        return str(entity.id)

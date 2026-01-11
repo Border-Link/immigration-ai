@@ -5,12 +5,11 @@ Celery tasks for running eligibility checks asynchronously.
 """
 from celery import shared_task
 import logging
-from typing import Dict, Any, Optional, List
-from main_system.tasks_base import BaseTaskWithMeta
+from typing import Dict, Any, Optional
+from main_system.utils.tasks_base import BaseTaskWithMeta
 from ai_decisions.services.eligibility_check_service import EligibilityCheckService
 from immigration_cases.selectors.case_selector import CaseSelector
 from rules_knowledge.selectors.visa_type_selector import VisaTypeSelector
-from rules_knowledge.selectors.visa_rule_version_selector import VisaRuleVersionSelector
 
 logger = logging.getLogger('django')
 

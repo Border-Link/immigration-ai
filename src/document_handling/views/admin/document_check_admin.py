@@ -4,20 +4,23 @@ Admin API Views for DocumentCheck Management
 Admin-only endpoints for managing document checks.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+    BaseAdminUpdateAPI,
+)
 from document_handling.services.document_check_service import DocumentCheckService
 from document_handling.serializers.document_check.admin import (
+    DocumentCheckAdminListQuerySerializer,
     DocumentCheckAdminListSerializer,
     DocumentCheckAdminDetailSerializer,
     DocumentCheckAdminUpdateSerializer,
     BulkDocumentCheckOperationSerializer,
 )
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
 
 
 class DocumentCheckAdminListAPI(AuthAPI):
@@ -37,43 +40,26 @@ class DocumentCheckAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        case_document_id = request.query_params.get('case_document_id', None)
-        check_type = request.query_params.get('check_type', None)
-        result = request.query_params.get('result', None)
-        performed_by = request.query_params.get('performed_by', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        query_serializer = DocumentCheckAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
         
-        try:
-            # Parse dates
-            parsed_date_from = parse_datetime(date_from) if date_from else None
-            parsed_date_to = parse_datetime(date_to) if date_to else None
-            
-            # Use service method with filters
-            checks = DocumentCheckService.get_by_filters(
-                case_document_id=case_document_id,
-                check_type=check_type,
-                result=result,
-                performed_by=performed_by,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to
-            )
-            
-            return self.api_response(
-                message="Document checks retrieved successfully.",
-                data=DocumentCheckAdminListSerializer(checks, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving document checks: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving document checks.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        checks = DocumentCheckService.get_by_filters(
+            case_document_id=str(query_serializer.validated_data.get('case_document_id')) if query_serializer.validated_data.get('case_document_id') else None,
+            check_type=query_serializer.validated_data.get('check_type'),
+            result=query_serializer.validated_data.get('result'),
+            performed_by=query_serializer.validated_data.get('performed_by'),
+            date_from=query_serializer.validated_data.get('date_from'),
+            date_to=query_serializer.validated_data.get('date_to')
+        )
+        
+        return self.api_response(
+            message="Document checks retrieved successfully.",
+            data=DocumentCheckAdminListSerializer(checks, many=True).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class DocumentCheckAdminDetailAPI(AuthAPI):
+class DocumentCheckAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed document check information.
     
@@ -82,31 +68,20 @@ class DocumentCheckAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            check = DocumentCheckService.get_by_id(id)
-            if not check:
-                return self.api_response(
-                    message=f"Document check with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Document check retrieved successfully.",
-                data=DocumentCheckAdminDetailSerializer(check).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving document check {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving document check.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Document check"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get document check by ID."""
+        return DocumentCheckService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return DocumentCheckAdminDetailSerializer
 
 
-class DocumentCheckAdminUpdateAPI(AuthAPI):
+class DocumentCheckAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update document check.
     
@@ -115,47 +90,34 @@ class DocumentCheckAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Document check"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get document check by ID."""
+        return DocumentCheckService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return DocumentCheckAdminUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return DocumentCheckAdminDetailSerializer
+    
+    def update_entity(self, entity, validated_data):
+        """Update the document check."""
+        # Filter only the fields that are present in validated_data
+        update_fields = {k: v for k, v in validated_data.items() if v is not None}
+        return DocumentCheckService.update_document_check(str(entity.id), **update_fields)
+    
     def put(self, request, id):
-        serializer = DocumentCheckAdminUpdateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return self.api_response(
-                message="Invalid request data.",
-                data=serializer.errors,
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            update_fields = {}
-            if 'result' in serializer.validated_data:
-                update_fields['result'] = serializer.validated_data['result']
-            if 'details' in serializer.validated_data:
-                update_fields['details'] = serializer.validated_data['details']
-            if 'performed_by' in serializer.validated_data:
-                update_fields['performed_by'] = serializer.validated_data['performed_by']
-            
-            updated_check = DocumentCheckService.update_document_check(id, **update_fields)
-            if not updated_check:
-                return self.api_response(
-                    message=f"Document check with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Document check updated successfully.",
-                data=DocumentCheckAdminDetailSerializer(updated_check).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error updating document check {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error updating document check.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        """Override to support PUT method (base class uses PATCH)."""
+        return self.patch(request, id)
 
 
-class DocumentCheckAdminDeleteAPI(AuthAPI):
+class DocumentCheckAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete a document check.
     
@@ -164,31 +126,20 @@ class DocumentCheckAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            success = DocumentCheckService.delete_document_check(id)
-            if not success:
-                return self.api_response(
-                    message=f"Document check with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Document check deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting document check {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting document check.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Document check"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get document check by ID."""
+        return DocumentCheckService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the document check."""
+        return DocumentCheckService.delete_document_check(str(entity.id))
 
 
-class BulkDocumentCheckOperationAPI(AuthAPI):
+class BulkDocumentCheckOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on document checks.
     
@@ -202,49 +153,21 @@ class BulkDocumentCheckOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkDocumentCheckOperationSerializer(data=request.data)
-        if not serializer.is_valid():
-            return self.api_response(
-                message="Invalid request data.",
-                data=serializer.errors,
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
-        
-        check_ids = serializer.validated_data['check_ids']
-        operation = serializer.validated_data['operation']
-        
-        try:
-            if operation == 'delete':
-                deleted_count = 0
-                failed_count = 0
-                
-                for check_id in check_ids:
-                    success = DocumentCheckService.delete_document_check(str(check_id))
-                    if success:
-                        deleted_count += 1
-                    else:
-                        failed_count += 1
-                
-                return self.api_response(
-                    message=f"Bulk operation completed. Deleted: {deleted_count}, Failed: {failed_count}.",
-                    data={
-                        'deleted_count': deleted_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(check_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            else:
-                return self.api_response(
-                    message=f"Unknown operation: {operation}",
-                    data=None,
-                    status_code=status.HTTP_400_BAD_REQUEST
-                )
-        except Exception as e:
-            logger.error(f"Error performing bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_serializer_class(self):
+        """Return the bulk document check operation serializer."""
+        return BulkDocumentCheckOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Document check"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get document check by ID."""
+        return DocumentCheckService.get_by_id(entity_id)
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the document check."""
+        if operation == 'delete':
+            return DocumentCheckService.delete_document_check(str(entity.id))
+        else:
+            raise ValueError(f"Invalid operation: {operation}")

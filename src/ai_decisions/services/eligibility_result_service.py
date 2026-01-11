@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from ai_decisions.models.eligibility_result import EligibilityResult
 from ai_decisions.repositories.eligibility_result_repository import EligibilityResultRepository
 from ai_decisions.selectors.eligibility_result_selector import EligibilityResultSelector

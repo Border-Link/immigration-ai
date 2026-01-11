@@ -5,6 +5,33 @@ from rest_framework import serializers
 from document_processing.models.processing_history import ProcessingHistory
 
 
+from main_system.serializers.admin.base import BaseAdminListQuerySerializer
+
+
+class ProcessingHistoryAdminListQuerySerializer(BaseAdminListQuerySerializer):
+    """Serializer for validating query parameters in admin list view."""
+    case_document_id = serializers.UUIDField(required=False, allow_null=True)
+    processing_job_id = serializers.UUIDField(required=False, allow_null=True)
+    action = serializers.CharField(required=False, allow_null=True)
+    status = serializers.CharField(required=False, allow_null=True)
+    error_type = serializers.CharField(required=False, allow_null=True)
+    user_id = serializers.UUIDField(required=False, allow_null=True)
+    limit = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=1000)
+
+    def to_internal_value(self, data):
+        """Parse string dates to datetime objects and integer values."""
+        # Parse integer strings before calling super
+        if 'limit' in data and data.get('limit'):
+            if isinstance(data['limit'], str):
+                try:
+                    data['limit'] = int(data['limit'])
+                except (ValueError, TypeError):
+                    pass
+        
+        # Parse datetime strings using base class method
+        return super().to_internal_value(data)
+
+
 class ProcessingHistoryAdminListSerializer(serializers.ModelSerializer):
     """Serializer for listing processing history in admin."""
     case_document_id = serializers.UUIDField(source='case_document.id', read_only=True)

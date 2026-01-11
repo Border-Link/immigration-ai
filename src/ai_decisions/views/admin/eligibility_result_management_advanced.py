@@ -9,6 +9,8 @@ import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import BaseAdminUpdateAPI
 from ai_decisions.services.eligibility_result_service import EligibilityResultService
 from ai_decisions.models.eligibility_result import EligibilityResult
 from ai_decisions.serializers.eligibility_result.read import EligibilityResultSerializer
@@ -20,7 +22,7 @@ from ai_decisions.serializers.eligibility_result.admin import (
 logger = logging.getLogger('django')
 
 
-class EligibilityResultAdminUpdateAPI(AuthAPI):
+class EligibilityResultAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update eligibility result.
     
@@ -29,46 +31,31 @@ class EligibilityResultAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def patch(self, request, id):
-        serializer = EligibilityResultAdminUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        try:
-            result = EligibilityResultService.get_by_id(id)
-            if not result:
-                return self.api_response(
-                    message=f"Eligibility result with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            updated_result = EligibilityResultService.update_eligibility_result(
-                id,
-                **serializer.validated_data
-            )
-            
-            if updated_result:
-                return self.api_response(
-                    message="Eligibility result updated successfully.",
-                    data=EligibilityResultSerializer(updated_result).data,
-                    status_code=status.HTTP_200_OK
-                )
-            else:
-                return self.api_response(
-                    message="Error updating eligibility result.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        except Exception as e:
-            logger.error(f"Error updating eligibility result {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error updating eligibility result.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Eligibility result"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get eligibility result by ID."""
+        return EligibilityResultService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return EligibilityResultAdminUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return EligibilityResultSerializer
+    
+    def update_entity(self, entity, validated_data):
+        """Update the eligibility result."""
+        return EligibilityResultService.update_eligibility_result(
+            str(entity.id),
+            **validated_data
+        )
 
 
-class BulkEligibilityResultOperationAPI(AuthAPI):
+class BulkEligibilityResultOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on eligibility results.
     
@@ -77,73 +64,34 @@ class BulkEligibilityResultOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkEligibilityResultOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        result_ids = serializer.validated_data['result_ids']
-        operation = serializer.validated_data['operation']
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        try:
-            for result_id in result_ids:
-                try:
-                    result = EligibilityResultService.get_by_id(str(result_id))
-                    if not result:
-                        results['failed'].append({
-                            'result_id': str(result_id),
-                            'error': 'Eligibility result not found'
-                        })
-                        continue
-                    
-                    if operation == 'delete':
-                        deleted = EligibilityResultService.delete_eligibility_result(str(result_id))
-                        if deleted:
-                            results['success'].append(str(result_id))
-                        else:
-                            results['failed'].append({
-                                'result_id': str(result_id),
-                                'error': 'Failed to delete'
-                            })
-                    elif operation == 'update_outcome':
-                        update_data = {}
-                        if 'outcome' in serializer.validated_data:
-                            update_data['outcome'] = serializer.validated_data['outcome']
-                        if 'confidence' in serializer.validated_data:
-                            update_data['confidence'] = serializer.validated_data['confidence']
-                        if 'reasoning_summary' in serializer.validated_data:
-                            update_data['reasoning_summary'] = serializer.validated_data['reasoning_summary']
-                        
-                        updated = EligibilityResultService.update_eligibility_result(
-                            str(result_id),
-                            **update_data
-                        )
-                        if updated:
-                            results['success'].append(str(result_id))
-                        else:
-                            results['failed'].append({
-                                'result_id': str(result_id),
-                                'error': 'Failed to update'
-                            })
-                except Exception as e:
-                    results['failed'].append({
-                        'result_id': str(result_id),
-                        'error': str(e)
-                    })
+    def get_serializer_class(self):
+        """Return the bulk eligibility result operation serializer."""
+        return BulkEligibilityResultOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Eligibility result"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get eligibility result by ID."""
+        return EligibilityResultService.get_by_id(entity_id)
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the eligibility result."""
+        if operation == 'delete':
+            return EligibilityResultService.delete_eligibility_result(str(entity.id))
+        elif operation == 'update_outcome':
+            update_data = {}
+            if 'outcome' in validated_data:
+                update_data['outcome'] = validated_data['outcome']
+            if 'confidence' in validated_data:
+                update_data['confidence'] = validated_data['confidence']
+            if 'reasoning_summary' in validated_data:
+                update_data['reasoning_summary'] = validated_data['reasoning_summary']
             
-            return self.api_response(
-                message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-                data=results,
-                status_code=status.HTTP_200_OK
+            return EligibilityResultService.update_eligibility_result(
+                str(entity.id),
+                **update_data
             )
-        except Exception as e:
-            logger.error(f"Error in bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        else:
+            raise ValueError(f"Invalid operation: {operation}")

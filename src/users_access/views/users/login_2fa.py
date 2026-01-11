@@ -8,7 +8,7 @@ from knox.views import LoginView as KnoxLoginView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
-from helpers.totp import TOTPAuthenticator
+from main_system.utils.totp import TOTPAuthenticator
 from users_access.services.otp_services import OTPService
 from main_system.cookies.manager import CookieManager
 from users_access.serializers.users.login import TwoFactorVerifySerializer
@@ -24,35 +24,30 @@ class TwoFactorVerificationAPIView(KnoxLoginView):
     serializer_class = TwoFactorVerifySerializer
 
     def post(self, request, *args, **kwargs):
-        try:
-            serializer = self.serializer_class(data=request.data)
-            serializer.is_valid(raise_exception=True)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-            endpoint_token = self.kwargs.get('endpoint_token')
-            otp = serializer.validated_data.get('otp')
-            is_2fa = serializer.validated_data.get('is_2fa')
+        endpoint_token = self.kwargs.get('endpoint_token')
+        otp = serializer.validated_data.get('otp')
+        is_2fa = serializer.validated_data.get('is_2fa')
 
-            user = self._verify_otp_or_2fa(endpoint_token, otp, is_2fa)
-            if not user:
-                return self._invalid_response()
-
-            self._update_user_login_info(user)
-
-            # Create access token
-            access_token = self._create_access_token(user)
-
-            # Generate or fetch device session
-            device_session = self._create_device_session(user, request)
-
-            # Build response with secure cookies
-            response = self._build_response(user, access_token, device_session.fingerprint, is_2fa, request)
-
-            logger.info(f"User {user.email} logged in successfully via 2FA/OTP")
-            return response
-
-        except Exception as e:
-            logger.exception(f"Error during two-factor verification: {e}")
+        user = self._verify_otp_or_2fa(endpoint_token, otp, is_2fa)
+        if not user:
             return self._invalid_response()
+
+        self._update_user_login_info(user)
+
+        # Create access token
+        access_token = self._create_access_token(user)
+
+        # Generate or fetch device session
+        device_session = self._create_device_session(user, request)
+
+        # Build response with secure cookies
+        response = self._build_response(user, access_token, device_session.fingerprint, is_2fa, request)
+
+        logger.info(f"User {user.email} logged in successfully via 2FA/OTP")
+        return response
 
     # ---------- Internal Helpers ----------
 

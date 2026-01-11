@@ -134,7 +134,7 @@ class IngestionService:
             metadata = ingestion_system.extract_metadata(fetch_result['content'])
         
         # 5. Compute hash
-        from helpers.file_hashing import ContentHash
+        from main_system.utils.file_hashing import ContentHash
         content_hash = ContentHash.compute_sha256(extracted_text)
         
         # 6. Check if version already exists for this source document

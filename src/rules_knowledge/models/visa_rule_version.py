@@ -98,6 +98,12 @@ class VisaRuleVersion(models.Model):
         help_text="When this rule version was published"
     )
     
+    # Optimistic locking field
+    version = models.IntegerField(
+        default=1,
+        help_text="Version number for optimistic locking to prevent concurrent modification conflicts"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -52,32 +52,24 @@ class PasswordResetOTPVerificationAPIView(GuestAPI):
 
         otp = serializer.validated_data.get('otp')
 
-        try:
-            user = OTPService.verify_otp(otp=otp, endpoint_token=endpoint_token)
-            if not user:
-                logger.error(f"Invalid or expired OTP for endpoint token {endpoint_token}")
-                return self.api_response(
-                    message=MSG_INVALID_OTP,
-                    data={},
-                    status_code=status.HTTP_400_BAD_REQUEST
-                )
-
+        user = OTPService.verify_otp(otp=otp, endpoint_token=endpoint_token)
+        if not user:
+            logger.error(f"Invalid or expired OTP for endpoint token {endpoint_token}")
             return self.api_response(
-                message=OTP_VERIFIED_SUCCESSFULLY,
-                data={
-                    'email': user.email,
-                    'can_reset': True,
-                    'endpoint_token': endpoint_token
-                },
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error during OTP verification: {e}")
-            return self.api_response(
-                message="An error occurred during OTP verification.",
+                message=MSG_INVALID_OTP,
                 data={},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status_code=status.HTTP_400_BAD_REQUEST
             )
+
+        return self.api_response(
+            message=OTP_VERIFIED_SUCCESSFULLY,
+            data={
+                'email': user.email,
+                'can_reset': True,
+                'endpoint_token': endpoint_token
+            },
+            status_code=status.HTTP_200_OK
+        )
 
 
 class CreateNewPasswordTokenAPIView(GuestAPI):

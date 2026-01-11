@@ -3,7 +3,7 @@ Service for ProcessingHistory business logic.
 """
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from document_processing.models.processing_history import ProcessingHistory
 from document_processing.repositories.processing_history_repository import ProcessingHistoryRepository
 from document_processing.selectors.processing_history_selector import ProcessingHistorySelector

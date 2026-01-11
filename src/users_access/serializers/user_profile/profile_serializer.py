@@ -2,7 +2,6 @@ from rest_framework import serializers
 from users_access.models.user_profile import UserProfile
 from users_access.selectors.country_selector import CountrySelector
 from users_access.selectors.state_province_selector import StateProvinceSelector
-from helpers import fields as input_fields
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -77,10 +76,10 @@ class UserProfileUpdateSerializer(serializers.Serializer):
 
     def validate_avatar(self, value):
         if value:
-            from helpers import image_processor as img_processor
+            from main_system.utils import image_processor as img_processor
             target_size_kb = 500
             image_quality = 85
-            image_format = input_fields.IMAGE_WEBP_FORMAT
+            image_format = "webp"
             return img_processor.ImageProcessor(value, target_size_kb, image_quality, image_format).process()
         return value
 

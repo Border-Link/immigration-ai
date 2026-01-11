@@ -4,7 +4,25 @@ Admin Serializers for RuleValidationTask Management
 Serializers for admin rule validation task management operations.
 """
 from rest_framework import serializers
+from main_system.serializers.admin.base import BaseAdminListQuerySerializer
 from data_ingestion.models.rule_validation_task import RuleValidationTask
+
+
+class RuleValidationTaskAdminListQuerySerializer(BaseAdminListQuerySerializer):
+    """Serializer for validating query parameters in admin list view."""
+    status = serializers.CharField(required=False, allow_null=True)
+    assigned_to = serializers.UUIDField(required=False, allow_null=True)
+    sla_overdue = serializers.BooleanField(required=False, allow_null=True)
+
+    def to_internal_value(self, data):
+        """Parse string dates to datetime objects and boolean values."""
+        # Parse boolean strings before calling super
+        if 'sla_overdue' in data and data.get('sla_overdue') is not None:
+            if isinstance(data['sla_overdue'], str):
+                data['sla_overdue'] = data['sla_overdue'].lower() == 'true'
+        
+        # Parse datetime strings using base class method
+        return super().to_internal_value(data)
 
 
 class RuleValidationTaskAdminUpdateSerializer(serializers.Serializer):

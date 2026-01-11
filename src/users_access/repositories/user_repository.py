@@ -1,8 +1,8 @@
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import BaseUserManager
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from users_access.models.user import User
-from helpers import fields as input_fields
 
 
 class UserRepository:
@@ -15,7 +15,7 @@ class UserRepository:
         """
         with transaction.atomic():
             normalized_email = BaseUserManager.normalize_email(email)
-            user = User.objects.create(email=normalized_email, role=input_fields.USER)
+            user = User.objects.create(email=normalized_email, role="user")
 
             user.set_password(password)
             user.is_active = True
@@ -29,7 +29,7 @@ class UserRepository:
     @staticmethod
     def create_superuser(email, password):
         user = UserRepository.create_user(email, password)
-        user.role = input_fields.ADMIN
+        user.role = "admin"
         user.is_superuser = True
         user.is_staff = True
 
@@ -77,10 +77,8 @@ class UserRepository:
     @staticmethod
     def update_user(user, **fields):
         """Update user fields."""
-        with transaction.atomic():
-            for field, value in fields.items():
-                if hasattr(user, field):
-                    setattr(user, field, value)
-            user.full_clean()
-            user.save()
-            return user
+        return BaseRepositoryMixin.update_model_fields(
+            user,
+            **fields,
+            cache_keys=[f'user:{user.id}', f'user:email:{user.email}']
+        )

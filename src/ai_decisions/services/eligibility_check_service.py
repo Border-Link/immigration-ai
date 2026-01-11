@@ -12,9 +12,15 @@ Design Principles:
 - Compliant: Follows OISC boundaries (decision support, not legal advice)
 """
 import logging
+import time
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from django.utils import timezone
+from ai_decisions.helpers.metrics import (
+    track_eligibility_check,
+    track_auto_escalation,
+    track_eligibility_conflict
+)
 
 from rules_knowledge.services.rule_engine_service import (
     RuleEngineService,
@@ -123,6 +129,8 @@ class EligibilityCheckService:
         result.case_id = case_id
         result.visa_type_id = visa_type_id
         
+        start_time = time.time()
+        
         try:
             # Step 1: Load prerequisites
             case = CaseSelector.get_by_id(case_id)
@@ -227,6 +235,23 @@ class EligibilityCheckService:
             result.confidence = combined_result['confidence']
             result.reasoning_summary = combined_result['reasoning_summary']
             
+            # Track metrics
+            duration = time.time() - start_time
+            track_eligibility_check(
+                outcome=result.outcome,
+                requires_review=result.requires_human_review,
+                conflict_detected=result.conflict_detected,
+                duration=duration,
+                confidence=result.confidence
+            )
+            
+            if result.conflict_detected:
+                track_eligibility_conflict(conflict_type=result.conflict_reason or 'unknown')
+            
+            if result.requires_human_review:
+                escalation_reason = combined_result.get('escalation_reason', 'low_confidence')
+                track_auto_escalation(reason=escalation_reason)
+            
             logger.info(
                 f"Eligibility check completed for case {case_id}, visa {visa_type_id}: "
                 f"outcome={result.outcome}, confidence={result.confidence:.2f}, "
@@ -237,6 +262,15 @@ class EligibilityCheckService:
             
         except Exception as e:
             result.error = str(e)
+            # Track failure metrics
+            duration = time.time() - start_time
+            track_eligibility_check(
+                outcome='error',
+                requires_review=False,
+                conflict_detected=False,
+                duration=duration,
+                confidence=0.0
+            )
             logger.error(f"Error running eligibility check for case {case_id}: {e}", exc_info=True)
             return result
     

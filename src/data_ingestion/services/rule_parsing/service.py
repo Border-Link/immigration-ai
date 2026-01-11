@@ -250,11 +250,17 @@ class RuleParsingService:
             processing_time_ms = int((time.time() - start_time) * 1000)
             
             # Log metrics
+            usage = ai_result.get('usage', {})
+            tokens_used_dict = {
+                'prompt': usage.get('prompt_tokens'),
+                'completion': usage.get('completion_tokens'),
+                'total': usage.get('total_tokens')
+            }
             RuleParsingService._log_metrics(
                 success=True,
                 rules_created=rules_created,
                 processing_time_ms=processing_time_ms,
-                tokens_used=ai_result.get('usage', {}).get('total_tokens'),
+                tokens_used=tokens_used_dict,
                 jurisdiction=jurisdiction
             )
             
@@ -347,7 +353,40 @@ class RuleParsingService:
             error_type: Type of error if failed
         """
         import json
+        from data_ingestion.helpers.metrics import track_document_parsing
         
+        # Track Prometheus metrics
+        status = 'success' if success else 'failure'
+        duration_seconds = processing_time_ms / 1000.0 if processing_time_ms else 0
+        jurisdiction_code = jurisdiction or 'unknown'
+        
+        # Extract token counts if available
+        tokens_prompt = None
+        tokens_completion = None
+        if tokens_used and isinstance(tokens_used, dict):
+            tokens_prompt = tokens_used.get('prompt')
+            tokens_completion = tokens_used.get('completion')
+        elif tokens_used:
+            # If it's a single number, assume it's total
+            tokens_prompt = tokens_used
+        
+        # Calculate cost (approximate)
+        cost_usd = None
+        if tokens_prompt and tokens_completion:
+            # Approximate pricing for GPT-4
+            cost_usd = (tokens_prompt * 0.00003) + (tokens_completion * 0.00006)
+        
+        track_document_parsing(
+            status=status,
+            jurisdiction=jurisdiction_code,
+            duration=duration_seconds,
+            rules_created=rules_created if success else None,
+            tokens_prompt=tokens_prompt,
+            tokens_completion=tokens_completion,
+            cost_usd=cost_usd
+        )
+        
+        # Also log as structured JSON for backward compatibility
         metrics = {
             'service': 'rule_parsing',
             'success': success,
@@ -364,13 +403,7 @@ class RuleParsingService:
         if error_type:
             metrics['error_type'] = error_type
         
-        # Log as structured JSON for easy parsing
         logger.info(f"METRICS: {json.dumps(metrics)}")
-        
-        # Could also send to metrics service (Prometheus, Datadog, etc.)
-        # Example:
-        # prometheus_metrics.rule_parsing_duration.observe(processing_time_ms / 1000)
-        # prometheus_metrics.rule_parsing_success.inc() if success else prometheus_metrics.rule_parsing_failure.inc()
     
     # ============================================================================
     # BATCH PROCESSING METHODS (delegated to BatchProcessor)

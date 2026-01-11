@@ -8,15 +8,20 @@ import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+    BaseAdminUpdateAPI,
+)
 from human_reviews.services.review_service import ReviewService
 from human_reviews.serializers.review.read import ReviewSerializer, ReviewListSerializer
 from human_reviews.serializers.review.admin import (
+    ReviewAdminListQuerySerializer,
     ReviewAdminUpdateSerializer,
     BulkReviewOperationSerializer,
 )
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
+from django.core.exceptions import ValidationError
 
 
 class ReviewAdminListAPI(AuthAPI):
@@ -39,53 +44,32 @@ class ReviewAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        case_id = request.query_params.get('case_id', None)
-        reviewer_id = request.query_params.get('reviewer_id', None)
-        status_filter = request.query_params.get('status', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
-        assigned_date_from = request.query_params.get('assigned_date_from', None)
-        assigned_date_to = request.query_params.get('assigned_date_to', None)
-        completed_date_from = request.query_params.get('completed_date_from', None)
-        completed_date_to = request.query_params.get('completed_date_to', None)
+        # Validate query parameters
+        query_serializer = ReviewAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        try:
-            # Parse dates
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            parsed_assigned_date_from = parse_datetime(assigned_date_from) if assigned_date_from and isinstance(assigned_date_from, str) else assigned_date_from
-            parsed_assigned_date_to = parse_datetime(assigned_date_to) if assigned_date_to and isinstance(assigned_date_to, str) else assigned_date_to
-            parsed_completed_date_from = parse_datetime(completed_date_from) if completed_date_from and isinstance(completed_date_from, str) else completed_date_from
-            parsed_completed_date_to = parse_datetime(completed_date_to) if completed_date_to and isinstance(completed_date_to, str) else completed_date_to
-            
-            # Use service method with filters
-            reviews = ReviewService.get_by_filters(
-                case_id=case_id,
-                reviewer_id=reviewer_id,
-                status=status_filter,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to,
-                assigned_date_from=parsed_assigned_date_from,
-                assigned_date_to=parsed_assigned_date_to,
-                completed_date_from=parsed_completed_date_from,
-                completed_date_to=parsed_completed_date_to
-            )
-            
-            return self.api_response(
-                message="Reviews retrieved successfully.",
-                data=ReviewListSerializer(reviews, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving reviews: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving reviews.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # Use service method with filters
+        reviews = ReviewService.get_by_filters(
+            case_id=str(validated_params.get('case_id')) if validated_params.get('case_id') else None,
+            reviewer_id=str(validated_params.get('reviewer_id')) if validated_params.get('reviewer_id') else None,
+            status=validated_params.get('status'),
+            date_from=validated_params.get('date_from'),
+            date_to=validated_params.get('date_to'),
+            assigned_date_from=validated_params.get('assigned_date_from'),
+            assigned_date_to=validated_params.get('assigned_date_to'),
+            completed_date_from=validated_params.get('completed_date_from'),
+            completed_date_to=validated_params.get('completed_date_to')
+        )
+        
+        return self.api_response(
+            message="Reviews retrieved successfully.",
+            data=ReviewListSerializer(reviews, many=True).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class ReviewAdminDetailAPI(AuthAPI):
+class ReviewAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed review information.
     
@@ -94,31 +78,20 @@ class ReviewAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            review = ReviewService.get_by_id(id)
-            if not review:
-                return self.api_response(
-                    message=f"Review with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Review retrieved successfully.",
-                data=ReviewSerializer(review).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving review {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving review.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Review"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get review by ID."""
+        return ReviewService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return ReviewSerializer
 
 
-class ReviewAdminUpdateAPI(AuthAPI):
+class ReviewAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update review.
     
@@ -127,48 +100,108 @@ class ReviewAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def put(self, request, id):
-        serializer = ReviewAdminUpdateSerializer(data=request.data)
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Review"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get review by ID."""
+        return ReviewService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return ReviewAdminUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return ReviewSerializer
+    
+    def update_entity(self, entity, validated_data):
+        """Update the review with optimistic locking support."""
+        update_fields = {}
+        if 'status' in validated_data:
+            update_fields['status'] = validated_data['status']
+        if 'reviewer_id' in validated_data:
+            update_fields['reviewer_id'] = validated_data['reviewer_id']
+        
+        version = validated_data.get('version')
+        # Note: updated_by_id would need to be passed from request, but base class doesn't provide it
+        # For now, we'll use None and let the service handle it
+        updated_by_id = None
+        
+        return ReviewService.update_review(
+            str(entity.id),
+            updated_by_id=updated_by_id,
+            version=version,
+            **update_fields
+        )
+    
+    def patch(self, request, id):
+        """Override to handle optimistic locking and user context."""
+        entity = self.get_entity_by_id(id)
+        if not entity:
+            return self.api_response(
+                message=f"{self.get_entity_name()} with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         
         try:
-            review = ReviewService.get_by_id(id)
-            if not review:
-                return self.api_response(
-                    message=f"Review with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
+            # Get updated_by_id from request
+            updated_by_id = str(request.user.id) if request.user.is_authenticated else None
+            validated_data = serializer.validated_data.copy()
             
+            # Update entity with user context
             update_fields = {}
-            if 'status' in serializer.validated_data:
-                update_fields['status'] = serializer.validated_data['status']
-            if 'reviewer_id' in serializer.validated_data:
-                update_fields['reviewer_id'] = serializer.validated_data['reviewer_id']
+            if 'status' in validated_data:
+                update_fields['status'] = validated_data['status']
+            if 'reviewer_id' in validated_data:
+                update_fields['reviewer_id'] = validated_data['reviewer_id']
             
-            updated_review = ReviewService.update_review(id, **update_fields)
-            if not updated_review:
-                return self.api_response(
-                    message="Error updating review.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
-            return self.api_response(
-                message="Review updated successfully.",
-                data=ReviewSerializer(updated_review).data,
-                status_code=status.HTTP_200_OK
+            version = validated_data.get('version')
+            updated_entity = ReviewService.update_review(
+                str(entity.id),
+                updated_by_id=updated_by_id,
+                version=version,
+                **update_fields
             )
+            
+            if updated_entity:
+                response_serializer = self.get_response_serializer_class()
+                if response_serializer:
+                    response_data = response_serializer(updated_entity).data
+                else:
+                    response_data = serializer_class(updated_entity).data
+                
+                return self.api_response(
+                    message=f"{self.get_entity_name()} updated successfully.",
+                    data=response_data,
+                    status_code=status.HTTP_200_OK
+                )
+            else:
+                return self.api_response(
+                    message=f"Failed to update {self.get_entity_name()}.",
+                    data=None,
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
         except Exception as e:
-            logger.error(f"Error updating review {id}: {e}", exc_info=True)
+            logger.error(f"Error updating {self.get_entity_name()} {id}: {e}", exc_info=True)
             return self.api_response(
-                message="Error updating review.",
-                data={'error': str(e)},
+                message=f"Error updating {self.get_entity_name()}: {str(e)}",
+                data=None,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    def put(self, request, id):
+        """Override to support PUT method (base class uses PATCH)."""
+        return self.patch(request, id)
 
 
-class ReviewAdminDeleteAPI(AuthAPI):
+class ReviewAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete review.
     
@@ -177,39 +210,20 @@ class ReviewAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            review = ReviewService.get_by_id(id)
-            if not review:
-                return self.api_response(
-                    message=f"Review with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = ReviewService.delete_review(id)
-            if not deleted:
-                return self.api_response(
-                    message="Error deleting review.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
-            return self.api_response(
-                message="Review deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting review {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting review.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Review"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get review by ID."""
+        return ReviewService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the review."""
+        return ReviewService.delete_review(str(entity.id))
 
 
-class BulkReviewOperationAPI(AuthAPI):
+class BulkReviewOperationAPI(BaseBulkOperationAPI):
     """
     Admin: Perform bulk operations on reviews.
     
@@ -218,85 +232,34 @@ class BulkReviewOperationAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def post(self, request):
-        serializer = BulkReviewOperationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    def get_serializer_class(self):
+        """Return the bulk review operation serializer."""
+        return BulkReviewOperationSerializer
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Review"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get review by ID."""
+        return ReviewService.get_by_id(entity_id)
+    
+    def execute_operation(self, entity, operation, validated_data):
+        """Execute the operation on the review."""
+        reviewer_id = validated_data.get('reviewer_id')
+        assignment_strategy = validated_data.get('assignment_strategy', 'round_robin')
         
-        review_ids = serializer.validated_data['review_ids']
-        operation = serializer.validated_data['operation']
-        reviewer_id = serializer.validated_data.get('reviewer_id', None)
-        assignment_strategy = serializer.validated_data.get('assignment_strategy', 'round_robin')
-        
-        results = {
-            'success': [],
-            'failed': []
-        }
-        
-        try:
-            for review_id in review_ids:
-                try:
-                    if operation == 'assign':
-                        if reviewer_id:
-                            updated_review = ReviewService.assign_reviewer(
-                                str(review_id),
-                                str(reviewer_id) if reviewer_id else None,
-                                assignment_strategy
-                            )
-                        else:
-                            updated_review = ReviewService.assign_reviewer(
-                                str(review_id),
-                                None,
-                                assignment_strategy
-                            )
-                        if updated_review:
-                            results['success'].append(str(review_id))
-                        else:
-                            results['failed'].append({
-                                'review_id': str(review_id),
-                                'error': 'Review not found or failed to assign'
-                            })
-                    elif operation == 'complete':
-                        updated_review = ReviewService.complete_review(str(review_id))
-                        if updated_review:
-                            results['success'].append(str(review_id))
-                        else:
-                            results['failed'].append({
-                                'review_id': str(review_id),
-                                'error': 'Review not found or failed to complete'
-                            })
-                    elif operation == 'cancel':
-                        updated_review = ReviewService.cancel_review(str(review_id))
-                        if updated_review:
-                            results['success'].append(str(review_id))
-                        else:
-                            results['failed'].append({
-                                'review_id': str(review_id),
-                                'error': 'Review not found or failed to cancel'
-                            })
-                    elif operation == 'delete':
-                        deleted = ReviewService.delete_review(str(review_id))
-                        if deleted:
-                            results['success'].append(str(review_id))
-                        else:
-                            results['failed'].append({
-                                'review_id': str(review_id),
-                                'error': 'Review not found or failed to delete'
-                            })
-                except Exception as e:
-                    results['failed'].append({
-                        'review_id': str(review_id),
-                        'error': str(e)
-                    })
-            
-            return self.api_response(
-                message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-                data=results,
-                status_code=status.HTTP_200_OK
+        if operation == 'assign':
+            return ReviewService.assign_reviewer(
+                str(entity.id),
+                str(reviewer_id) if reviewer_id else None,
+                assignment_strategy
             )
-        except Exception as e:
-            logger.error(f"Error performing bulk operation on reviews: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        elif operation == 'complete':
+            return ReviewService.complete_review(str(entity.id))
+        elif operation == 'cancel':
+            return ReviewService.cancel_review(str(entity.id))
+        elif operation == 'delete':
+            return ReviewService.delete_review(str(entity.id))
+        else:
+            raise ValueError(f"Invalid operation: {operation}")

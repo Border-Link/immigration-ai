@@ -1,10 +1,11 @@
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from rules_knowledge.models.visa_requirement import VisaRequirement
 from rules_knowledge.repositories.visa_requirement_repository import VisaRequirementRepository
 from rules_knowledge.selectors.visa_requirement_selector import VisaRequirementSelector
 from rules_knowledge.selectors.visa_rule_version_selector import VisaRuleVersionSelector
+from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
 
@@ -18,11 +19,25 @@ class VisaRequirementService:
         """Create a new visa requirement."""
         try:
             rule_version = VisaRuleVersionSelector.get_by_id(rule_version_id)
-            return VisaRequirementRepository.create_requirement(
+            requirement = VisaRequirementRepository.create_requirement(
                 rule_version, requirement_code, rule_type, description, condition_expression, is_mandatory
             )
+            
+            # Log audit event
+            try:
+                AuditLogService.create_audit_log(
+                    level='INFO',
+                    logger_name='rules_knowledge',
+                    message=f"Visa requirement created: {requirement_code} for rule version {rule_version_id}",
+                    func_name='create_requirement',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
+            return requirement
         except Exception as e:
-            logger.error(f"Error creating requirement {requirement_code}: {e}")
+            logger.error(f"Error creating requirement {requirement_code}: {e}", exc_info=True)
             return None
 
     @staticmethod
@@ -64,12 +79,27 @@ class VisaRequirementService:
         """Update requirement."""
         try:
             requirement = VisaRequirementSelector.get_by_id(requirement_id)
-            return VisaRequirementRepository.update_requirement(requirement, **fields)
+            updated_requirement = VisaRequirementRepository.update_requirement(requirement, **fields)
+            
+            # Log audit event
+            try:
+                changes = ', '.join([f"{k}={v}" for k, v in fields.items()])
+                AuditLogService.create_audit_log(
+                    level='INFO',
+                    logger_name='rules_knowledge',
+                    message=f"Visa requirement {requirement_id} updated: {changes}",
+                    func_name='update_requirement',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
+            return updated_requirement
         except VisaRequirement.DoesNotExist:
             logger.error(f"Requirement {requirement_id} not found")
             return None
         except Exception as e:
-            logger.error(f"Error updating requirement {requirement_id}: {e}")
+            logger.error(f"Error updating requirement {requirement_id}: {e}", exc_info=True)
             return None
 
     @staticmethod
@@ -78,12 +108,25 @@ class VisaRequirementService:
         try:
             requirement = VisaRequirementSelector.get_by_id(requirement_id)
             VisaRequirementRepository.delete_requirement(requirement)
+            
+            # Log audit event
+            try:
+                AuditLogService.create_audit_log(
+                    level='WARNING',
+                    logger_name='rules_knowledge',
+                    message=f"Visa requirement {requirement_id} deleted: {requirement.requirement_code}",
+                    func_name='delete_requirement',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
             return True
         except VisaRequirement.DoesNotExist:
             logger.error(f"Requirement {requirement_id} not found")
             return False
         except Exception as e:
-            logger.error(f"Error deleting requirement {requirement_id}: {e}")
+            logger.error(f"Error deleting requirement {requirement_id}: {e}", exc_info=True)
             return False
 
     @staticmethod

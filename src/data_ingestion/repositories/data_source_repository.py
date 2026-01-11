@@ -1,4 +1,5 @@
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from data_ingestion.models.data_source import DataSource
 
 
@@ -24,13 +25,11 @@ class DataSourceRepository:
     @staticmethod
     def update_data_source(data_source, **fields):
         """Update data source fields."""
-        with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(data_source, key):
-                    setattr(data_source, key, value)
-            data_source.full_clean()
-            data_source.save()
-            return data_source
+        return BaseRepositoryMixin.update_model_fields(
+            data_source,
+            **fields,
+            cache_keys=[f'data_source:{data_source.id}']
+        )
 
     @staticmethod
     def update_last_fetched(data_source):

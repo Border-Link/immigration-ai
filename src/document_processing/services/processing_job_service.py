@@ -3,7 +3,7 @@ Service for ProcessingJob business logic.
 """
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from document_processing.models.processing_job import ProcessingJob
 from document_processing.repositories.processing_job_repository import ProcessingJobRepository
 from document_processing.selectors.processing_job_selector import ProcessingJobSelector

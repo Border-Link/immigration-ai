@@ -5,6 +5,37 @@ from rest_framework import serializers
 from document_processing.models.processing_job import ProcessingJob
 
 
+from main_system.serializers.admin.base import BaseAdminListQuerySerializer
+
+
+class ProcessingJobAdminListQuerySerializer(BaseAdminListQuerySerializer):
+    """Serializer for validating query parameters in admin list view."""
+    case_document_id = serializers.UUIDField(required=False, allow_null=True)
+    status = serializers.CharField(required=False, allow_null=True)
+    processing_type = serializers.CharField(required=False, allow_null=True)
+    error_type = serializers.CharField(required=False, allow_null=True)
+    created_by_id = serializers.UUIDField(required=False, allow_null=True)
+    min_priority = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=10)
+    max_retries_exceeded = serializers.BooleanField(required=False, allow_null=True)
+
+    def to_internal_value(self, data):
+        """Parse string dates to datetime objects and other types."""
+        # Parse boolean and integer strings before calling super
+        if 'max_retries_exceeded' in data and data.get('max_retries_exceeded') is not None:
+            if isinstance(data['max_retries_exceeded'], str):
+                data['max_retries_exceeded'] = data['max_retries_exceeded'].lower() == 'true'
+        
+        if 'min_priority' in data and data.get('min_priority'):
+            if isinstance(data['min_priority'], str):
+                try:
+                    data['min_priority'] = int(data['min_priority'])
+                except (ValueError, TypeError):
+                    pass
+        
+        # Parse datetime strings using base class method
+        return super().to_internal_value(data)
+
+
 class ProcessingJobAdminListSerializer(serializers.ModelSerializer):
     """Serializer for listing processing jobs in admin."""
     case_document_id = serializers.UUIDField(source='case_document.id', read_only=True)

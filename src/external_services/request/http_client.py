@@ -11,7 +11,7 @@ Provides a centralized, production-ready HTTP client with:
 
 import logging
 from typing import Optional, Dict, Any
-from helpers.request.client import Client
+from main_system.utils.request.client import Client
 from tenacity import (
     retry,
     stop_after_attempt,

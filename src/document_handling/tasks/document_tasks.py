@@ -1,7 +1,7 @@
 from celery import shared_task
 import logging
 import time
-from main_system.tasks_base import BaseTaskWithMeta
+from main_system.utils.tasks_base import BaseTaskWithMeta
 from document_handling.selectors.case_document_selector import CaseDocumentSelector
 from document_handling.services.case_document_service import CaseDocumentService
 from document_handling.services.document_check_service import DocumentCheckService

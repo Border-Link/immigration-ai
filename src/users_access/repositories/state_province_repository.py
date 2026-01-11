@@ -1,4 +1,5 @@
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from users_access.models.state_province import StateProvince
 
 
@@ -23,13 +24,11 @@ class StateProvinceRepository:
     @staticmethod
     def update_state_province(state, **fields):
         """Update state/province fields."""
-        with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(state, key):
-                    setattr(state, key, value)
-            state.full_clean()
-            state.save()
-            return state
+        return BaseRepositoryMixin.update_model_fields(
+            state,
+            **fields,
+            cache_keys=[f'state_province:{state.id}', f'state_province:code:{state.code}']
+        )
 
     @staticmethod
     def set_nomination_program(state, has_nomination_program: bool):

@@ -1,22 +1,29 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from immigration_cases.services.case_fact_service import CaseFactService
-from immigration_cases.serializers.case_fact.read import CaseFactSerializer, CaseFactListSerializer
-from immigration_cases.helpers.pagination import paginate_queryset
+from immigration_cases.serializers.case_fact.read import (
+    CaseFactListQuerySerializer,
+    CaseFactSerializer,
+    CaseFactListSerializer
+)
+from main_system.utils import paginate_queryset
 
 
 class CaseFactListAPI(AuthAPI):
     """Get list of case facts. Supports filtering by case_id and pagination."""
 
     def get(self, request):
-        case_id = request.query_params.get('case_id', None)
+        # Validate query parameters
+        query_serializer = CaseFactListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        # Pagination parameters
-        page = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 20)
+        case_id = validated_params.get('case_id')
+        page = validated_params.get('page', 1)
+        page_size = validated_params.get('page_size', 20)
 
         if case_id:
-            facts = CaseFactService.get_by_case(case_id)
+            facts = CaseFactService.get_by_case(str(case_id))
         else:
             facts = CaseFactService.get_all()
 
