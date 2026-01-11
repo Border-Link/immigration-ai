@@ -2,6 +2,16 @@ from rest_framework import serializers
 from immigration_cases.models.case import Case
 
 
+class CaseListQuerySerializer(serializers.Serializer):
+    """Serializer for validating CaseListAPI query parameters."""
+    
+    user_id = serializers.UUIDField(required=False, allow_null=True)
+    status = serializers.ChoiceField(choices=Case.STATUS_CHOICES, required=False, allow_null=True)
+    jurisdiction = serializers.ChoiceField(choices=Case.JURISDICTION_CHOICES, required=False, allow_null=True)
+    page = serializers.IntegerField(required=False, min_value=1, default=1)
+    page_size = serializers.IntegerField(required=False, min_value=1, max_value=100, default=20)
+
+
 class CaseSerializer(serializers.ModelSerializer):
     """Serializer for Case model."""
     
@@ -39,4 +49,3 @@ class CaseListSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         read_only_fields = '__all__'
-
