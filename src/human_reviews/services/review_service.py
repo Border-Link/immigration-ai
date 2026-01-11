@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Optional
 from django.utils import timezone
 from helpers.cache_utils import cache_result
@@ -9,6 +10,12 @@ from immigration_cases.selectors.case_selector import CaseSelector
 from users_access.selectors.user_selector import UserSelector
 from users_access.services.user_service import UserService
 from compliance.services.audit_log_service import AuditLogService
+from human_reviews.helpers.metrics import (
+    track_review_creation,
+    track_review_assignment,
+    track_review_status_transition,
+    track_review_version_conflict
+)
 
 logger = logging.getLogger('django')
 
@@ -53,6 +60,12 @@ class ReviewService:
                     UserService.update_user_last_assigned_at(reviewer)
             
             review = ReviewRepository.create_review(case=case, reviewer=reviewer)
+            
+            # Track metrics
+            assignment_type = 'manual' if reviewer_id else ('round_robin' if assignment_strategy == 'round_robin' else 'workload')
+            track_review_creation(assignment_type=assignment_type)
+            if reviewer:
+                track_review_assignment(assignment_strategy=assignment_strategy)
             
             # Log audit event
             try:
@@ -282,8 +295,11 @@ class ReviewService:
     @staticmethod
     def update_review(review_id: str, updated_by_id: str = None, reason: str = None, version: int = None, **fields) -> Optional[Review]:
         """Update review fields."""
+        from django.core.exceptions import ValidationError
+        
         try:
             review = ReviewSelector.get_by_id(review_id)
+            previous_status = review.status
             
             updated_by = None
             if updated_by_id:
@@ -297,10 +313,23 @@ class ReviewService:
                 **fields
             )
             
+            # Track status transition if status changed
+            if 'status' in fields and fields['status'] != previous_status:
+                track_review_status_transition(
+                    from_status=previous_status,
+                    to_status=fields['status']
+                )
+            
             return updated_review
         except Review.DoesNotExist:
             logger.error(f"Review {review_id} not found")
             return None
+        except ValidationError as e:
+            # Check if it's a version conflict
+            if 'version' in str(e).lower() or 'modified by another user' in str(e):
+                track_review_version_conflict(operation='update')
+            logger.error(f"Validation error updating review {review_id}: {e}")
+            raise
         except Exception as e:
             logger.error(f"Error updating review {review_id}: {e}")
             return None
