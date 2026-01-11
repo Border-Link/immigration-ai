@@ -7,7 +7,6 @@ from .metrics import (
     track_eligibility_conflict,
     track_auto_escalation
 )
-from .pagination import paginate_queryset
 
 __all__ = [
     'track_eligibility_check',
@@ -17,5 +16,4 @@ __all__ = [
     'track_citations_extracted',
     'track_eligibility_conflict',
     'track_auto_escalation',
-    'paginate_queryset',
 ]
