@@ -20,8 +20,8 @@ class CaseCreateAPI(AuthAPI):
 
         if not case:
             return self.api_response(
-                message="Error creating case.",
-                data=None,
+                message="Failed to create case. Please check your input and try again.",
+                data={'errors': {'general': 'Case creation failed. Please verify user_id and jurisdiction are valid.'}},
                 status_code=status.HTTP_400_BAD_REQUEST
             )
 
