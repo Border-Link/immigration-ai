@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from document_handling.models.case_document import CaseDocument
 from document_handling.repositories.case_document_repository import CaseDocumentRepository
 from document_handling.selectors.case_document_selector import CaseDocumentSelector
@@ -45,6 +46,7 @@ class CaseDocumentService:
             return None
 
     @staticmethod
+    @cache_result(timeout=300, keys=[])  # 5 minutes - document list changes frequently
     def get_all():
         """Get all case documents."""
         try:
@@ -54,6 +56,7 @@ class CaseDocumentService:
             return CaseDocumentSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['case_id'])  # 5 minutes - cache documents by case
     def get_by_case(case_id: str):
         """Get documents by case."""
         try:
@@ -67,6 +70,7 @@ class CaseDocumentService:
             return CaseDocumentSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['status'])  # 5 minutes - cache documents by status
     def get_by_status(status: str):
         """Get documents by status."""
         try:
@@ -76,6 +80,7 @@ class CaseDocumentService:
             return CaseDocumentSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['document_type_id'])  # 5 minutes - cache documents by type
     def get_by_document_type(document_type_id: str):
         """Get documents by document type."""
         try:
@@ -85,6 +90,7 @@ class CaseDocumentService:
             return CaseDocumentSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=600, keys=['document_id'])  # 10 minutes - cache document by ID
     def get_by_id(document_id: str) -> Optional[CaseDocument]:
         """Get case document by ID."""
         try:
