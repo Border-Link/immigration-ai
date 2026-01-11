@@ -67,3 +67,39 @@ class AuditLogService:
             logger.error(f"Error fetching audit logs by date range: {e}")
             return AuditLog.objects.none()
 
+    @staticmethod
+    def create_audit_log(level: str, logger_name: str, message: str,
+                        pathname: str = None, lineno: int = None,
+                        func_name: str = None, process: int = None,
+                        thread: str = None, user=None):
+        """
+        Create an audit log entry.
+        
+        Args:
+            level: Log level (INFO, WARNING, ERROR, etc.)
+            logger_name: Name of the logger/module
+            message: Audit log message
+            pathname: Path to the file where the log was created
+            lineno: Line number where the log was created
+            func_name: Function name where the log was created
+            process: Process ID
+            thread: Thread ID
+            user: User object (optional, for user attribution)
+        
+        Returns:
+            AuditLog instance or None if creation failed
+        """
+        try:
+            return AuditLogRepository.create_audit_log(
+                level=level,
+                logger_name=logger_name,
+                message=message,
+                pathname=pathname,
+                lineno=lineno,
+                func_name=func_name,
+                process=process,
+                thread=thread
+            )
+        except Exception as e:
+            logger.error(f"Error creating audit log: {e}", exc_info=True)
+            return None
