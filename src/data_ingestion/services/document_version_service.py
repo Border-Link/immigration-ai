@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from data_ingestion.models.document_version import DocumentVersion
 from data_ingestion.selectors.document_version_selector import DocumentVersionSelector
 from data_ingestion.repositories.document_version_repository import DocumentVersionRepository
