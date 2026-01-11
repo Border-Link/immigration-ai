@@ -7,7 +7,6 @@ import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
-from .logging_config import CustomJsonFormatter
 import logging
 
 IMIGRATION_BACKEND = "imigration-backend"
@@ -123,6 +122,7 @@ INSTALLED_APPS = [
     "compliance",
     "data_ingestion",
     "document_handling",
+    "document_processing",
     "human_reviews",
     "immigration_cases",
     "payments",
@@ -179,7 +179,7 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300  # 5 minutes
 
 # Celery Beat Schedule (imported from celery_beat_schedule.py)
-from main_system.celery_beat_schedule import CELERY_BEAT_SCHEDULE
+from main_system.utils.celery_beat_schedule import CELERY_BEAT_SCHEDULE
 CELERY_BEAT_SCHEDULE = CELERY_BEAT_SCHEDULE
 
 
