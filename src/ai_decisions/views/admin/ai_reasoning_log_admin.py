@@ -10,6 +10,8 @@ from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
 from ai_decisions.services.ai_reasoning_log_service import AIReasoningLogService
 from ai_decisions.serializers.ai_reasoning_log.read import AIReasoningLogSerializer, AIReasoningLogListSerializer
+from ai_decisions.serializers.ai_reasoning_log.admin import AIReasoningLogAdminListQuerySerializer
+from ai_decisions.helpers.pagination import paginate_queryset
 
 logger = logging.getLogger('django')
 
@@ -30,41 +32,33 @@ class AIReasoningLogAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        case_id = request.query_params.get('case_id', None)
-        model_name = request.query_params.get('model_name', None)
-        min_tokens = request.query_params.get('min_tokens', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        # Validate query parameters
+        query_serializer = AIReasoningLogAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        try:
-            from django.utils.dateparse import parse_datetime
-            
-            # Parse parameters
-            min_tokens_int = int(min_tokens) if min_tokens else None
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            
-            # Use service method with filters
-            logs = AIReasoningLogService.get_by_filters(
-                case_id=case_id,
-                model_name=model_name,
-                min_tokens=min_tokens_int,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to
-            )
-            
-            return self.api_response(
-                message="AI reasoning logs retrieved successfully.",
-                data=AIReasoningLogListSerializer(logs, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving AI reasoning logs: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving AI reasoning logs.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # Use service method with filters
+        logs = AIReasoningLogService.get_by_filters(
+            case_id=str(validated_params.get('case_id')) if validated_params.get('case_id') else None,
+            model_name=validated_params.get('model_name'),
+            min_tokens=validated_params.get('min_tokens'),
+            date_from=validated_params.get('date_from'),
+            date_to=validated_params.get('date_to')
+        )
+        
+        # Paginate results
+        page = validated_params.get('page', 1)
+        page_size = validated_params.get('page_size', 20)
+        paginated_logs, pagination_metadata = paginate_queryset(logs, page=page, page_size=page_size)
+        
+        return self.api_response(
+            message="AI reasoning logs retrieved successfully.",
+            data={
+                'items': AIReasoningLogListSerializer(paginated_logs, many=True).data,
+                'pagination': pagination_metadata
+            },
+            status_code=status.HTTP_200_OK
+        )
 
 
 class AIReasoningLogAdminDetailAPI(AuthAPI):
@@ -77,27 +71,19 @@ class AIReasoningLogAdminDetailAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request, id):
-        try:
-            log = AIReasoningLogService.get_by_id(id)
-            if not log:
-                return self.api_response(
-                    message=f"AI reasoning log with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
+        log = AIReasoningLogService.get_by_id(id)
+        if not log:
             return self.api_response(
-                message="AI reasoning log retrieved successfully.",
-                data=AIReasoningLogSerializer(log).data,
-                status_code=status.HTTP_200_OK
+                message=f"AI reasoning log with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
-            logger.error(f"Error retrieving AI reasoning log {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving AI reasoning log.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.api_response(
+            message="AI reasoning log retrieved successfully.",
+            data=AIReasoningLogSerializer(log).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
 class AIReasoningLogAdminDeleteAPI(AuthAPI):
@@ -110,32 +96,16 @@ class AIReasoningLogAdminDeleteAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def delete(self, request, id):
-        try:
-            log = AIReasoningLogService.get_by_id(id)
-            if not log:
-                return self.api_response(
-                    message=f"AI reasoning log with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = AIReasoningLogService.delete_reasoning_log(id)
-            if deleted:
-                return self.api_response(
-                    message="AI reasoning log deleted successfully.",
-                    data=None,
-                    status_code=status.HTTP_200_OK
-                )
-            else:
-                return self.api_response(
-                    message="Error deleting AI reasoning log.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        except Exception as e:
-            logger.error(f"Error deleting AI reasoning log {id}: {e}", exc_info=True)
+        deleted = AIReasoningLogService.delete_reasoning_log(id)
+        if not deleted:
             return self.api_response(
-                message="Error deleting AI reasoning log.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+                message=f"AI reasoning log with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
+        
+        return self.api_response(
+            message="AI reasoning log deleted successfully.",
+            data=None,
+            status_code=status.HTTP_200_OK
+        )
