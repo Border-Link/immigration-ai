@@ -1,13 +1,14 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.base import BaseAdminDetailAPI
 from compliance.services.audit_log_service import AuditLogService
 from compliance.serializers.audit_log.read import (
     AuditLogListQuerySerializer,
     AuditLogSerializer,
     AuditLogListSerializer
 )
-from compliance.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 from compliance.models.audit_log import AuditLog
 
 
@@ -69,23 +70,19 @@ class AuditLogListAPI(AuthAPI):
         )
 
 
-class AuditLogDetailAPI(AuthAPI):
+class AuditLogDetailAPI(BaseAdminDetailAPI):
     """Get audit log by ID."""
     permission_classes = [IsAdminOrStaff]
-
-    def get(self, request, id):
-        audit_log = AuditLogService.get_by_id(id)
-        
-        if not audit_log:
-            return self.api_response(
-                message=f"Audit log with ID '{id}' not found.",
-                data=None,
-                status_code=status.HTTP_404_NOT_FOUND
-            )
-
-        return self.api_response(
-            message="Audit log retrieved successfully.",
-            data=AuditLogSerializer(audit_log).data,
-            status_code=status.HTTP_200_OK
-        )
+    
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Audit log"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get audit log by ID."""
+        return AuditLogService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return AuditLogSerializer
 
