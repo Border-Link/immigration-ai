@@ -3,6 +3,7 @@ Service for ProcessingHistory business logic.
 """
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from document_processing.models.processing_history import ProcessingHistory
 from document_processing.repositories.processing_history_repository import ProcessingHistoryRepository
 from document_processing.selectors.processing_history_selector import ProcessingHistorySelector
@@ -61,6 +62,7 @@ class ProcessingHistoryService:
             return None
 
     @staticmethod
+    @cache_result(timeout=180, keys=[])  # 3 minutes - history changes frequently as processing occurs
     def get_all():
         """Get all processing history entries."""
         try:
@@ -70,6 +72,7 @@ class ProcessingHistoryService:
             return ProcessingHistorySelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=600, keys=['history_id'])  # 10 minutes - cache history entry by ID
     def get_by_id(history_id: str) -> Optional[ProcessingHistory]:
         """Get processing history entry by ID."""
         try:
@@ -82,6 +85,7 @@ class ProcessingHistoryService:
             return None
 
     @staticmethod
+    @cache_result(timeout=180, keys=['case_document_id'])  # 3 minutes - history for document changes as processing occurs
     def get_by_case_document(case_document_id: str):
         """Get processing history by case document."""
         try:
@@ -91,6 +95,7 @@ class ProcessingHistoryService:
             return ProcessingHistorySelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=180, keys=['processing_job_id'])  # 3 minutes - history for job changes as processing occurs
     def get_by_processing_job(processing_job_id: str):
         """Get processing history by processing job."""
         try:
