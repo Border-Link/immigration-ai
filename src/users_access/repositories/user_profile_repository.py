@@ -1,5 +1,6 @@
 from typing import Optional
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from users_access.models.user_profile import UserProfile
 from users_access.models.state_province import StateProvince
 
@@ -27,13 +28,11 @@ class UserProfileRepository:
     @staticmethod
     def update_profile(profile, **fields):
         """Update profile fields."""
-        with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(profile, key):
-                    setattr(profile, key, value)
-            profile.full_clean()
-            profile.save()
-            return profile
+        return BaseRepositoryMixin.update_model_fields(
+            profile,
+            **fields,
+            cache_keys=[f'user_profile:{profile.id}', f'user_profile:user:{profile.user.id}']
+        )
 
     @staticmethod
     def update_names(profile, first_name: Optional[str], last_name: Optional[str]):
