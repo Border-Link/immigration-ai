@@ -6,7 +6,7 @@ from immigration_cases.serializers.case_fact.read import (
     CaseFactSerializer,
     CaseFactListSerializer
 )
-from immigration_cases.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 
 class CaseFactListAPI(AuthAPI):
