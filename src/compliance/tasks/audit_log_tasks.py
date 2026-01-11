@@ -2,7 +2,7 @@ from celery import shared_task
 import logging
 from django.utils import timezone
 from datetime import timedelta
-from main_system.tasks_base import BaseTaskWithMeta
+from main_system.utils.tasks_base import BaseTaskWithMeta
 from compliance.selectors.audit_log_selector import AuditLogSelector
 
 logger = logging.getLogger('django')
