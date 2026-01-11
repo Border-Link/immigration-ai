@@ -2,26 +2,30 @@ from rest_framework import serializers
 from ai_decisions.models.eligibility_result import EligibilityResult
 
 
+class EligibilityResultListQuerySerializer(serializers.Serializer):
+    """Serializer for validating EligibilityResultListAPI query parameters."""
+    
+    case_id = serializers.UUIDField(required=False, allow_null=True)
+    page = serializers.IntegerField(required=False, min_value=1, default=1)
+    page_size = serializers.IntegerField(required=False, min_value=1, max_value=100, default=20)
+
+
 class EligibilityResultSerializer(serializers.ModelSerializer):
     """Serializer for EligibilityResult model."""
-    
-    case_id = serializers.UUIDField(source='case.id', read_only=True)
-    visa_type_name = serializers.CharField(source='visa_type.name', read_only=True)
-    visa_type_code = serializers.CharField(source='visa_type.code', read_only=True)
-    rule_version_number = serializers.IntegerField(source='rule_version.version_number', read_only=True)
     
     class Meta:
         model = EligibilityResult
         fields = [
             'id',
-            'case_id',
-            'visa_type_name',
-            'visa_type_code',
-            'rule_version_number',
+            'case',
+            'visa_type',
+            'rule_version',
             'outcome',
             'confidence',
             'reasoning_summary',
             'missing_facts',
+            'ai_reasoning_available',
+            'requires_human_review',
             'created_at',
             'updated_at',
         ]
@@ -31,18 +35,15 @@ class EligibilityResultSerializer(serializers.ModelSerializer):
 class EligibilityResultListSerializer(serializers.ModelSerializer):
     """Simplified serializer for listing eligibility results."""
     
-    case_id = serializers.UUIDField(source='case.id', read_only=True)
-    visa_type_name = serializers.CharField(source='visa_type.name', read_only=True)
-    
     class Meta:
         model = EligibilityResult
         fields = [
             'id',
-            'case_id',
-            'visa_type_name',
+            'case',
+            'visa_type',
             'outcome',
             'confidence',
+            'requires_human_review',
             'created_at',
         ]
         read_only_fields = '__all__'
-
