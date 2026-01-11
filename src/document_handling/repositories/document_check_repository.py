@@ -1,4 +1,5 @@
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from document_handling.models.document_check import DocumentCheck
 from document_handling.models.case_document import CaseDocument
 
@@ -25,13 +26,11 @@ class DocumentCheckRepository:
     @staticmethod
     def update_document_check(document_check, **fields):
         """Update document check fields."""
-        with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(document_check, key):
-                    setattr(document_check, key, value)
-            document_check.full_clean()
-            document_check.save()
-            return document_check
+        return BaseRepositoryMixin.update_model_fields(
+            document_check,
+            **fields,
+            cache_keys=[f'document_check:{document_check.id}']
+        )
 
     @staticmethod
     def delete_document_check(document_check):
