@@ -10,6 +10,8 @@ from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
 from ai_decisions.services.ai_citation_service import AICitationService
 from ai_decisions.serializers.ai_citation.read import AICitationSerializer, AICitationListSerializer
+from ai_decisions.serializers.ai_citation.admin import AICitationAdminListQuerySerializer
+from ai_decisions.helpers.pagination import paginate_queryset
 
 logger = logging.getLogger('django')
 
@@ -30,41 +32,33 @@ class AICitationAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        reasoning_log_id = request.query_params.get('reasoning_log_id', None)
-        document_version_id = request.query_params.get('document_version_id', None)
-        min_relevance = request.query_params.get('min_relevance', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        # Validate query parameters
+        query_serializer = AICitationAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        try:
-            from django.utils.dateparse import parse_datetime
-            
-            # Parse parameters
-            min_relevance_float = float(min_relevance) if min_relevance else None
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            
-            # Use service method with filters
-            citations = AICitationService.get_by_filters(
-                reasoning_log_id=reasoning_log_id,
-                document_version_id=document_version_id,
-                min_relevance=min_relevance_float,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to
-            )
-            
-            return self.api_response(
-                message="AI citations retrieved successfully.",
-                data=AICitationListSerializer(citations, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving AI citations: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving AI citations.",
-                data={'error': str(e)},
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
+        # Use service method with filters
+        citations = AICitationService.get_by_filters(
+            reasoning_log_id=str(validated_params.get('reasoning_log_id')) if validated_params.get('reasoning_log_id') else None,
+            document_version_id=str(validated_params.get('document_version_id')) if validated_params.get('document_version_id') else None,
+            min_relevance=validated_params.get('min_relevance'),
+            date_from=validated_params.get('date_from'),
+            date_to=validated_params.get('date_to')
+        )
+        
+        # Paginate results
+        page = validated_params.get('page', 1)
+        page_size = validated_params.get('page_size', 20)
+        paginated_citations, pagination_metadata = paginate_queryset(citations, page=page, page_size=page_size)
+        
+        return self.api_response(
+            message="AI citations retrieved successfully.",
+            data={
+                'items': AICitationListSerializer(paginated_citations, many=True).data,
+                'pagination': pagination_metadata
+            },
+            status_code=status.HTTP_200_OK
+        )
 
 
 class AICitationAdminDetailAPI(AuthAPI):
@@ -77,27 +71,19 @@ class AICitationAdminDetailAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request, id):
-        try:
-            citation = AICitationService.get_by_id(id)
-            if not citation:
-                return self.api_response(
-                    message=f"AI citation with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
+        citation = AICitationService.get_by_id(id)
+        if not citation:
             return self.api_response(
-                message="AI citation retrieved successfully.",
-                data=AICitationSerializer(citation).data,
-                status_code=status.HTTP_200_OK
+                message=f"AI citation with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
-            logger.error(f"Error retrieving AI citation {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving AI citation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
+        
+        return self.api_response(
+            message="AI citation retrieved successfully.",
+            data=AICitationSerializer(citation).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
 class AICitationAdminDeleteAPI(AuthAPI):
@@ -110,32 +96,16 @@ class AICitationAdminDeleteAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def delete(self, request, id):
-        try:
-            citation = AICitationService.get_by_id(id)
-            if not citation:
-                return self.api_response(
-                    message=f"AI citation with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = AICitationService.delete_citation(id)
-            if deleted:
-                return self.api_response(
-                    message="AI citation deleted successfully.",
-                    data=None,
-                    status_code=status.HTTP_200_OK
-                )
-            else:
-                return self.api_response(
-                    message="Error deleting AI citation.",
-                    data=None,
-                    status_code=status.HTTP_400_BAD_REQUEST
-                )
-        except Exception as e:
-            logger.error(f"Error deleting AI citation {id}: {e}", exc_info=True)
+        deleted = AICitationService.delete_citation(id)
+        if not deleted:
             return self.api_response(
-                message="Error deleting AI citation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_400_BAD_REQUEST
+                message=f"AI citation with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
+        
+        return self.api_response(
+            message="AI citation deleted successfully.",
+            data=None,
+            status_code=status.HTTP_200_OK
+        )
