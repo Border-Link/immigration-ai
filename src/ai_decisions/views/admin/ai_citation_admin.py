@@ -11,7 +11,7 @@ from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
 from ai_decisions.services.ai_citation_service import AICitationService
 from ai_decisions.serializers.ai_citation.read import AICitationSerializer, AICitationListSerializer
 from ai_decisions.serializers.ai_citation.admin import AICitationAdminListQuerySerializer
-from ai_decisions.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 logger = logging.getLogger('django')
 
