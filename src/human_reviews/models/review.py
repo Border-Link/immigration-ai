@@ -58,6 +58,8 @@ class Review(models.Model):
         help_text="When the review was completed"
     )
     
+    version = models.IntegerField(default=1, db_index=True, help_text="Version number for optimistic locking")
+    
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
