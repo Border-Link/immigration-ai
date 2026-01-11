@@ -4,6 +4,7 @@ from helpers.cache_utils import cache_result
 from rules_knowledge.models.visa_type import VisaType
 from rules_knowledge.repositories.visa_type_repository import VisaTypeRepository
 from rules_knowledge.selectors.visa_type_selector import VisaTypeSelector
+from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
 
@@ -23,9 +24,23 @@ class VisaTypeService:
             except VisaType.DoesNotExist:
                 pass
             
-            return VisaTypeRepository.create_visa_type(jurisdiction, code, name, description, is_active)
+            visa_type = VisaTypeRepository.create_visa_type(jurisdiction, code, name, description, is_active)
+            
+            # Log audit event
+            try:
+                AuditLogService.create_audit_log(
+                    level='INFO',
+                    logger_name='rules_knowledge',
+                    message=f"Visa type created: {code} ({jurisdiction})",
+                    func_name='create_visa_type',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
+            return visa_type
         except Exception as e:
-            logger.error(f"Error creating visa type {jurisdiction}/{code}: {e}")
+            logger.error(f"Error creating visa type {jurisdiction}/{code}: {e}", exc_info=True)
             return None
 
     @staticmethod
@@ -76,12 +91,27 @@ class VisaTypeService:
         """Update visa type."""
         try:
             visa_type = VisaTypeSelector.get_by_id(type_id)
-            return VisaTypeRepository.update_visa_type(visa_type, **fields)
+            updated_visa_type = VisaTypeRepository.update_visa_type(visa_type, **fields)
+            
+            # Log audit event
+            try:
+                changes = ', '.join([f"{k}={v}" for k, v in fields.items()])
+                AuditLogService.create_audit_log(
+                    level='INFO',
+                    logger_name='rules_knowledge',
+                    message=f"Visa type {type_id} updated: {changes}",
+                    func_name='update_visa_type',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
+            return updated_visa_type
         except VisaType.DoesNotExist:
             logger.error(f"Visa type {type_id} not found")
             return None
         except Exception as e:
-            logger.error(f"Error updating visa type {type_id}: {e}")
+            logger.error(f"Error updating visa type {type_id}: {e}", exc_info=True)
             return None
 
     @staticmethod
@@ -90,12 +120,25 @@ class VisaTypeService:
         try:
             visa_type = VisaTypeSelector.get_by_id(type_id)
             VisaTypeRepository.delete_visa_type(visa_type)
+            
+            # Log audit event
+            try:
+                AuditLogService.create_audit_log(
+                    level='WARNING',
+                    logger_name='rules_knowledge',
+                    message=f"Visa type {type_id} deleted: {visa_type.code} ({visa_type.jurisdiction})",
+                    func_name='delete_visa_type',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
             return True
         except VisaType.DoesNotExist:
             logger.error(f"Visa type {type_id} not found")
             return False
         except Exception as e:
-            logger.error(f"Error deleting visa type {type_id}: {e}")
+            logger.error(f"Error deleting visa type {type_id}: {e}", exc_info=True)
             return False
 
     @staticmethod
