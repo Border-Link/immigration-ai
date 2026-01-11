@@ -10,7 +10,12 @@ from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_reviewer import IsReviewer
 from ai_decisions.services.ai_reasoning_log_service import AIReasoningLogService
-from ai_decisions.serializers.ai_reasoning_log.read import AIReasoningLogSerializer, AIReasoningLogListSerializer
+from ai_decisions.serializers.ai_reasoning_log.read import (
+    AIReasoningLogListQuerySerializer,
+    AIReasoningLogSerializer,
+    AIReasoningLogListSerializer
+)
+from ai_decisions.helpers.pagination import paginate_queryset
 
 logger = logging.getLogger('django')
 
@@ -28,29 +33,34 @@ class AIReasoningLogListAPI(AuthAPI):
     permission_classes = [IsReviewer]
     
     def get(self, request):
-        case_id = request.query_params.get('case_id', None)
-        model_name = request.query_params.get('model_name', None)
+        # Validate query parameters
+        query_serializer = AIReasoningLogListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        try:
-            if case_id:
-                logs = AIReasoningLogService.get_by_case(case_id)
-            elif model_name:
-                logs = AIReasoningLogService.get_by_model(model_name)
-            else:
-                logs = AIReasoningLogService.get_all()
-            
-            return self.api_response(
-                message="AI reasoning logs retrieved successfully.",
-                data=AIReasoningLogListSerializer(logs, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving AI reasoning logs: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving AI reasoning logs.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        case_id = validated_params.get('case_id')
+        model_name = validated_params.get('model_name')
+        page = validated_params.get('page', 1)
+        page_size = validated_params.get('page_size', 20)
+        
+        if case_id:
+            logs = AIReasoningLogService.get_by_case(str(case_id))
+        elif model_name:
+            logs = AIReasoningLogService.get_by_model(model_name)
+        else:
+            logs = AIReasoningLogService.get_all()
+        
+        # Paginate results
+        paginated_logs, pagination_metadata = paginate_queryset(logs, page=page, page_size=page_size)
+        
+        return self.api_response(
+            message="AI reasoning logs retrieved successfully.",
+            data={
+                'items': AIReasoningLogListSerializer(paginated_logs, many=True).data,
+                'pagination': pagination_metadata
+            },
+            status_code=status.HTTP_200_OK
+        )
 
 
 class AIReasoningLogDetailAPI(AuthAPI):
@@ -63,24 +73,16 @@ class AIReasoningLogDetailAPI(AuthAPI):
     permission_classes = [IsReviewer]
     
     def get(self, request, id):
-        try:
-            log = AIReasoningLogService.get_by_id(id)
-            if not log:
-                return self.api_response(
-                    message=f"AI reasoning log with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
+        log = AIReasoningLogService.get_by_id(id)
+        if not log:
             return self.api_response(
-                message="AI reasoning log retrieved successfully.",
-                data=AIReasoningLogSerializer(log).data,
-                status_code=status.HTTP_200_OK
+                message=f"AI reasoning log with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
-            logger.error(f"Error retrieving AI reasoning log {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving AI reasoning log.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.api_response(
+            message="AI reasoning log retrieved successfully.",
+            data=AIReasoningLogSerializer(log).data,
+            status_code=status.HTTP_200_OK
+        )
