@@ -2,7 +2,16 @@
 Admin serializers for DocumentCheck operations.
 """
 from rest_framework import serializers
+from main_system.serializers.admin.base import BaseAdminListQuerySerializer
 from document_handling.models.document_check import DocumentCheck
+
+
+class DocumentCheckAdminListQuerySerializer(BaseAdminListQuerySerializer):
+    """Serializer for validating query parameters in admin list view."""
+    case_document_id = serializers.UUIDField(required=False, allow_null=True)
+    check_type = serializers.CharField(required=False, allow_null=True)
+    result = serializers.CharField(required=False, allow_null=True)
+    performed_by = serializers.CharField(required=False, allow_null=True)
 
 
 class DocumentCheckAdminListSerializer(serializers.ModelSerializer):
