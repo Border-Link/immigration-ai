@@ -18,9 +18,26 @@ class EligibilityResultService:
     def create_eligibility_result(case_id: str, visa_type_id: str, rule_version_id: str,
                                  outcome: str, confidence: float = 0.0, reasoning_summary: str = None,
                                  missing_facts: dict = None) -> Optional[EligibilityResult]:
-        """Create a new eligibility result."""
+        """
+        Create a new eligibility result.
+        
+        Requires: Case must have a completed payment before eligibility results can be created.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             case = CaseSelector.get_by_id(case_id)
+            if not case:
+                logger.error(f"Case {case_id} not found when creating eligibility result")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="eligibility result creation")
+            if not is_valid:
+                logger.warning(f"Eligibility result creation blocked for case {case_id}: {error}")
+                raise ValidationError(error)
+            
             visa_type = VisaTypeSelector.get_by_id(visa_type_id)
             rule_version = VisaRuleVersionSelector.get_by_id(rule_version_id)
             
@@ -73,9 +90,26 @@ class EligibilityResultService:
 
     @staticmethod
     def update_eligibility_result(result_id: str, **fields) -> Optional[EligibilityResult]:
-        """Update eligibility result fields."""
+        """
+        Update eligibility result fields.
+        
+        Requires: Case must have a completed payment before eligibility results can be updated.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             result = EligibilityResultSelector.get_by_id(result_id)
+            if not result:
+                logger.error(f"Eligibility result {result_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(result.case, operation_name="eligibility result update")
+            if not is_valid:
+                logger.warning(f"Eligibility result update blocked for case {result.case.id}: {error}")
+                raise ValidationError(error)
+            
             return EligibilityResultRepository.update_eligibility_result(result, **fields)
         except EligibilityResult.DoesNotExist:
             logger.error(f"Eligibility result {result_id} not found")
@@ -86,9 +120,27 @@ class EligibilityResultService:
 
     @staticmethod
     def delete_eligibility_result(result_id: str) -> bool:
-        """Delete an eligibility result."""
+        """
+        Delete an eligibility result.
+        
+        Requires: Case must have a completed payment before eligibility results can be deleted.
+        This prevents abuse and ensures only paid cases can manage their eligibility results.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             result = EligibilityResultSelector.get_by_id(result_id)
+            if not result:
+                logger.error(f"Eligibility result {result_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(result.case, operation_name="eligibility result deletion")
+            if not is_valid:
+                logger.warning(f"Eligibility result deletion blocked for case {result.case.id}: {error}")
+                raise ValidationError(error)
+            
             EligibilityResultRepository.delete_eligibility_result(result)
             return True
         except EligibilityResult.DoesNotExist:
