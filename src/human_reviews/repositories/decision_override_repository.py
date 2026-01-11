@@ -1,4 +1,5 @@
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from human_reviews.models.decision_override import DecisionOverride
 from immigration_cases.models.case import Case
 from ai_decisions.models.eligibility_result import EligibilityResult
@@ -27,13 +28,11 @@ class DecisionOverrideRepository:
     @staticmethod
     def update_decision_override(override, **fields):
         """Update decision override fields."""
-        with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(override, key):
-                    setattr(override, key, value)
-            override.full_clean()
-            override.save()
-            return override
+        return BaseRepositoryMixin.update_model_fields(
+            override,
+            **fields,
+            cache_keys=[f'decision_override:{override.id}']
+        )
 
     @staticmethod
     def delete_decision_override(override):
