@@ -10,6 +10,8 @@ from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
 from ai_decisions.services.eligibility_result_service import EligibilityResultService
 from ai_decisions.serializers.eligibility_result.read import EligibilityResultSerializer, EligibilityResultListSerializer
+from ai_decisions.serializers.eligibility_result.admin import EligibilityResultAdminListQuerySerializer
+from ai_decisions.helpers.pagination import paginate_queryset
 
 logger = logging.getLogger('django')
 
@@ -31,43 +33,34 @@ class EligibilityResultAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        case_id = request.query_params.get('case_id', None)
-        visa_type_id = request.query_params.get('visa_type_id', None)
-        outcome = request.query_params.get('outcome', None)
-        min_confidence = request.query_params.get('min_confidence', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        # Validate query parameters
+        query_serializer = EligibilityResultAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        try:
-            from django.utils.dateparse import parse_datetime
-            
-            # Parse parameters
-            min_confidence_float = float(min_confidence) if min_confidence else None
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            
-            # Use service method with filters
-            results = EligibilityResultService.get_by_filters(
-                case_id=case_id,
-                visa_type_id=visa_type_id,
-                outcome=outcome,
-                min_confidence=min_confidence_float,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to
-            )
-            
-            return self.api_response(
-                message="Eligibility results retrieved successfully.",
-                data=EligibilityResultListSerializer(results, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving eligibility results: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving eligibility results.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # Use service method with filters
+        results = EligibilityResultService.get_by_filters(
+            case_id=str(validated_params.get('case_id')) if validated_params.get('case_id') else None,
+            visa_type_id=str(validated_params.get('visa_type_id')) if validated_params.get('visa_type_id') else None,
+            outcome=validated_params.get('outcome'),
+            min_confidence=validated_params.get('min_confidence'),
+            date_from=validated_params.get('date_from'),
+            date_to=validated_params.get('date_to')
+        )
+        
+        # Paginate results
+        page = validated_params.get('page', 1)
+        page_size = validated_params.get('page_size', 20)
+        paginated_results, pagination_metadata = paginate_queryset(results, page=page, page_size=page_size)
+        
+        return self.api_response(
+            message="Eligibility results retrieved successfully.",
+            data={
+                'items': EligibilityResultListSerializer(paginated_results, many=True).data,
+                'pagination': pagination_metadata
+            },
+            status_code=status.HTTP_200_OK
+        )
 
 
 class EligibilityResultAdminDetailAPI(AuthAPI):
@@ -80,27 +73,19 @@ class EligibilityResultAdminDetailAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request, id):
-        try:
-            result = EligibilityResultService.get_by_id(id)
-            if not result:
-                return self.api_response(
-                    message=f"Eligibility result with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
+        result = EligibilityResultService.get_by_id(id)
+        if not result:
             return self.api_response(
-                message="Eligibility result retrieved successfully.",
-                data=EligibilityResultSerializer(result).data,
-                status_code=status.HTTP_200_OK
+                message=f"Eligibility result with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
-            logger.error(f"Error retrieving eligibility result {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving eligibility result.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.api_response(
+            message="Eligibility result retrieved successfully.",
+            data=EligibilityResultSerializer(result).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
 class EligibilityResultAdminDeleteAPI(AuthAPI):
@@ -113,32 +98,16 @@ class EligibilityResultAdminDeleteAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def delete(self, request, id):
-        try:
-            result = EligibilityResultService.get_by_id(id)
-            if not result:
-                return self.api_response(
-                    message=f"Eligibility result with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = EligibilityResultService.delete_eligibility_result(id)
-            if deleted:
-                return self.api_response(
-                    message="Eligibility result deleted successfully.",
-                    data=None,
-                    status_code=status.HTTP_200_OK
-                )
-            else:
-                return self.api_response(
-                    message="Error deleting eligibility result.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        except Exception as e:
-            logger.error(f"Error deleting eligibility result {id}: {e}", exc_info=True)
+        deleted = EligibilityResultService.delete_eligibility_result(id)
+        if not deleted:
             return self.api_response(
-                message="Error deleting eligibility result.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+                message=f"Eligibility result with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
+        
+        return self.api_response(
+            message="Eligibility result deleted successfully.",
+            data=None,
+            status_code=status.HTTP_200_OK
+        )
