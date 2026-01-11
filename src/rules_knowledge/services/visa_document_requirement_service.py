@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from rules_knowledge.models.visa_document_requirement import VisaDocumentRequirement
 from rules_knowledge.repositories.visa_document_requirement_repository import VisaDocumentRequirementRepository
 from rules_knowledge.selectors.visa_document_requirement_selector import VisaDocumentRequirementSelector
@@ -27,6 +28,7 @@ class VisaDocumentRequirementService:
             return None
 
     @staticmethod
+    @cache_result(timeout=600, keys=[])  # 10 minutes - can change when requirements are updated
     def get_all():
         """Get all document requirements."""
         try:
@@ -36,6 +38,7 @@ class VisaDocumentRequirementService:
             return VisaDocumentRequirement.objects.none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['rule_version_id'])  # 1 hour - requirements per version change infrequently
     def get_by_rule_version(rule_version_id: str):
         """Get document requirements by rule version."""
         try:
@@ -46,6 +49,7 @@ class VisaDocumentRequirementService:
             return VisaDocumentRequirement.objects.none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['requirement_id'])  # 1 hour - cache by requirement ID
     def get_by_id(requirement_id: str) -> Optional[VisaDocumentRequirement]:
         """Get document requirement by ID."""
         try:
