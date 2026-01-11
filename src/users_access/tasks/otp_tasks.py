@@ -2,7 +2,7 @@ from celery import shared_task
 import logging
 from django.conf import settings
 from emails.send import SendEmailService
-from main_system.tasks_base import BaseTaskWithMeta
+from main_system.utils.tasks_base import BaseTaskWithMeta
 
 logger = logging.getLogger('django')
 
