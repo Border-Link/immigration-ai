@@ -15,7 +15,7 @@ from ai_decisions.serializers.ai_citation.read import (
     AICitationSerializer,
     AICitationListSerializer
 )
-from ai_decisions.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 logger = logging.getLogger('django')
 
