@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from users_access.models.user import User
-from helpers import fields as input_fields
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for User - gets names from profile."""
@@ -11,25 +10,25 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            input_fields.ID,
-            input_fields.EMAIL,
-            input_fields.FIRST_NAME,
-            input_fields.LAST_NAME,
+            "id",
+            "email",
+            "first_name",
+            "last_name",
             'full_name',
-            input_fields.IS_ACTIVE,
-            input_fields.IS_SUPERUSER,
-            input_fields.IS_STAFF,
-            input_fields.CREATED_AT,
-            input_fields.UPDATED_AT,
+            "is_active",
+            "is_superuser",
+            "is_staff",
+            "created_at",
+            "updated_at",
         )
 
         read_only_fields = (
-            input_fields.ID,
-            input_fields.IS_ACTIVE,
-            input_fields.IS_SUPERUSER,
-            input_fields.IS_STAFF,
-            input_fields.CREATED_AT,
-            input_fields.UPDATED_AT,
+            "id",
+            "is_active",
+            "is_superuser",
+            "is_staff",
+            "created_at",
+            "updated_at",
         )
 
     def get_first_name(self, obj):
@@ -60,12 +59,12 @@ class WhoAmISerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            input_fields.ID,
-            input_fields.EMAIL,
-            input_fields.FIRST_NAME,
-            input_fields.LAST_NAME,
+            "id",
+            "email",
+            "first_name",
+            "last_name",
             'full_name',
-            input_fields.IS_ACTIVE,
+            "is_active",
         )
 
     def get_first_name(self, obj):
