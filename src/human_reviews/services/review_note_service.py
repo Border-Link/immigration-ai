@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from human_reviews.models.review_note import ReviewNote
 from human_reviews.repositories.review_note_repository import ReviewNoteRepository
 from human_reviews.selectors.review_note_selector import ReviewNoteSelector
