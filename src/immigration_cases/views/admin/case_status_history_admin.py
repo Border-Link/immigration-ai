@@ -14,7 +14,7 @@ from immigration_cases.serializers.case_status_history.read import (
     CaseStatusHistorySerializer,
     CaseStatusHistoryListSerializer
 )
-from immigration_cases.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 logger = logging.getLogger('django')
 
