@@ -2,6 +2,7 @@ from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from rules_knowledge.services.document_type_service import DocumentTypeService
 from rules_knowledge.serializers.document_type.read import DocumentTypeSerializer, DocumentTypeListSerializer
+from rules_knowledge.helpers.pagination import paginate_queryset
 
 
 class DocumentTypeListAPI(AuthAPI):
@@ -9,6 +10,8 @@ class DocumentTypeListAPI(AuthAPI):
 
     def get(self, request):
         is_active = request.query_params.get('is_active', None)
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('page_size', 20)
 
         if is_active is not None:
             is_active_bool = is_active.lower() == 'true'
@@ -19,9 +22,15 @@ class DocumentTypeListAPI(AuthAPI):
         else:
             document_types = DocumentTypeService.get_all()
 
+        # Paginate results
+        paginated_items, pagination_metadata = paginate_queryset(document_types, page=page, page_size=page_size)
+
         return self.api_response(
             message="Document types retrieved successfully.",
-            data=DocumentTypeListSerializer(document_types, many=True).data,
+            data={
+                'items': DocumentTypeListSerializer(paginated_items, many=True).data,
+                'pagination': pagination_metadata
+            },
             status_code=status.HTTP_200_OK
         )
 
