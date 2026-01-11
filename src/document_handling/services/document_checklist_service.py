@@ -20,6 +20,8 @@ class DocumentChecklistService:
         """
         Generate a document checklist for a case based on visa requirements.
         
+        Requires: Case must have a completed payment before checklist can be generated.
+        
         Args:
             case_id: UUID of the case
             
@@ -31,9 +33,22 @@ class DocumentChecklistService:
             - requirements: List of required documents with status
             - summary: Summary statistics
         """
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             # Get case
             case = CaseSelector.get_by_id(case_id)
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="document checklist generation")
+            if not is_valid:
+                logger.warning(f"Document checklist generation blocked for case {case_id}: {error}")
+                return {
+                    'error': error,
+                    'case_id': case_id,
+                    'requirements': [],
+                    'summary': {}
+                }
             if not case:
                 logger.error(f"Case {case_id} not found")
                 return {
