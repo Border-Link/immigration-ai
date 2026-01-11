@@ -16,19 +16,32 @@ class Payment(models.Model):
         ('refunded', 'Refunded'),
     ]
 
-    CURRENCY_CHOICES = [
-        ('GBP', 'British Pound'),
-        ('USD', 'US Dollar'),
-        ('CAD', 'Canadian Dollar'),
-        ('AUD', 'Australian Dollar'),
-    ]
-
     PAYMENT_PROVIDER_CHOICES = [
         ('stripe', 'Stripe'),
         ('paypal', 'PayPal'),
+        ('adyen', 'Adyen'),
         ('bank_transfer', 'Bank Transfer'),
-        ('paystack', 'Paystack'),
     ]
+
+    # Supported currencies
+    SUPPORTED_CURRENCIES = [
+        ('USD', 'US Dollar'),
+        ('EUR', 'Euro'),
+        ('GBP', 'British Pound'),
+        ('CAD', 'Canadian Dollar'),
+        ('AUD', 'Australian Dollar'),
+        ('JPY', 'Japanese Yen'),
+        ('CHF', 'Swiss Franc'),
+        ('NZD', 'New Zealand Dollar'),
+        ('SGD', 'Singapore Dollar'),
+        ('HKD', 'Hong Kong Dollar'),
+        ('NGN', 'Nigerian Naira'),
+        ('AED', 'UAE Dirham'),
+        ('ZAR', 'South African Rand'),
+        ('INR', 'Indian Rupee')
+    ]
+    
+    DEFAULT_CURRENCY = 'USD'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     
@@ -48,9 +61,26 @@ class Payment(models.Model):
     
     currency = models.CharField(
         max_length=3,
-        choices=CURRENCY_CHOICES,
-        default='GBP',
-        help_text="Currency code"
+        default=DEFAULT_CURRENCY,
+        choices=SUPPORTED_CURRENCIES,
+        db_index=True,
+        help_text="Currency code (ISO 4217)"
+    )
+    
+    retry_count = models.IntegerField(
+        default=0,
+        help_text="Number of retry attempts for failed payments"
+    )
+    
+    max_retries = models.IntegerField(
+        default=3,
+        help_text="Maximum number of retry attempts"
+    )
+    
+    last_retry_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of last retry attempt"
     )
     
     status = models.CharField(
@@ -76,6 +106,13 @@ class Payment(models.Model):
         db_index=True,
         help_text="Transaction ID from payment provider"
     )
+    
+    # Optimistic locking
+    version = models.IntegerField(default=1, db_index=True, help_text="Version number for optimistic locking")
+    
+    # Soft delete fields
+    is_deleted = models.BooleanField(default=False, db_index=True, help_text="Whether this payment is soft deleted")
+    deleted_at = models.DateTimeField(null=True, blank=True, help_text="When this payment was deleted")
     
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
