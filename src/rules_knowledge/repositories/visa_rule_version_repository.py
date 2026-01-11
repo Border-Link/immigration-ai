@@ -1,9 +1,11 @@
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from rules_knowledge.models.visa_rule_version import VisaRuleVersion
 from rules_knowledge.models.visa_type import VisaType
 from rules_knowledge.services.rule_version_conflict_service import RuleVersionConflictService
+from rules_knowledge.helpers.metrics import track_version_conflict
 
 
 class VisaRuleVersionRepository:
@@ -79,9 +81,38 @@ class VisaRuleVersionRepository:
             return rule_version
 
     @staticmethod
-    def update_rule_version(rule_version, updated_by=None, **fields):
-        """Update rule version fields with validation."""
+    def update_rule_version(rule_version, updated_by=None, expected_version=None, **fields):
+        """
+        Update rule version fields with validation and optimistic locking.
+        
+        Args:
+            rule_version: VisaRuleVersion instance to update
+            updated_by: User performing the update
+            expected_version: Expected version number for optimistic locking (None to skip check)
+            **fields: Fields to update
+            
+        Returns:
+            Updated VisaRuleVersion instance
+            
+        Raises:
+            ValidationError: If version conflict detected or validation fails
+        """
         with transaction.atomic():
+            # Optimistic locking: Check version if expected_version provided
+            if expected_version is not None:
+                # Reload from database with select_for_update to lock the row
+                current = VisaRuleVersion.objects.select_for_update().get(id=rule_version.id)
+                if current.version != expected_version:
+                    # Track version conflict metric
+                    track_version_conflict('update')
+                    raise ValidationError(
+                        f"Version conflict: Rule version was modified by another user. "
+                        f"Expected version {expected_version}, but current version is {current.version}. "
+                        f"Please refresh and try again."
+                    )
+                # Use the locked instance
+                rule_version = current
+            
             # Validate effective date range if being updated
             effective_from = fields.get('effective_from', rule_version.effective_from)
             effective_to = fields.get('effective_to', rule_version.effective_to)
@@ -111,11 +142,18 @@ class VisaRuleVersionRepository:
             if updated_by:
                 fields['updated_by'] = updated_by
             
+            # Update fields
             for key, value in fields.items():
                 if hasattr(rule_version, key):
                     setattr(rule_version, key, value)
+            
+            # Increment version atomically using F() expression
+            rule_version.version = F('version') + 1
             rule_version.full_clean()
             rule_version.save()
+            
+            # Reload to get the updated version number
+            rule_version.refresh_from_db()
             
             # Clear cache if published status or effective dates changed
             if 'is_published' in fields or 'effective_from' in fields or 'effective_to' in fields:
@@ -126,17 +164,49 @@ class VisaRuleVersionRepository:
             return rule_version
 
     @staticmethod
-    def publish_rule_version(rule_version, published_by=None):
-        """Publish a rule version."""
+    def publish_rule_version(rule_version, published_by=None, expected_version=None):
+        """
+        Publish a rule version with optimistic locking support.
+        
+        Args:
+            rule_version: VisaRuleVersion instance to publish
+            published_by: User performing the publish
+            expected_version: Expected version number for optimistic locking (None to skip check)
+            
+        Returns:
+            Published VisaRuleVersion instance
+            
+        Raises:
+            ValidationError: If version conflict detected
+        """
         from django.core.cache import cache
         
         with transaction.atomic():
+            # Optimistic locking: Check version if expected_version provided
+            if expected_version is not None:
+                current = VisaRuleVersion.objects.select_for_update().get(id=rule_version.id)
+                if current.version != expected_version:
+                    # Track version conflict metric
+                    track_version_conflict('publish')
+                    raise ValidationError(
+                        f"Version conflict: Rule version was modified by another user. "
+                        f"Expected version {expected_version}, but current version is {current.version}. "
+                        f"Please refresh and try again."
+                    )
+                rule_version = current
+            
             rule_version.is_published = True
             rule_version.published_at = timezone.now()
             if published_by:
                 rule_version.published_by = published_by
+            
+            # Increment version atomically
+            rule_version.version = F('version') + 1
             rule_version.full_clean()
             rule_version.save()
+            
+            # Reload to get the updated version number
+            rule_version.refresh_from_db()
             
             # Clear cache
             cache_key = f"current_rule_version:{rule_version.visa_type.id}"
