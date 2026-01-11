@@ -12,7 +12,7 @@ class PaymentListAPI(AuthAPI):
         status_filter = request.query_params.get('status', None)
 
         if case_id:
-            payments = PaymentService.get_by_case(case_id)
+            payments = PaymentService.get_by_case(str(case_id))
         elif status_filter:
             payments = PaymentService.get_by_status(status_filter)
         else:
@@ -29,7 +29,7 @@ class PaymentDetailAPI(AuthAPI):
     """Get payment by ID."""
 
     def get(self, request, id):
-        payment = PaymentService.get_by_id(id)
+        payment = PaymentService.get_by_id(str(id))
         if not payment:
             return self.api_response(
                 message=f"Payment with ID '{id}' not found.",
