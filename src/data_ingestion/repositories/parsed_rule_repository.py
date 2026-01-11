@@ -1,5 +1,6 @@
 from typing import Optional
 from django.db import transaction
+from main_system.repositories.base import BaseRepositoryMixin
 from data_ingestion.models.parsed_rule import ParsedRule
 from data_ingestion.models.document_version import DocumentVersion
 
@@ -49,13 +50,11 @@ class ParsedRuleRepository:
     @staticmethod
     def update_parsed_rule(parsed_rule, **fields):
         """Update parsed rule fields."""
-        with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(parsed_rule, key):
-                    setattr(parsed_rule, key, value)
-            parsed_rule.full_clean()
-            parsed_rule.save()
-            return parsed_rule
+        return BaseRepositoryMixin.update_model_fields(
+            parsed_rule,
+            **fields,
+            cache_keys=[f'parsed_rule:{parsed_rule.id}']
+        )
 
     @staticmethod
     def update_status(parsed_rule, status: str):
