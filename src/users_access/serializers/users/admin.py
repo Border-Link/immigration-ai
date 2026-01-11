@@ -4,7 +4,31 @@ Admin Serializers for User Management
 Serializers for admin user management operations.
 """
 from rest_framework import serializers
+from main_system.serializers.admin.base import BaseAdminListQuerySerializer
 from users_access.models.user import User
+from users_access.models.notification import Notification
+
+
+class UserAdminListQuerySerializer(BaseAdminListQuerySerializer):
+    """Serializer for validating UserAdminListAPI query parameters."""
+    
+    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, required=False, allow_null=True)
+    is_active = serializers.BooleanField(required=False, allow_null=True)
+    is_verified = serializers.BooleanField(required=False, allow_null=True)
+    email = serializers.CharField(required=False, allow_null=True, max_length=255)
+    
+    def to_internal_value(self, data):
+        """Parse date strings to datetime objects and boolean values."""
+        # Parse boolean strings before calling super
+        if 'is_active' in data and data.get('is_active') is not None:
+            if isinstance(data['is_active'], str):
+                data['is_active'] = data['is_active'].lower() == 'true'
+        if 'is_verified' in data and data.get('is_verified') is not None:
+            if isinstance(data['is_verified'], str):
+                data['is_verified'] = data['is_verified'].lower() == 'true'
+        
+        # Parse datetime strings using base class method
+        return super().to_internal_value(data)
 
 
 class UserAdminListSerializer(serializers.ModelSerializer):
@@ -141,3 +165,74 @@ class UserRoleUpdateSerializer(serializers.Serializer):
     role = serializers.ChoiceField(choices=User.ROLE_CHOICES, required=True)
     is_staff = serializers.BooleanField(required=False)
     is_superuser = serializers.BooleanField(required=False)
+
+
+class UserProfileAdminListQuerySerializer(serializers.Serializer):
+    """Serializer for validating UserProfileAdminListAPI query parameters."""
+    
+    user_id = serializers.UUIDField(required=False, allow_null=True)
+    nationality = serializers.CharField(required=False, allow_null=True, max_length=10)
+    consent_given = serializers.BooleanField(required=False, allow_null=True)
+    date_from = serializers.DateTimeField(required=False, allow_null=True)
+    date_to = serializers.DateTimeField(required=False, allow_null=True)
+    
+    def validate(self, attrs):
+        """Validate date ranges."""
+        date_from = attrs.get('date_from')
+        date_to = attrs.get('date_to')
+        if date_from and date_to and date_to < date_from:
+            raise serializers.ValidationError({
+                'date_to': 'End date cannot be before start date.'
+            })
+        return attrs
+    
+    def to_internal_value(self, data):
+        """Parse date strings to datetime objects and boolean values."""
+        if 'date_from' in data and isinstance(data['date_from'], str):
+            parsed = parse_datetime(data['date_from'])
+            if parsed:
+                data['date_from'] = parsed
+        if 'date_to' in data and isinstance(data['date_to'], str):
+            parsed = parse_datetime(data['date_to'])
+            if parsed:
+                data['date_to'] = parsed
+        if 'consent_given' in data and data['consent_given'] is not None:
+            if isinstance(data['consent_given'], str):
+                data['consent_given'] = data['consent_given'].lower() == 'true'
+        return super().to_internal_value(data)
+
+
+class NotificationAdminListQuerySerializer(serializers.Serializer):
+    """Serializer for validating NotificationAdminListAPI query parameters."""
+    
+    user_id = serializers.UUIDField(required=False, allow_null=True)
+    notification_type = serializers.ChoiceField(choices=Notification.TYPE_CHOICES, required=False, allow_null=True)
+    priority = serializers.ChoiceField(choices=Notification.PRIORITY_CHOICES, required=False, allow_null=True)
+    is_read = serializers.BooleanField(required=False, allow_null=True)
+    date_from = serializers.DateTimeField(required=False, allow_null=True)
+    date_to = serializers.DateTimeField(required=False, allow_null=True)
+    
+    def validate(self, attrs):
+        """Validate date ranges."""
+        date_from = attrs.get('date_from')
+        date_to = attrs.get('date_to')
+        if date_from and date_to and date_to < date_from:
+            raise serializers.ValidationError({
+                'date_to': 'End date cannot be before start date.'
+            })
+        return attrs
+    
+    def to_internal_value(self, data):
+        """Parse date strings to datetime objects and boolean values."""
+        if 'date_from' in data and isinstance(data['date_from'], str):
+            parsed = parse_datetime(data['date_from'])
+            if parsed:
+                data['date_from'] = parsed
+        if 'date_to' in data and isinstance(data['date_to'], str):
+            parsed = parse_datetime(data['date_to'])
+            if parsed:
+                data['date_to'] = parsed
+        if 'is_read' in data and data['is_read'] is not None:
+            if isinstance(data['is_read'], str):
+                data['is_read'] = data['is_read'].lower() == 'true'
+        return super().to_internal_value(data)
