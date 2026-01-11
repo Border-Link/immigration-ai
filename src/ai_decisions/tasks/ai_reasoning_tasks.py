@@ -50,6 +50,18 @@ def run_eligibility_check_task(
             logger.error(f"Case {case_id} not found")
             return {'success': False, 'error': 'Case not found'}
         
+        # Validate payment requirement early (before expensive operations)
+        from payments.helpers.payment_validator import PaymentValidator
+        is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="eligibility check task")
+        if not is_valid:
+            logger.warning(f"Eligibility check task blocked for case {case_id}: {error}")
+            return {
+                'success': False,
+                'error': error,
+                'case_id': case_id,
+                'visa_type_id': visa_type_id
+            }
+        
         # If visa_type_id provided, check only that visa type
         if visa_type_id:
             visa_type = VisaTypeSelector.get_by_id(visa_type_id)
