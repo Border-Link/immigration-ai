@@ -7,6 +7,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     
     case_id = serializers.UUIDField(source='case.id', read_only=True)
     case_user_email = serializers.EmailField(source='case.user.email', read_only=True)
+    version = serializers.IntegerField(read_only=True)
     
     class Meta:
         model = Payment
@@ -19,6 +20,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             'status',
             'payment_provider',
             'provider_transaction_id',
+            'version',
             'created_at',
             'updated_at',
         ]
