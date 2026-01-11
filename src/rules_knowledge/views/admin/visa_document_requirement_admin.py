@@ -65,9 +65,18 @@ class VisaDocumentRequirementAdminListAPI(AuthAPI):
                 date_to=parsed_date_to
             )
             
+            # Paginate results
+            page = request.query_params.get('page', 1)
+            page_size = request.query_params.get('page_size', 20)
+            from rules_knowledge.helpers.pagination import paginate_queryset
+            paginated_items, pagination_metadata = paginate_queryset(document_requirements, page=page, page_size=page_size)
+            
             return self.api_response(
                 message="Visa document requirements retrieved successfully.",
-                data=VisaDocumentRequirementListSerializer(document_requirements, many=True).data,
+                data={
+                    'items': VisaDocumentRequirementListSerializer(paginated_items, many=True).data,
+                    'pagination': pagination_metadata
+                },
                 status_code=status.HTTP_200_OK
             )
         except Exception as e:
