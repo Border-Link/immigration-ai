@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from rules_knowledge.models.visa_requirement import VisaRequirement
 from rules_knowledge.repositories.visa_requirement_repository import VisaRequirementRepository
 from rules_knowledge.selectors.visa_requirement_selector import VisaRequirementSelector
