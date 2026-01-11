@@ -25,12 +25,29 @@ class ProcessingJobService:
         created_by_id: str = None,
         metadata: dict = None
     ):
-        """Create a new processing job."""
+        """
+        Create a new processing job.
+        
+        Requires: Case must have a completed payment before processing jobs can be created.
+        Note: This provides defense in depth - payment is also validated at document upload and processing task levels.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             case_document = CaseDocumentSelector.get_by_id(case_document_id)
             if not case_document:
                 logger.error(f"Case document {case_document_id} not found")
                 return None
+            
+            # Validate payment requirement (defense in depth)
+            is_valid, error = PaymentValidator.validate_case_has_payment(
+                case_document.case, 
+                operation_name="processing job creation"
+            )
+            if not is_valid:
+                logger.warning(f"Processing job creation blocked for case {case_document.case.id}: {error}")
+                raise ValidationError(error)
             
             created_by = None
             if created_by_id:
@@ -132,9 +149,30 @@ class ProcessingJobService:
 
     @staticmethod
     def update_processing_job(job_id: str, **fields) -> Optional[ProcessingJob]:
-        """Update processing job."""
+        """
+        Update processing job.
+        
+        Requires: Case must have a completed payment before processing jobs can be updated.
+        Note: System-initiated updates during processing may bypass this, but user-initiated updates require payment.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             job = ProcessingJobSelector.get_by_id(job_id)
+            if not job:
+                logger.error(f"Processing job {job_id} not found")
+                return None
+            
+            # Validate payment requirement (for user-initiated updates)
+            is_valid, error = PaymentValidator.validate_case_has_payment(
+                job.case_document.case, 
+                operation_name="processing job update"
+            )
+            if not is_valid:
+                logger.warning(f"Processing job update blocked for case {job.case_document.case.id}: {error}")
+                raise ValidationError(error)
+            
             return ProcessingJobRepository.update_processing_job(job, **fields)
         except ProcessingJob.DoesNotExist:
             logger.error(f"Processing job {job_id} not found")
