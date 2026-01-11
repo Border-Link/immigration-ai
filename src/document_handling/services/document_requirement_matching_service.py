@@ -20,6 +20,8 @@ class DocumentRequirementMatchingService:
         """
         Match a document against visa document requirements.
         
+        Requires: Case must have a completed payment before requirement matching can be performed.
+        
         Args:
             case_document_id: UUID of the case document to match
             
@@ -29,6 +31,8 @@ class DocumentRequirementMatchingService:
             - details: Dict with matching details
             - error_message: Error message if matching failed
         """
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             # Get case document
             case_document = CaseDocumentSelector.get_by_id(case_document_id)
@@ -41,6 +45,12 @@ class DocumentRequirementMatchingService:
             if not case:
                 logger.error(f"Case not found for document {case_document_id}")
                 return 'failed', {}, 'Case not found'
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="document requirement matching")
+            if not is_valid:
+                logger.warning(f"Document requirement matching blocked for case {case.id}: {error}")
+                return 'failed', {'error': error, 'payment_required': True}, error
             
             # Get visa type from case
             if not case.visa_type:
