@@ -4,19 +4,22 @@ Admin API Views for User Management
 Admin-only endpoints for managing users.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+    BaseAdminUpdateAPI,
+    BaseAdminActivateAPI,
+)
 from users_access.services.user_service import UserService
 from users_access.serializers.users.admin import (
+    UserAdminListQuerySerializer,
     UserAdminListSerializer,
     UserAdminDetailSerializer,
     UserAdminUpdateSerializer,
 )
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
 
 
 class UserAdminListAPI(AuthAPI):
@@ -36,45 +39,27 @@ class UserAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        role = request.query_params.get('role', None)
-        is_active = request.query_params.get('is_active', None)
-        is_verified = request.query_params.get('is_verified', None)
-        email = request.query_params.get('email', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
+        query_serializer = UserAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        try:
-            # Parse parameters
-            is_active_bool = is_active.lower() == 'true' if is_active is not None else None
-            is_verified_bool = is_verified.lower() == 'true' if is_verified is not None else None
-            parsed_date_from = parse_datetime(date_from) if date_from and isinstance(date_from, str) else date_from
-            parsed_date_to = parse_datetime(date_to) if date_to and isinstance(date_to, str) else date_to
-            
-            # Use service method with filters
-            users = UserService.get_by_filters(
-                role=role,
-                is_active=is_active_bool,
-                is_verified=is_verified_bool,
-                email=email,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to
-            )
-            
-            return self.api_response(
-                message="Users retrieved successfully.",
-                data=UserAdminListSerializer(users, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving users: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving users.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        users = UserService.get_by_filters(
+            role=validated_params.get('role'),
+            is_active=validated_params.get('is_active'),
+            is_verified=validated_params.get('is_verified'),
+            email=validated_params.get('email'),
+            date_from=validated_params.get('date_from'),
+            date_to=validated_params.get('date_to')
+        )
+        
+        return self.api_response(
+            message="Users retrieved successfully.",
+            data=UserAdminListSerializer(users, many=True).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class UserAdminDetailAPI(AuthAPI):
+class UserAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed user information.
     
@@ -83,31 +68,20 @@ class UserAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            user = UserService.get_by_id(id)
-            if not user:
-                return self.api_response(
-                    message=f"User with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="User retrieved successfully.",
-                data=UserAdminDetailSerializer(user).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving user {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving user.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "User"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get user by ID."""
+        return UserService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return UserAdminDetailSerializer
 
 
-class UserAdminUpdateAPI(AuthAPI):
+class UserAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update user information.
     
@@ -116,49 +90,30 @@ class UserAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def patch(self, request, id):
-        serializer = UserAdminUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        try:
-            user = UserService.get_by_id(id)
-            if not user:
-                return self.api_response(
-                    message=f"User with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            updated_user = UserService.update_user(user, **serializer.validated_data)
-            
-            if updated_user:
-                return self.api_response(
-                    message="User updated successfully.",
-                    data=UserAdminDetailSerializer(updated_user).data,
-                    status_code=status.HTTP_200_OK
-                )
-            else:
-                return self.api_response(
-                    message="Error updating user.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        except User.DoesNotExist:
-            return self.api_response(
-                message=f"User with ID '{id}' not found.",
-                data=None,
-                status_code=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-            logger.error(f"Error updating user {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error updating user.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "User"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get user by ID."""
+        return UserService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return UserAdminUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return UserAdminDetailSerializer
+    
+    def update_entity(self, entity, validated_data):
+        """Update the user."""
+        # Filter only the fields that are present in validated_data
+        update_fields = {k: v for k, v in validated_data.items() if v is not None}
+        return UserService.update_user(entity, **update_fields)
 
 
-class UserAdminDeleteAPI(AuthAPI):
+class UserAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete user (soft delete by deactivating).
     
@@ -167,31 +122,44 @@ class UserAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "User"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get user by ID."""
+        return UserService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete (deactivate) the user."""
+        return UserService.delete_user(str(entity.id))
+    
     def delete(self, request, id):
-        try:
-            deleted = UserService.delete_user(id)
-            if not deleted:
-                return self.api_response(
-                    message=f"User with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
+        """Override to customize success message."""
+        entity = self.get_entity_by_id(id)
+        if not entity:
+            return self.api_response(
+                message=f"{self.get_entity_name()} with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        
+        deleted = self.delete_entity(entity)
+        if deleted:
             return self.api_response(
                 message="User deactivated successfully.",
                 data=None,
                 status_code=status.HTTP_200_OK
             )
-        except Exception as e:
-            logger.error(f"Error deactivating user {id}: {e}", exc_info=True)
+        else:
             return self.api_response(
-                message="Error deactivating user.",
-                data={'error': str(e)},
+                message=f"Failed to delete {self.get_entity_name()}.",
+                data=None,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
-class UserAdminActivateAPI(AuthAPI):
+class UserAdminActivateAPI(BaseAdminActivateAPI):
     """
     Admin: Activate user.
     
@@ -200,31 +168,70 @@ class UserAdminActivateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "User"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get user by ID."""
+        return UserService.get_by_id(entity_id)
+    
+    def activate_entity(self, entity, is_active):
+        """Activate the user."""
+        if is_active:
+            updated = UserService.activate_user_by_id(str(entity.id))
+        else:
+            updated = UserService.deactivate_user_by_id(str(entity.id))
+        return updated is not None
+    
     def post(self, request, id):
-        try:
-            updated_user = UserService.activate_user_by_id(id)
-            if not updated_user:
-                return self.api_response(
-                    message=f"User with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
+        """Override to return serialized data in response."""
+        from main_system.serializers.admin.base import ActivateSerializer
+        
+        serializer = ActivateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        is_active = serializer.validated_data['is_active']
+        
+        entity = self.get_entity_by_id(str(id))
+        if not entity:
             return self.api_response(
-                message="User activated successfully.",
-                data=UserAdminDetailSerializer(updated_user).data,
-                status_code=status.HTTP_200_OK
+                message=f"{self.get_entity_name()} not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
+        
+        try:
+            if is_active:
+                updated = UserService.activate_user_by_id(str(entity.id))
+            else:
+                updated = UserService.deactivate_user_by_id(str(entity.id))
+            
+            if updated:
+                action = "activated" if is_active else "deactivated"
+                return self.api_response(
+                    message=f"{self.get_entity_name()} {action} successfully.",
+                    data=UserAdminDetailSerializer(updated).data,
+                    status_code=status.HTTP_200_OK
+                )
+            else:
+                return self.api_response(
+                    message=f"Failed to update {self.get_entity_name()}.",
+                    data=None,
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
         except Exception as e:
-            logger.error(f"Error activating user {id}: {e}", exc_info=True)
+            import logging
+            logger = logging.getLogger('django')
+            logger.error(f"Error updating {self.get_entity_name()} {id}: {e}", exc_info=True)
             return self.api_response(
-                message="Error activating user.",
-                data={'error': str(e)},
+                message=f"Error updating {self.get_entity_name()}: {str(e)}",
+                data=None,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
-class UserAdminDeactivateAPI(AuthAPI):
+class UserAdminDeactivateAPI(BaseAdminActivateAPI):
     """
     Admin: Deactivate user.
     
@@ -233,25 +240,49 @@ class UserAdminDeactivateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "User"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get user by ID."""
+        return UserService.get_by_id(entity_id)
+    
+    def activate_entity(self, entity, is_active):
+        """Deactivate the user (is_active will always be False)."""
+        updated = UserService.deactivate_user_by_id(str(entity.id))
+        return updated is not None
+    
     def post(self, request, id):
-        try:
-            updated_user = UserService.deactivate_user_by_id(id)
-            if not updated_user:
-                return self.api_response(
-                    message=f"User with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
+        """Override to always deactivate and return serialized data."""
+        entity = self.get_entity_by_id(str(id))
+        if not entity:
             return self.api_response(
-                message="User deactivated successfully.",
-                data=UserAdminDetailSerializer(updated_user).data,
-                status_code=status.HTTP_200_OK
+                message=f"{self.get_entity_name()} not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
+        
+        try:
+            updated = UserService.deactivate_user_by_id(str(entity.id))
+            if updated:
+                return self.api_response(
+                    message="User deactivated successfully.",
+                    data=UserAdminDetailSerializer(updated).data,
+                    status_code=status.HTTP_200_OK
+                )
+            else:
+                return self.api_response(
+                    message=f"Failed to deactivate {self.get_entity_name()}.",
+                    data=None,
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
         except Exception as e:
-            logger.error(f"Error deactivating user {id}: {e}", exc_info=True)
+            import logging
+            logger = logging.getLogger('django')
+            logger.error(f"Error deactivating {self.get_entity_name()} {id}: {e}", exc_info=True)
             return self.api_response(
-                message="Error deactivating user.",
-                data={'error': str(e)},
+                message=f"Error deactivating {self.get_entity_name()}: {str(e)}",
+                data=None,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
