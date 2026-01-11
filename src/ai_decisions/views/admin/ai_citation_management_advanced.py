@@ -32,39 +32,23 @@ class AICitationAdminUpdateAPI(AuthAPI):
         serializer = AICitationAdminUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        try:
-            citation = AICitationService.get_by_id(id)
-            if not citation:
-                return self.api_response(
-                    message=f"AI citation with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            updated_citation = AICitationService.update_citation(
-                id,
-                **serializer.validated_data
-            )
-            
-            if updated_citation:
-                return self.api_response(
-                    message="AI citation updated successfully.",
-                    data=AICitationSerializer(updated_citation).data,
-                    status_code=status.HTTP_200_OK
-                )
-            else:
-                return self.api_response(
-                    message="Error updating AI citation.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        except Exception as e:
-            logger.error(f"Error updating AI citation {id}: {e}", exc_info=True)
+        updated_citation = AICitationService.update_citation(
+            id,
+            **serializer.validated_data
+        )
+        
+        if not updated_citation:
             return self.api_response(
-                message="Error updating AI citation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+                message=f"AI citation with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
+        
+        return self.api_response(
+            message="AI citation updated successfully.",
+            data=AICitationSerializer(updated_citation).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
 class BulkAICitationOperationAPI(AuthAPI):
@@ -88,33 +72,19 @@ class BulkAICitationOperationAPI(AuthAPI):
             'failed': []
         }
         
-        try:
-            for citation_id in citation_ids:
-                try:
-                    if operation == 'delete':
-                        deleted = AICitationService.delete_citation(str(citation_id))
-                        if deleted:
-                            results['success'].append(str(citation_id))
-                        else:
-                            results['failed'].append({
-                                'citation_id': str(citation_id),
-                                'error': 'Failed to delete or citation not found'
-                            })
-                except Exception as e:
+        for citation_id in citation_ids:
+            if operation == 'delete':
+                deleted = AICitationService.delete_citation(str(citation_id))
+                if deleted:
+                    results['success'].append(str(citation_id))
+                else:
                     results['failed'].append({
                         'citation_id': str(citation_id),
-                        'error': str(e)
+                        'error': 'Failed to delete or citation not found'
                     })
-            
-            return self.api_response(
-                message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
-                data=results,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error in bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.api_response(
+            message=f"Bulk operation '{operation}' completed. {len(results['success'])} succeeded, {len(results['failed'])} failed.",
+            data=results,
+            status_code=status.HTTP_200_OK
+        )
