@@ -6,16 +6,16 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 import logging
 from rest_framework import status
-from django.core.exceptions import ValidationError
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
 from immigration_cases.services.case_service import CaseService
 from immigration_cases.serializers.case.read import CaseSerializer, CaseListSerializer
 from immigration_cases.serializers.case.admin import (
+    CaseAdminListQuerySerializer,
     CaseAdminUpdateSerializer,
     BulkCaseOperationSerializer,
 )
-from django.utils.dateparse import parse_datetime
+from immigration_cases.helpers.pagination import paginate_queryset
 
 logger = logging.getLogger('django')
 
@@ -38,47 +38,34 @@ class CaseAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        user_id = request.query_params.get('user_id', None)
-        jurisdiction = request.query_params.get('jurisdiction', None)
-        status_param = request.query_params.get('status', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
-        updated_date_from = request.query_params.get('updated_date_from', None)
-        updated_date_to = request.query_params.get('updated_date_to', None)
+        # Validate query parameters
+        query_serializer = CaseAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        # Pagination parameters
-        page = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 20)
+        cases = CaseService.get_by_filters(
+            user_id=str(validated_params.get('user_id')) if validated_params.get('user_id') else None,
+            jurisdiction=validated_params.get('jurisdiction'),
+            status=validated_params.get('status'),
+            date_from=validated_params.get('date_from'),
+            date_to=validated_params.get('date_to'),
+            updated_date_from=validated_params.get('updated_date_from'),
+            updated_date_to=validated_params.get('updated_date_to'),
+        )
         
-        try:
-            cases = CaseService.get_by_filters(
-                user_id=user_id,
-                jurisdiction=jurisdiction,
-                status=status_param,
-                date_from=parse_datetime(date_from) if date_from else None,
-                date_to=parse_datetime(date_to) if date_to else None,
-                updated_date_from=parse_datetime(updated_date_from) if updated_date_from else None,
-                updated_date_to=parse_datetime(updated_date_to) if updated_date_to else None,
-            )
-            
-            # Paginate results
-            paginated_cases, pagination_metadata = paginate_queryset(cases, page=page, page_size=page_size)
-            
-            return self.api_response(
-                message="Cases retrieved successfully.",
-                data={
-                    'items': CaseListSerializer(paginated_cases, many=True).data,
-                    'pagination': pagination_metadata
-                },
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving cases: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving cases.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # Paginate results
+        page = validated_params.get('page', 1)
+        page_size = validated_params.get('page_size', 20)
+        paginated_cases, pagination_metadata = paginate_queryset(cases, page=page, page_size=page_size)
+        
+        return self.api_response(
+            message="Cases retrieved successfully.",
+            data={
+                'items': CaseListSerializer(paginated_cases, many=True).data,
+                'pagination': pagination_metadata
+            },
+            status_code=status.HTTP_200_OK
+        )
 
 
 class CaseAdminDetailAPI(AuthAPI):
@@ -91,27 +78,19 @@ class CaseAdminDetailAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request, id):
-        try:
-            case = CaseService.get_by_id(id)
-            if not case:
-                return self.api_response(
-                    message=f"Case with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
+        case = CaseService.get_by_id(id)
+        if not case:
             return self.api_response(
-                message="Case retrieved successfully.",
-                data=CaseSerializer(case).data,
-                status_code=status.HTTP_200_OK
+                message=f"Case with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
-            logger.error(f"Error retrieving case {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving case.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.api_response(
+            message="Case retrieved successfully.",
+            data=CaseSerializer(case).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
 class CaseAdminUpdateAPI(AuthAPI):
@@ -127,52 +106,35 @@ class CaseAdminUpdateAPI(AuthAPI):
         serializer = CaseAdminUpdateSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         
-        try:
-            case = CaseService.get_by_id(id)
-            if not case:
-                return self.api_response(
-                    message=f"Case with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
+        # Extract version and reason for optimistic locking and history tracking
+        version = serializer.validated_data.pop('version', None)
+        reason = serializer.validated_data.pop('reason', None)
+        
+        updated_case, error_message, http_status = CaseService.update_case(
+            id,
+            updated_by_id=str(request.user.id) if request.user else None,
+            reason=reason,
+            version=version,
+            **serializer.validated_data
+        )
+        
+        if not updated_case:
+            status_code = status.HTTP_404_NOT_FOUND if http_status == 404 else (
+                status.HTTP_409_CONFLICT if http_status == 409 else (
+                    status.HTTP_400_BAD_REQUEST if http_status == 400 else status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-            
-            # Extract version and reason for optimistic locking and history tracking
-            version = serializer.validated_data.pop('version', None)
-            reason = serializer.validated_data.pop('reason', None)
-            
-            updated_case = CaseService.update_case(
-                id,
-                updated_by_id=str(request.user.id) if request.user else None,
-                reason=reason,
-                version=version,
-                **serializer.validated_data
             )
-            
-            if not updated_case:
-                return self.api_response(
-                    message=f"Case with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
             return self.api_response(
-                message="Case updated successfully.",
-                data=CaseSerializer(updated_case).data,
-                status_code=status.HTTP_200_OK
-            )
-        except ValidationError as e:
-            return self.api_response(
-                message=str(e),
+                message=error_message or f"Case with ID '{id}' not found.",
                 data=None,
-                status_code=status.HTTP_409_CONFLICT  # Conflict for optimistic locking or invalid transition
+                status_code=status_code
             )
-        except Exception as e:
-            logger.error(f"Error updating case {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error updating case.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.api_response(
+            message="Case updated successfully.",
+            data=CaseSerializer(updated_case).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
 class CaseAdminDeleteAPI(AuthAPI):
@@ -185,35 +147,19 @@ class CaseAdminDeleteAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def delete(self, request, id):
-        try:
-            case = CaseService.get_by_id(id)
-            if not case:
-                return self.api_response(
-                    message=f"Case with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            deleted = CaseService.delete_case(id)
-            if not deleted:
-                return self.api_response(
-                    message="Error deleting case.",
-                    data=None,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
+        deleted = CaseService.delete_case(id)
+        if not deleted:
             return self.api_response(
-                message="Case deleted successfully.",
+                message=f"Case with ID '{id}' not found.",
                 data=None,
-                status_code=status.HTTP_200_OK
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
-            logger.error(f"Error deleting case {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting case.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.api_response(
+            message="Case deleted successfully.",
+            data=None,
+            status_code=status.HTTP_200_OK
+        )
 
 
 class BulkCaseOperationAPI(AuthAPI):
@@ -240,43 +186,52 @@ class BulkCaseOperationAPI(AuthAPI):
         }
         
         for case_id in case_ids:
-            try:
-                case = CaseService.get_by_id(str(case_id))
-                if not case:
-                    results['failed'].append({
-                        'case_id': str(case_id),
-                        'error': 'Case not found'
-                    })
-                    continue
-                
-                if operation == 'update_status':
-                    if not status_value:
-                        raise ValueError("status is required for 'update_status' operation.")
-                    updated_case = CaseService.update_case(str(case_id), status=status_value)
-                    if updated_case:
-                        results['success'].append(CaseSerializer(updated_case).data)
-                    else:
-                        raise Exception("Failed to update case.")
-                elif operation == 'delete':
-                    deleted = CaseService.delete_case(str(case_id))
-                    if deleted:
-                        results['success'].append(str(case_id))
-                    else:
-                        raise Exception("Failed to delete case.")
-                    continue # Skip serialization for deleted items
-                elif operation == 'archive':
-                    # Archive is essentially updating status to 'closed'
-                    updated_case = CaseService.update_case(str(case_id), status='closed')
-                    if updated_case:
-                        results['success'].append(CaseSerializer(updated_case).data)
-                    else:
-                        raise Exception("Failed to archive case.")
-                else:
-                    raise ValueError(f"Invalid operation: {operation}")
-            except Exception as e:
+            case = CaseService.get_by_id(str(case_id))
+            if not case:
                 results['failed'].append({
                     'case_id': str(case_id),
-                    'error': str(e)
+                    'error': 'Case not found'
+                })
+                continue
+            
+            if operation == 'update_status':
+                if not status_value:
+                    results['failed'].append({
+                        'case_id': str(case_id),
+                        'error': "status is required for 'update_status' operation."
+                    })
+                    continue
+                updated_case = CaseService.update_case(str(case_id), status=status_value)
+                if updated_case:
+                    results['success'].append(CaseSerializer(updated_case).data)
+                else:
+                    results['failed'].append({
+                        'case_id': str(case_id),
+                        'error': 'Failed to update case.'
+                    })
+            elif operation == 'delete':
+                deleted = CaseService.delete_case(str(case_id))
+                if deleted:
+                    results['success'].append(str(case_id))
+                else:
+                    results['failed'].append({
+                        'case_id': str(case_id),
+                        'error': 'Failed to delete case.'
+                    })
+            elif operation == 'archive':
+                # Archive is essentially updating status to 'closed'
+                updated_case = CaseService.update_case(str(case_id), status='closed')
+                if updated_case:
+                    results['success'].append(CaseSerializer(updated_case).data)
+                else:
+                    results['failed'].append({
+                        'case_id': str(case_id),
+                        'error': 'Failed to archive case.'
+                    })
+            else:
+                results['failed'].append({
+                    'case_id': str(case_id),
+                    'error': f"Invalid operation: {operation}"
                 })
         
         return self.api_response(
