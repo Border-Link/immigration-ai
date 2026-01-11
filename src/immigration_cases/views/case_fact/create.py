@@ -21,8 +21,8 @@ class CaseFactCreateAPI(AuthAPI):
 
         if not fact:
             return self.api_response(
-                message="Error creating case fact.",
-                data=None,
+                message="Failed to create case fact. Please check your input and try again.",
+                data={'errors': {'general': 'Case fact creation failed. Please verify case_id, fact_key, and fact_value are valid.'}},
                 status_code=status.HTTP_400_BAD_REQUEST
             )
 
