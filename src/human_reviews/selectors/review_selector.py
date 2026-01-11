@@ -79,3 +79,41 @@ class ReviewSelector:
             'reviewer__profile'
         ).filter(status='pending', reviewer__isnull=True).order_by('-created_at')
 
+    @staticmethod
+    def get_by_filters(case_id=None, reviewer_id=None, status=None, date_from=None, date_to=None, assigned_date_from=None, assigned_date_to=None, completed_date_from=None, completed_date_to=None):
+        """Get reviews with advanced filtering for admin."""
+        queryset = Review.objects.select_related(
+            'case',
+            'case__user',
+            'reviewer',
+            'reviewer__profile'
+        ).all()
+        
+        if case_id:
+            queryset = queryset.filter(case_id=case_id)
+        
+        if reviewer_id:
+            queryset = queryset.filter(reviewer_id=reviewer_id)
+        
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        
+        if date_to:
+            queryset = queryset.filter(created_at__lte=date_to)
+        
+        if assigned_date_from:
+            queryset = queryset.filter(assigned_at__gte=assigned_date_from)
+        
+        if assigned_date_to:
+            queryset = queryset.filter(assigned_at__lte=assigned_date_to)
+        
+        if completed_date_from:
+            queryset = queryset.filter(completed_at__gte=completed_date_from)
+        
+        if completed_date_to:
+            queryset = queryset.filter(completed_at__lte=completed_date_to)
+        
+        return queryset.order_by('-created_at')

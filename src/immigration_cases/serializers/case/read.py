@@ -15,6 +15,9 @@ class CaseSerializer(serializers.ModelSerializer):
             'user_email',
             'jurisdiction',
             'status',
+            'version',
+            'is_deleted',
+            'deleted_at',
             'created_at',
             'updated_at',
         ]

@@ -1,3 +1,4 @@
+from helpers.cache_utils import cache_result
 from users_access.models.country import Country
 from users_access.repositories.country_repository import CountryRepository
 from users_access.selectors.country_selector import CountrySelector
@@ -22,6 +23,7 @@ class CountryService:
             return None
 
     @staticmethod
+    @cache_result(timeout=3600, keys=[])  # 1 hour - countries rarely change
     def get_all():
         """Get all active countries."""
         try:
@@ -31,6 +33,7 @@ class CountryService:
             return CountrySelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['code'])  # 1 hour - cache country by code
     def get_by_code(code: str):
         """Get country by code."""
         try:
@@ -40,6 +43,7 @@ class CountryService:
             return None
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['country_id'])  # 1 hour - cache country by ID
     def get_by_id(country_id):
         """Get country by ID."""
         try:
@@ -49,6 +53,7 @@ class CountryService:
             return None
 
     @staticmethod
+    @cache_result(timeout=3600, keys=[])  # 1 hour - jurisdictions rarely change
     def get_jurisdictions():
         """Get all immigration jurisdictions."""
         try:
@@ -58,6 +63,7 @@ class CountryService:
             return CountrySelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=[])  # 1 hour - countries with states rarely change
     def get_with_states():
         """Get countries with states/provinces."""
         try:
@@ -67,6 +73,7 @@ class CountryService:
             return CountrySelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=1800, keys=['name'])  # 30 minutes - cache search results
     def search_by_name(name: str):
         """Search countries by name."""
         try:

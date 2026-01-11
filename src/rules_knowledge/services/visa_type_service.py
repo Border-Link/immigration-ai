@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from rules_knowledge.models.visa_type import VisaType
 from rules_knowledge.repositories.visa_type_repository import VisaTypeRepository
 from rules_knowledge.selectors.visa_type_selector import VisaTypeSelector
@@ -28,6 +29,7 @@ class VisaTypeService:
             return None
 
     @staticmethod
+    @cache_result(timeout=1800, keys=[])  # 30 minutes - rarely changes
     def get_all():
         """Get all visa types."""
         try:
@@ -37,6 +39,7 @@ class VisaTypeService:
             return VisaType.objects.none()
 
     @staticmethod
+    @cache_result(timeout=1800, keys=[])  # 30 minutes - rarely changes
     def get_active():
         """Get all active visa types."""
         try:
@@ -46,6 +49,7 @@ class VisaTypeService:
             return VisaType.objects.none()
 
     @staticmethod
+    @cache_result(timeout=1800, keys=['jurisdiction'])  # 30 minutes - cache by jurisdiction
     def get_by_jurisdiction(jurisdiction: str):
         """Get visa types by jurisdiction."""
         try:
@@ -55,6 +59,7 @@ class VisaTypeService:
             return VisaType.objects.none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['type_id'])  # 1 hour - cache by ID
     def get_by_id(type_id: str) -> Optional[VisaType]:
         """Get visa type by ID."""
         try:

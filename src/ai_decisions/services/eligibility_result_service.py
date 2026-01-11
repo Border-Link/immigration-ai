@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from ai_decisions.models.eligibility_result import EligibilityResult
 from ai_decisions.repositories.eligibility_result_repository import EligibilityResultRepository
 from ai_decisions.selectors.eligibility_result_selector import EligibilityResultSelector
@@ -37,6 +38,7 @@ class EligibilityResultService:
             return None
 
     @staticmethod
+    @cache_result(timeout=300, keys=[])  # 5 minutes - eligibility results change frequently
     def get_all():
         """Get all eligibility results."""
         try:
@@ -46,6 +48,7 @@ class EligibilityResultService:
             return EligibilityResultSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['case_id'])  # 5 minutes - cache results by case
     def get_by_case(case_id: str):
         """Get eligibility results by case."""
         try:
@@ -56,6 +59,7 @@ class EligibilityResultService:
             return EligibilityResultSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=600, keys=['result_id'])  # 10 minutes - cache result by ID
     def get_by_id(result_id: str) -> Optional[EligibilityResult]:
         """Get eligibility result by ID."""
         try:

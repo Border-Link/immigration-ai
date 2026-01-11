@@ -1,4 +1,5 @@
 from typing import Optional
+from helpers.cache_utils import cache_result
 from users_access.models.state_province import StateProvince
 from users_access.repositories.state_province_repository import StateProvinceRepository
 from users_access.selectors.state_province_selector import StateProvinceSelector
@@ -32,6 +33,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['country_code'])  # 1 hour - states rarely change
     def get_by_country(country_code: str):
         """Get all states/provinces for a country by code."""
         try:
@@ -41,6 +43,7 @@ class StateProvinceService:
             return StateProvinceSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['country_id'])  # 1 hour - cache by country ID
     def get_by_country_id(country_id):
         """Get all states/provinces for a country by ID."""
         try:
@@ -51,6 +54,7 @@ class StateProvinceService:
             return StateProvinceSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['country_code', 'state_code'])  # 1 hour - cache by codes
     def get_by_code(country_code: str, state_code: str):
         """Get specific state/province by codes."""
         try:
@@ -60,6 +64,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['state_id'])  # 1 hour - cache state by ID
     def get_by_id(state_id):
         """Get state/province by ID."""
         try:
@@ -69,6 +74,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['country_id'])  # 1 hour - nomination programs rarely change
     def get_nomination_programs(country_id: Optional[str] = None):
         """Get states/provinces with nomination programs."""
         try:

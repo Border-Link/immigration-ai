@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 from django.utils import timezone
+from helpers.cache_utils import cache_result
 from rules_knowledge.models.visa_rule_version import VisaRuleVersion
 from rules_knowledge.repositories.visa_rule_version_repository import VisaRuleVersionRepository
 from rules_knowledge.selectors.visa_rule_version_selector import VisaRuleVersionSelector
@@ -31,6 +32,7 @@ class VisaRuleVersionService:
             return None
 
     @staticmethod
+    @cache_result(timeout=600, keys=[])  # 10 minutes - can change when rules are published
     def get_all():
         """Get all rule versions."""
         try:
@@ -40,6 +42,7 @@ class VisaRuleVersionService:
             return VisaRuleVersion.objects.none()
 
     @staticmethod
+    @cache_result(timeout=600, keys=['visa_type_id'])  # 10 minutes - cache by visa type
     def get_by_visa_type(visa_type_id: str):
         """Get rule versions by visa type."""
         try:
@@ -50,6 +53,7 @@ class VisaRuleVersionService:
             return VisaRuleVersion.objects.none()
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['visa_type_id'])  # 1 hour - current version changes infrequently
     def get_current_by_visa_type(visa_type_id: str) -> Optional[VisaRuleVersion]:
         """Get current rule version for a visa type."""
         try:
@@ -60,6 +64,7 @@ class VisaRuleVersionService:
             return None
 
     @staticmethod
+    @cache_result(timeout=3600, keys=['version_id'])  # 1 hour - cache by version ID
     def get_by_id(version_id: str) -> Optional[VisaRuleVersion]:
         """Get rule version by ID."""
         try:

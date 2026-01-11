@@ -3,6 +3,7 @@ Service for ProcessingJob business logic.
 """
 import logging
 from typing import Optional
+from helpers.cache_utils import cache_result
 from document_processing.models.processing_job import ProcessingJob
 from document_processing.repositories.processing_job_repository import ProcessingJobRepository
 from document_processing.selectors.processing_job_selector import ProcessingJobSelector
@@ -50,6 +51,7 @@ class ProcessingJobService:
             return None
 
     @staticmethod
+    @cache_result(timeout=180, keys=[])  # 3 minutes - jobs change frequently as they process
     def get_all():
         """Get all processing jobs."""
         try:
@@ -59,6 +61,7 @@ class ProcessingJobService:
             return ProcessingJobSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['job_id'])  # 5 minutes - cache job by ID
     def get_by_id(job_id: str) -> Optional[ProcessingJob]:
         """Get processing job by ID."""
         try:
@@ -71,6 +74,7 @@ class ProcessingJobService:
             return None
 
     @staticmethod
+    @cache_result(timeout=180, keys=['case_document_id'])  # 3 minutes - jobs for document change as processing occurs
     def get_by_case_document(case_document_id: str):
         """Get processing jobs by case document."""
         try:
@@ -80,6 +84,7 @@ class ProcessingJobService:
             return ProcessingJobSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=180, keys=['status'])  # 3 minutes - jobs by status change frequently
     def get_by_status(status: str):
         """Get processing jobs by status."""
         try:
@@ -89,6 +94,7 @@ class ProcessingJobService:
             return ProcessingJobSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['processing_type'])  # 5 minutes - cache jobs by type
     def get_by_processing_type(processing_type: str):
         """Get processing jobs by processing type."""
         try:
