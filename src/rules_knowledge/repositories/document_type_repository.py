@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.core.cache import cache
 from rules_knowledge.models.document_type import DocumentType
 
 
@@ -17,6 +18,17 @@ class DocumentTypeRepository:
             )
             document_type.full_clean()
             document_type.save()
+            
+            # Invalidate cache (try pattern deletion if available, otherwise delete specific keys)
+            try:
+                if hasattr(cache, 'delete_pattern'):
+                    cache.delete_pattern("document_type:*")
+            except AttributeError:
+                pass
+            # Delete specific known cache keys
+            cache.delete(f"document_type:{document_type.id}")
+            cache.delete(f"document_type:code:{code}")
+            
             return document_type
 
     @staticmethod
@@ -28,11 +40,26 @@ class DocumentTypeRepository:
                     setattr(document_type, key, value)
             document_type.full_clean()
             document_type.save()
+            
+            # Invalidate cache
+            cache.delete_pattern("document_type:*")
+            cache.delete(f"document_type:{document_type.id}")
+            cache.delete(f"document_type:code:{document_type.code}")
+            
             return document_type
 
     @staticmethod
     def delete_document_type(document_type):
         """Delete a document type."""
         with transaction.atomic():
+            # Store values before deletion for cache invalidation
+            document_type_id = document_type.id
+            code = document_type.code
+            
             document_type.delete()
+            
+            # Invalidate cache
+            cache.delete_pattern("document_type:*")
+            cache.delete(f"document_type:{document_type_id}")
+            cache.delete(f"document_type:code:{code}")
 
