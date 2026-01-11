@@ -4,6 +4,19 @@ Admin Serializers for DecisionOverride Management
 Serializers for admin decision override management operations.
 """
 from rest_framework import serializers
+from main_system.serializers.admin.base import BaseAdminListQuerySerializer
+
+
+class DecisionOverrideAdminListQuerySerializer(BaseAdminListQuerySerializer):
+    """Serializer for validating query parameters in admin list view."""
+    case_id = serializers.UUIDField(required=False, allow_null=True)
+    reviewer_id = serializers.UUIDField(required=False, allow_null=True)
+    original_result_id = serializers.UUIDField(required=False, allow_null=True)
+    overridden_outcome = serializers.ChoiceField(
+        choices=['eligible', 'not_eligible', 'requires_review'],
+        required=False,
+        allow_null=True
+    )
 
 
 class DecisionOverrideAdminUpdateSerializer(serializers.Serializer):
