@@ -5,7 +5,6 @@ from .metrics import (
     update_audit_log_entries_by_module,
     track_audit_log_retention
 )
-from .pagination import paginate_queryset
 
 __all__ = [
     'track_audit_log_creation',
@@ -13,5 +12,4 @@ __all__ = [
     'update_audit_log_entries_by_level',
     'update_audit_log_entries_by_module',
     'track_audit_log_retention',
-    'paginate_queryset',
 ]
