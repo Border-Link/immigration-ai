@@ -22,16 +22,26 @@ class DocumentReprocessingService:
         """
         Reprocess OCR for a document.
         
+        Requires: Case must have a completed payment before document reprocessing.
+        
         Args:
             case_document_id: UUID of the case document
             
         Returns:
             True if reprocessing was initiated, False otherwise
         """
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             case_document = CaseDocumentSelector.get_by_id(case_document_id)
             if not case_document:
                 logger.error(f"Case document {case_document_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case_document.case, operation_name="document OCR reprocessing")
+            if not is_valid:
+                logger.warning(f"Document OCR reprocessing blocked for case {case_document.case.id}: {error}")
                 return False
             
             # Run OCR
@@ -74,16 +84,26 @@ class DocumentReprocessingService:
         """
         Reprocess classification for a document.
         
+        Requires: Case must have a completed payment before document reprocessing.
+        
         Args:
             case_document_id: UUID of the case document
             
         Returns:
             True if reprocessing was initiated, False otherwise
         """
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             case_document = CaseDocumentSelector.get_by_id(case_document_id)
             if not case_document:
                 logger.error(f"Case document {case_document_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case_document.case, operation_name="document classification reprocessing")
+            if not is_valid:
+                logger.warning(f"Document classification reprocessing blocked for case {case_document.case.id}: {error}")
                 return False
             
             if not case_document.ocr_text or len(case_document.ocr_text.strip()) < 10:
@@ -144,16 +164,26 @@ class DocumentReprocessingService:
         """
         Reprocess content validation for a document.
         
+        Requires: Case must have a completed payment before document reprocessing.
+        
         Args:
             case_document_id: UUID of the case document
             
         Returns:
             True if reprocessing was initiated, False otherwise
         """
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             case_document = CaseDocumentSelector.get_by_id(case_document_id)
             if not case_document:
                 logger.error(f"Case document {case_document_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case_document.case, operation_name="document validation reprocessing")
+            if not is_valid:
+                logger.warning(f"Document validation reprocessing blocked for case {case_document.case.id}: {error}")
                 return False
             
             if not case_document.ocr_text:
@@ -200,16 +230,26 @@ class DocumentReprocessingService:
         """
         Trigger full reprocessing of a document (async).
         
+        Requires: Case must have a completed payment before document reprocessing.
+        
         Args:
             case_document_id: UUID of the case document
             
         Returns:
             True if reprocessing was initiated, False otherwise
         """
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             case_document = CaseDocumentSelector.get_by_id(case_document_id)
             if not case_document:
                 logger.error(f"Case document {case_document_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case_document.case, operation_name="document full reprocessing")
+            if not is_valid:
+                logger.warning(f"Document full reprocessing blocked for case {case_document.case.id}: {error}")
                 return False
             
             # Trigger async full reprocessing
