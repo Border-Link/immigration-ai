@@ -4,20 +4,22 @@ Admin API Views for ProcessingJob Management
 Admin-only endpoints for managing processing jobs.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.views.admin.base import (
+    BaseAdminDetailAPI,
+    BaseAdminDeleteAPI,
+    BaseAdminUpdateAPI,
+)
 from document_processing.services.processing_job_service import ProcessingJobService
 from document_processing.serializers.processing_job.admin import (
+    ProcessingJobAdminListQuerySerializer,
     ProcessingJobAdminListSerializer,
     ProcessingJobAdminDetailSerializer,
     ProcessingJobAdminUpdateSerializer,
     BulkProcessingJobOperationSerializer,
 )
-from django.utils.dateparse import parse_datetime
-
-logger = logging.getLogger('django')
 
 
 class ProcessingJobAdminListAPI(AuthAPI):
@@ -40,51 +42,29 @@ class ProcessingJobAdminListAPI(AuthAPI):
     permission_classes = [IsAdminOrStaff]
     
     def get(self, request):
-        case_document_id = request.query_params.get('case_document_id', None)
-        status_filter = request.query_params.get('status', None)
-        processing_type = request.query_params.get('processing_type', None)
-        error_type = request.query_params.get('error_type', None)
-        created_by_id = request.query_params.get('created_by_id', None)
-        date_from = request.query_params.get('date_from', None)
-        date_to = request.query_params.get('date_to', None)
-        min_priority = request.query_params.get('min_priority', None)
-        max_retries_exceeded = request.query_params.get('max_retries_exceeded', None)
+        query_serializer = ProcessingJobAdminListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
         
-        try:
-            # Parse parameters
-            parsed_date_from = parse_datetime(date_from) if date_from else None
-            parsed_date_to = parse_datetime(date_to) if date_to else None
-            min_priority_int = int(min_priority) if min_priority else None
-            max_retries_exceeded_bool = max_retries_exceeded.lower() == 'true' if max_retries_exceeded is not None else None
-            
-            # Use service method with filters
-            jobs = ProcessingJobService.get_by_filters(
-                case_document_id=case_document_id,
-                status=status_filter,
-                processing_type=processing_type,
-                error_type=error_type,
-                created_by_id=created_by_id,
-                date_from=parsed_date_from,
-                date_to=parsed_date_to,
-                min_priority=min_priority_int,
-                max_retries_exceeded=max_retries_exceeded_bool
-            )
-            
-            return self.api_response(
-                message="Processing jobs retrieved successfully.",
-                data=ProcessingJobAdminListSerializer(jobs, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving processing jobs: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving processing jobs.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        jobs = ProcessingJobService.get_by_filters(
+            case_document_id=str(query_serializer.validated_data.get('case_document_id')) if query_serializer.validated_data.get('case_document_id') else None,
+            status=query_serializer.validated_data.get('status'),
+            processing_type=query_serializer.validated_data.get('processing_type'),
+            error_type=query_serializer.validated_data.get('error_type'),
+            created_by_id=str(query_serializer.validated_data.get('created_by_id')) if query_serializer.validated_data.get('created_by_id') else None,
+            date_from=query_serializer.validated_data.get('date_from'),
+            date_to=query_serializer.validated_data.get('date_to'),
+            min_priority=query_serializer.validated_data.get('min_priority'),
+            max_retries_exceeded=query_serializer.validated_data.get('max_retries_exceeded')
+        )
+        
+        return self.api_response(
+            message="Processing jobs retrieved successfully.",
+            data=ProcessingJobAdminListSerializer(jobs, many=True).data,
+            status_code=status.HTTP_200_OK
+        )
 
 
-class ProcessingJobAdminDetailAPI(AuthAPI):
+class ProcessingJobAdminDetailAPI(BaseAdminDetailAPI):
     """
     Admin: Get detailed processing job information.
     
@@ -93,31 +73,20 @@ class ProcessingJobAdminDetailAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def get(self, request, id):
-        try:
-            job = ProcessingJobService.get_by_id(id)
-            if not job:
-                return self.api_response(
-                    message=f"Processing job with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Processing job retrieved successfully.",
-                data=ProcessingJobAdminDetailSerializer(job).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving processing job {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving processing job.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Processing job"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get processing job by ID."""
+        return ProcessingJobService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the detail serializer."""
+        return ProcessingJobAdminDetailSerializer
 
 
-class ProcessingJobAdminUpdateAPI(AuthAPI):
+class ProcessingJobAdminUpdateAPI(BaseAdminUpdateAPI):
     """
     Admin: Update processing job.
     
@@ -126,53 +95,34 @@ class ProcessingJobAdminUpdateAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Processing job"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get processing job by ID."""
+        return ProcessingJobService.get_by_id(entity_id)
+    
+    def get_serializer_class(self):
+        """Return the update serializer."""
+        return ProcessingJobAdminUpdateSerializer
+    
+    def get_response_serializer_class(self):
+        """Return the response serializer."""
+        return ProcessingJobAdminDetailSerializer
+    
+    def update_entity(self, entity, validated_data):
+        """Update the processing job."""
+        # Filter only the fields that are present in validated_data
+        update_fields = {k: v for k, v in validated_data.items() if v is not None}
+        return ProcessingJobService.update_processing_job(str(entity.id), **update_fields)
+    
     def put(self, request, id):
-        serializer = ProcessingJobAdminUpdateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return self.api_response(
-                message="Invalid request data.",
-                data=serializer.errors,
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            update_fields = {}
-            if 'status' in serializer.validated_data:
-                update_fields['status'] = serializer.validated_data['status']
-            if 'priority' in serializer.validated_data:
-                update_fields['priority'] = serializer.validated_data['priority']
-            if 'max_retries' in serializer.validated_data:
-                update_fields['max_retries'] = serializer.validated_data['max_retries']
-            if 'error_message' in serializer.validated_data:
-                update_fields['error_message'] = serializer.validated_data['error_message']
-            if 'error_type' in serializer.validated_data:
-                update_fields['error_type'] = serializer.validated_data['error_type']
-            if 'metadata' in serializer.validated_data:
-                update_fields['metadata'] = serializer.validated_data['metadata']
-            
-            updated_job = ProcessingJobService.update_processing_job(id, **update_fields)
-            if not updated_job:
-                return self.api_response(
-                    message=f"Processing job with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Processing job updated successfully.",
-                data=ProcessingJobAdminDetailSerializer(updated_job).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error updating processing job {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error updating processing job.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        """Override to support PUT method (base class uses PATCH)."""
+        return self.patch(request, id)
 
 
-class ProcessingJobAdminDeleteAPI(AuthAPI):
+class ProcessingJobAdminDeleteAPI(BaseAdminDeleteAPI):
     """
     Admin: Delete a processing job.
     
@@ -181,28 +131,17 @@ class ProcessingJobAdminDeleteAPI(AuthAPI):
     """
     permission_classes = [IsAdminOrStaff]
     
-    def delete(self, request, id):
-        try:
-            success = ProcessingJobService.delete_processing_job(id)
-            if not success:
-                return self.api_response(
-                    message=f"Processing job with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-            return self.api_response(
-                message="Processing job deleted successfully.",
-                data=None,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error deleting processing job {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error deleting processing job.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def get_entity_name(self):
+        """Get human-readable entity name."""
+        return "Processing job"
+    
+    def get_entity_by_id(self, entity_id):
+        """Get processing job by ID."""
+        return ProcessingJobService.get_by_id(entity_id)
+    
+    def delete_entity(self, entity):
+        """Delete the processing job."""
+        return ProcessingJobService.delete_processing_job(str(entity.id))
 
 
 class BulkProcessingJobOperationAPI(AuthAPI):
@@ -223,18 +162,12 @@ class BulkProcessingJobOperationAPI(AuthAPI):
     
     def post(self, request):
         serializer = BulkProcessingJobOperationSerializer(data=request.data)
-        if not serializer.is_valid():
-            return self.api_response(
-                message="Invalid request data.",
-                data=serializer.errors,
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
+        serializer.is_valid(raise_exception=True)
         
         job_ids = serializer.validated_data['job_ids']
         operation = serializer.validated_data['operation']
         
-        try:
-            if operation == 'delete':
+        if operation == 'delete':
                 deleted_count = 0
                 failed_count = 0
                 
@@ -367,10 +300,3 @@ class BulkProcessingJobOperationAPI(AuthAPI):
                     data=None,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
-        except Exception as e:
-            logger.error(f"Error performing bulk operation: {e}", exc_info=True)
-            return self.api_response(
-                message="Error performing bulk operation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
