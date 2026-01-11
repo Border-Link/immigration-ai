@@ -9,11 +9,16 @@ Rules are created through two paths:
 2. Manual: Admin creates rules directly via API
 """
 import logging
+import time
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Q
+from rules_knowledge.helpers.metrics import (
+    rule_publishing_operations_total,
+    rule_publishing_duration_seconds
+)
 
 from data_ingestion.models.parsed_rule import ParsedRule
 from data_ingestion.selectors.parsed_rule_selector import ParsedRuleSelector
@@ -73,11 +78,15 @@ class RulePublishingService:
                 'previous_version_closed': bool
             }
         """
+        start_time = time.time()
+        
         try:
             # Step 1: Load approved parsed rule
             parsed_rule = ParsedRuleSelector.get_by_id(parsed_rule_id)
             if not parsed_rule:
                 logger.error(f"Parsed rule {parsed_rule_id} not found")
+                if rule_publishing_operations_total:
+                    rule_publishing_operations_total.labels(operation='publish', status='failure').inc()
                 return {'success': False, 'error': 'Parsed rule not found'}
             
             # Verify status is approved
@@ -86,6 +95,8 @@ class RulePublishingService:
                     f"Cannot publish parsed rule {parsed_rule_id}: status is '{parsed_rule.status}', "
                     f"expected 'approved'"
                 )
+                if rule_publishing_operations_total:
+                    rule_publishing_operations_total.labels(operation='publish', status='failure').inc()
                 return {
                     'success': False,
                     'error': f"Parsed rule status is '{parsed_rule.status}', must be 'approved'"
@@ -95,6 +106,8 @@ class RulePublishingService:
             visa_type = RulePublishingService._get_or_create_visa_type(parsed_rule)
             if not visa_type:
                 logger.error(f"Could not get or create visa type for code: {parsed_rule.visa_code}")
+                if rule_publishing_operations_total:
+                    rule_publishing_operations_total.labels(operation='publish', status='failure').inc()
                 return {'success': False, 'error': 'Could not get or create visa type'}
             
             # Step 3: Determine effective date
@@ -109,6 +122,8 @@ class RulePublishingService:
             )
             if not rule_version:
                 logger.error(f"Failed to create rule version for parsed rule {parsed_rule_id}")
+                if rule_publishing_operations_total:
+                    rule_publishing_operations_total.labels(operation='publish', status='failure').inc()
                 return {'success': False, 'error': 'Failed to create rule version'}
             
             # Step 5: Create requirements from parsed rule
@@ -127,6 +142,8 @@ class RulePublishingService:
             published_version = VisaRuleVersionService.publish_rule_version(str(rule_version.id))
             if not published_version:
                 logger.error(f"Failed to publish rule version {rule_version.id}")
+                if rule_publishing_operations_total:
+                    rule_publishing_operations_total.labels(operation='publish', status='failure').inc()
                 return {'success': False, 'error': 'Failed to publish rule version'}
             
             # Step 8: Update parsed rule status (mark as published)
@@ -150,6 +167,13 @@ class RulePublishingService:
                 jurisdiction=visa_type.jurisdiction
             )
             
+            # Track success metrics
+            duration = time.time() - start_time
+            if rule_publishing_operations_total:
+                rule_publishing_operations_total.labels(operation='publish', status='success').inc()
+            if rule_publishing_duration_seconds:
+                rule_publishing_duration_seconds.labels(operation='publish').observe(duration)
+            
             logger.info(
                 f"Successfully published parsed rule {parsed_rule_id} to rule version {rule_version.id}. "
                 f"Created {requirements_created} requirements."
@@ -164,6 +188,13 @@ class RulePublishingService:
             }
             
         except Exception as e:
+            # Track failure metrics
+            duration = time.time() - start_time
+            if rule_publishing_operations_total:
+                rule_publishing_operations_total.labels(operation='publish', status='failure').inc()
+            if rule_publishing_duration_seconds:
+                rule_publishing_duration_seconds.labels(operation='publish').observe(duration)
+            
             logger.error(
                 f"Error publishing parsed rule {parsed_rule_id}: {e}",
                 exc_info=True
