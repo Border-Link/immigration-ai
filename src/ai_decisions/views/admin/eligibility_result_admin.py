@@ -11,7 +11,7 @@ from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
 from ai_decisions.services.eligibility_result_service import EligibilityResultService
 from ai_decisions.serializers.eligibility_result.read import EligibilityResultSerializer, EligibilityResultListSerializer
 from ai_decisions.serializers.eligibility_result.admin import EligibilityResultAdminListQuerySerializer
-from ai_decisions.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 logger = logging.getLogger('django')
 
