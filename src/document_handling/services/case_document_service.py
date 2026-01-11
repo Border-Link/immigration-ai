@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from document_handling.models.case_document import CaseDocument
 from document_handling.repositories.case_document_repository import CaseDocumentRepository
 from document_handling.selectors.case_document_selector import CaseDocumentSelector
