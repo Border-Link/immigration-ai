@@ -11,7 +11,7 @@ from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
 from ai_decisions.services.ai_reasoning_log_service import AIReasoningLogService
 from ai_decisions.serializers.ai_reasoning_log.read import AIReasoningLogSerializer, AIReasoningLogListSerializer
 from ai_decisions.serializers.ai_reasoning_log.admin import AIReasoningLogAdminListQuerySerializer
-from ai_decisions.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 logger = logging.getLogger('django')
 
