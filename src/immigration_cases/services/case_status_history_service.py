@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from immigration_cases.models.case_status_history import CaseStatusHistory
 from immigration_cases.selectors.case_status_history_selector import CaseStatusHistorySelector
 from immigration_cases.selectors.case_selector import CaseSelector
