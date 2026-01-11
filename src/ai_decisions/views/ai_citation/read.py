@@ -10,7 +10,12 @@ from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.is_reviewer import IsReviewer
 from ai_decisions.services.ai_citation_service import AICitationService
-from ai_decisions.serializers.ai_citation.read import AICitationSerializer, AICitationListSerializer
+from ai_decisions.serializers.ai_citation.read import (
+    AICitationListQuerySerializer,
+    AICitationSerializer,
+    AICitationListSerializer
+)
+from ai_decisions.helpers.pagination import paginate_queryset
 
 logger = logging.getLogger('django')
 
@@ -28,29 +33,34 @@ class AICitationListAPI(AuthAPI):
     permission_classes = [IsReviewer]
     
     def get(self, request):
-        reasoning_log_id = request.query_params.get('reasoning_log_id', None)
-        document_version_id = request.query_params.get('document_version_id', None)
+        # Validate query parameters
+        query_serializer = AICitationListQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        validated_params = query_serializer.validated_data
         
-        try:
-            if reasoning_log_id:
-                citations = AICitationService.get_by_reasoning_log(reasoning_log_id)
-            elif document_version_id:
-                citations = AICitationService.get_by_document_version(document_version_id)
-            else:
-                citations = AICitationService.get_all()
-            
-            return self.api_response(
-                message="AI citations retrieved successfully.",
-                data=AICitationListSerializer(citations, many=True).data,
-                status_code=status.HTTP_200_OK
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving AI citations: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving AI citations.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        reasoning_log_id = validated_params.get('reasoning_log_id')
+        document_version_id = validated_params.get('document_version_id')
+        page = validated_params.get('page', 1)
+        page_size = validated_params.get('page_size', 20)
+        
+        if reasoning_log_id:
+            citations = AICitationService.get_by_reasoning_log(str(reasoning_log_id))
+        elif document_version_id:
+            citations = AICitationService.get_by_document_version(str(document_version_id))
+        else:
+            citations = AICitationService.get_all()
+        
+        # Paginate results
+        paginated_citations, pagination_metadata = paginate_queryset(citations, page=page, page_size=page_size)
+        
+        return self.api_response(
+            message="AI citations retrieved successfully.",
+            data={
+                'items': AICitationListSerializer(paginated_citations, many=True).data,
+                'pagination': pagination_metadata
+            },
+            status_code=status.HTTP_200_OK
+        )
 
 
 class AICitationDetailAPI(AuthAPI):
@@ -63,24 +73,16 @@ class AICitationDetailAPI(AuthAPI):
     permission_classes = [IsReviewer]
     
     def get(self, request, id):
-        try:
-            citation = AICitationService.get_by_id(id)
-            if not citation:
-                return self.api_response(
-                    message=f"AI citation with ID '{id}' not found.",
-                    data=None,
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
+        citation = AICitationService.get_by_id(id)
+        if not citation:
             return self.api_response(
-                message="AI citation retrieved successfully.",
-                data=AICitationSerializer(citation).data,
-                status_code=status.HTTP_200_OK
+                message=f"AI citation with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
-            logger.error(f"Error retrieving AI citation {id}: {e}", exc_info=True)
-            return self.api_response(
-                message="Error retrieving AI citation.",
-                data={'error': str(e)},
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.api_response(
+            message="AI citation retrieved successfully.",
+            data=AICitationSerializer(citation).data,
+            status_code=status.HTTP_200_OK
+        )
