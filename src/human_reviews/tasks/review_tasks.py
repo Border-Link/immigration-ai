@@ -2,10 +2,9 @@ from celery import shared_task
 import logging
 from django.utils import timezone
 from datetime import timedelta
-from main_system.tasks_base import BaseTaskWithMeta
+from main_system.utils.tasks_base import BaseTaskWithMeta
 from human_reviews.selectors.review_selector import ReviewSelector
 from users_access.services.notification_service import NotificationService
-from users_access.tasks.email_tasks import send_review_assignment_email_task
 
 logger = logging.getLogger('django')
 
