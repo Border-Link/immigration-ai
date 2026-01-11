@@ -124,9 +124,30 @@ class ProcessingHistoryService:
 
     @staticmethod
     def delete_history_entry(history_id: str) -> bool:
-        """Delete processing history entry."""
+        """
+        Delete processing history entry.
+        
+        Requires: Case must have a completed payment before processing history can be deleted.
+        This prevents abuse and ensures only paid cases can manage their processing history.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             history = ProcessingHistorySelector.get_by_id(history_id)
+            if not history:
+                logger.error(f"Processing history {history_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(
+                history.case_document.case, 
+                operation_name="processing history deletion"
+            )
+            if not is_valid:
+                logger.warning(f"Processing history deletion blocked for case {history.case_document.case.id}: {error}")
+                raise ValidationError(error)
+            
             ProcessingHistoryRepository.delete_history_entry(history)
             return True
         except ProcessingHistory.DoesNotExist:
