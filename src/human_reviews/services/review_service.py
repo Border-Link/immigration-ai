@@ -29,14 +29,28 @@ class ReviewService:
         """
         Create a new review.
         
+        Requires: Case must have a completed payment before reviews can be created.
+        
         Args:
             case_id: Case ID
             reviewer_id: Optional reviewer ID (if provided, auto_assign is ignored)
             auto_assign: Whether to automatically assign a reviewer
             assignment_strategy: 'round_robin' or 'workload'
         """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             case = CaseSelector.get_by_id(case_id)
+            if not case:
+                logger.error(f"Case {case_id} not found when creating review")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="review creation")
+            if not is_valid:
+                logger.warning(f"Review creation blocked for case {case_id}: {error}")
+                raise ValidationError(error)
             
             reviewer = None
             if reviewer_id:
@@ -162,9 +176,25 @@ class ReviewService:
 
     @staticmethod
     def assign_reviewer(review_id: str, reviewer_id: str = None, assignment_strategy: str = 'round_robin', assigned_by_id: str = None) -> Optional[Review]:
-        """Assign a reviewer to a review."""
+        """
+        Assign a reviewer to a review.
+        
+        Requires: Case must have a completed payment before reviewers can be assigned.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review = ReviewSelector.get_by_id(review_id)
+            if not review:
+                logger.error(f"Review {review_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review assignment")
+            if not is_valid:
+                logger.warning(f"Review assignment blocked for case {review.case.id}: {error}")
+                raise ValidationError(error)
             
             assigned_by = None
             if assigned_by_id:
@@ -222,9 +252,25 @@ class ReviewService:
 
     @staticmethod
     def complete_review(review_id: str, completed_by_id: str = None, reason: str = None) -> Optional[Review]:
-        """Complete a review."""
+        """
+        Complete a review.
+        
+        Requires: Case must have a completed payment before reviews can be completed.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review = ReviewSelector.get_by_id(review_id)
+            if not review:
+                logger.error(f"Review {review_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review completion")
+            if not is_valid:
+                logger.warning(f"Review completion blocked for case {review.case.id}: {error}")
+                raise ValidationError(error)
             
             completed_by = None
             if completed_by_id:
@@ -258,9 +304,25 @@ class ReviewService:
 
     @staticmethod
     def cancel_review(review_id: str, cancelled_by_id: str = None, reason: str = None) -> Optional[Review]:
-        """Cancel a review."""
+        """
+        Cancel a review.
+        
+        Requires: Case must have a completed payment before reviews can be cancelled.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review = ReviewSelector.get_by_id(review_id)
+            if not review:
+                logger.error(f"Review {review_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review cancellation")
+            if not is_valid:
+                logger.warning(f"Review cancellation blocked for case {review.case.id}: {error}")
+                raise ValidationError(error)
             
             cancelled_by = None
             if cancelled_by_id:
@@ -294,11 +356,25 @@ class ReviewService:
 
     @staticmethod
     def update_review(review_id: str, updated_by_id: str = None, reason: str = None, version: int = None, **fields) -> Optional[Review]:
-        """Update review fields."""
+        """
+        Update review fields.
+        
+        Requires: Case must have a completed payment before reviews can be updated.
+        """
         from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
         
         try:
             review = ReviewSelector.get_by_id(review_id)
+            if not review:
+                logger.error(f"Review {review_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review update")
+            if not is_valid:
+                logger.warning(f"Review update blocked for case {review.case.id}: {error}")
+                raise ValidationError(error)
             previous_status = review.status
             
             updated_by = None
@@ -336,9 +412,26 @@ class ReviewService:
 
     @staticmethod
     def delete_review(review_id: str, deleted_by_id: str = None) -> bool:
-        """Delete a review."""
+        """
+        Delete a review.
+        
+        Requires: Case must have a completed payment before reviews can be deleted.
+        This prevents abuse and ensures only paid cases can manage their reviews.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review = ReviewSelector.get_by_id(review_id)
+            if not review:
+                logger.error(f"Review {review_id} not found")
+                return False
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review deletion")
+            if not is_valid:
+                logger.warning(f"Review deletion blocked for case {review.case.id}: {error}")
+                raise ValidationError(error)
             ReviewRepository.delete_review(review)
             
             # Log audit event
@@ -382,9 +475,25 @@ class ReviewService:
 
     @staticmethod
     def reassign_reviewer(review_id: str, new_reviewer_id: str, changed_by_id: str = None, reason: str = None) -> Optional[Review]:
-        """Reassign a review to a different reviewer."""
+        """
+        Reassign a review to a different reviewer.
+        
+        Requires: Case must have a completed payment before reviewers can be reassigned.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review = ReviewSelector.get_by_id(review_id)
+            if not review:
+                logger.error(f"Review {review_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review reassignment")
+            if not is_valid:
+                logger.warning(f"Review reassignment blocked for case {review.case.id}: {error}")
+                raise ValidationError(error)
             new_reviewer = UserSelector.get_by_id(new_reviewer_id)
             
             # Verify new reviewer has reviewer role AND is staff or admin
@@ -428,9 +537,25 @@ class ReviewService:
 
     @staticmethod
     def escalate_review(review_id: str, escalated_by_id: str = None, reason: str = None, priority: str = 'high') -> Optional[Review]:
-        """Escalate a review for urgent attention."""
+        """
+        Escalate a review for urgent attention.
+        
+        Requires: Case must have a completed payment before reviews can be escalated.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review = ReviewSelector.get_by_id(review_id)
+            if not review:
+                logger.error(f"Review {review_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review escalation")
+            if not is_valid:
+                logger.warning(f"Review escalation blocked for case {review.case.id}: {error}")
+                raise ValidationError(error)
             
             escalated_by = None
             if escalated_by_id:
@@ -465,9 +590,25 @@ class ReviewService:
 
     @staticmethod
     def approve_review(review_id: str, approved_by_id: str = None, reason: str = None) -> Optional[Review]:
-        """Approve a review (complete with approval)."""
+        """
+        Approve a review (complete with approval).
+        
+        Requires: Case must have a completed payment before reviews can be approved.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review = ReviewSelector.get_by_id(review_id)
+            if not review:
+                logger.error(f"Review {review_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review approval")
+            if not is_valid:
+                logger.warning(f"Review approval blocked for case {review.case.id}: {error}")
+                raise ValidationError(error)
             
             approved_by = None
             if approved_by_id:
@@ -502,9 +643,25 @@ class ReviewService:
 
     @staticmethod
     def reject_review(review_id: str, rejected_by_id: str = None, reason: str = None) -> Optional[Review]:
-        """Reject a review (send back to pending for changes)."""
+        """
+        Reject a review (send back to pending for changes).
+        
+        Requires: Case must have a completed payment before reviews can be rejected.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review = ReviewSelector.get_by_id(review_id)
+            if not review:
+                logger.error(f"Review {review_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review rejection")
+            if not is_valid:
+                logger.warning(f"Review rejection blocked for case {review.case.id}: {error}")
+                raise ValidationError(error)
             
             rejected_by = None
             if rejected_by_id:
@@ -540,9 +697,25 @@ class ReviewService:
 
     @staticmethod
     def request_changes(review_id: str, requested_by_id: str = None, reason: str = None) -> Optional[Review]:
-        """Request changes to a review (similar to reject but with different semantics)."""
+        """
+        Request changes to a review (similar to reject but with different semantics).
+        
+        Requires: Case must have a completed payment before changes can be requested on reviews.
+        """
+        from django.core.exceptions import ValidationError
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
             review = ReviewSelector.get_by_id(review_id)
+            if not review:
+                logger.error(f"Review {review_id} not found")
+                return None
+            
+            # Validate payment requirement
+            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review change request")
+            if not is_valid:
+                logger.warning(f"Review change request blocked for case {review.case.id}: {error}")
+                raise ValidationError(error)
             
             requested_by = None
             if requested_by_id:
