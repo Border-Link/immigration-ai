@@ -6,6 +6,7 @@ from rules_knowledge.repositories.visa_document_requirement_repository import Vi
 from rules_knowledge.selectors.visa_document_requirement_selector import VisaDocumentRequirementSelector
 from rules_knowledge.selectors.visa_rule_version_selector import VisaRuleVersionSelector
 from rules_knowledge.selectors.document_type_selector import DocumentTypeSelector
+from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
 
@@ -20,11 +21,25 @@ class VisaDocumentRequirementService:
         try:
             rule_version = VisaRuleVersionSelector.get_by_id(rule_version_id)
             document_type = DocumentTypeSelector.get_by_id(document_type_id)
-            return VisaDocumentRequirementRepository.create_document_requirement(
+            doc_requirement = VisaDocumentRequirementRepository.create_document_requirement(
                 rule_version, document_type, mandatory, conditional_logic
             )
+            
+            # Log audit event
+            try:
+                AuditLogService.create_audit_log(
+                    level='INFO',
+                    logger_name='rules_knowledge',
+                    message=f"Document requirement created: {document_type.code} for rule version {rule_version_id} (mandatory={mandatory})",
+                    func_name='create_document_requirement',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
+            return doc_requirement
         except Exception as e:
-            logger.error(f"Error creating document requirement: {e}")
+            logger.error(f"Error creating document requirement: {e}", exc_info=True)
             return None
 
     @staticmethod
@@ -66,12 +81,27 @@ class VisaDocumentRequirementService:
         """Update document requirement."""
         try:
             doc_requirement = VisaDocumentRequirementSelector.get_by_id(requirement_id)
-            return VisaDocumentRequirementRepository.update_document_requirement(doc_requirement, **fields)
+            updated_requirement = VisaDocumentRequirementRepository.update_document_requirement(doc_requirement, **fields)
+            
+            # Log audit event
+            try:
+                changes = ', '.join([f"{k}={v}" for k, v in fields.items()])
+                AuditLogService.create_audit_log(
+                    level='INFO',
+                    logger_name='rules_knowledge',
+                    message=f"Document requirement {requirement_id} updated: {changes}",
+                    func_name='update_document_requirement',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
+            return updated_requirement
         except VisaDocumentRequirement.DoesNotExist:
             logger.error(f"Document requirement {requirement_id} not found")
             return None
         except Exception as e:
-            logger.error(f"Error updating document requirement {requirement_id}: {e}")
+            logger.error(f"Error updating document requirement {requirement_id}: {e}", exc_info=True)
             return None
 
     @staticmethod
@@ -80,12 +110,25 @@ class VisaDocumentRequirementService:
         try:
             doc_requirement = VisaDocumentRequirementSelector.get_by_id(requirement_id)
             VisaDocumentRequirementRepository.delete_document_requirement(doc_requirement)
+            
+            # Log audit event
+            try:
+                AuditLogService.create_audit_log(
+                    level='WARNING',
+                    logger_name='rules_knowledge',
+                    message=f"Document requirement {requirement_id} deleted: {doc_requirement.document_type.code}",
+                    func_name='delete_document_requirement',
+                    pathname=__file__
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log: {audit_error}")
+            
             return True
         except VisaDocumentRequirement.DoesNotExist:
             logger.error(f"Document requirement {requirement_id} not found")
             return False
         except Exception as e:
-            logger.error(f"Error deleting document requirement {requirement_id}: {e}")
+            logger.error(f"Error deleting document requirement {requirement_id}: {e}", exc_info=True)
             return False
 
     @staticmethod
