@@ -2,7 +2,7 @@ import logging
 import time
 from typing import Optional
 from django.utils import timezone
-from helpers.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result
 from human_reviews.models.review import Review
 from human_reviews.repositories.review_repository import ReviewRepository
 from human_reviews.selectors.review_selector import ReviewSelector
