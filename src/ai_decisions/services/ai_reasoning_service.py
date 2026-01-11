@@ -392,6 +392,8 @@ class AIReasoningService:
         """
         Main method: Run complete AI reasoning workflow.
         
+        Requires: Case must have a completed payment before AI reasoning can be performed.
+        
         This orchestrates:
         1. Retrieve context (vector search)
         2. Construct prompt
@@ -416,7 +418,26 @@ class AIReasoningService:
                 'reasoning_log_id': str
             }
         """
+        from immigration_cases.selectors.case_selector import CaseSelector
+        from payments.helpers.payment_validator import PaymentValidator
+        
         try:
+            # Validate payment requirement (defensive check)
+            # Note: This is also checked in EligibilityCheckService, but we add it here
+            # for defense in depth in case this method is called directly
+            case = CaseSelector.get_by_id(case_id)
+            if case:
+                is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="AI reasoning")
+                if not is_valid:
+                    logger.warning(f"AI reasoning blocked for case {case_id}: {error}")
+                    return {
+                        'success': False,
+                        'error': error,
+                        'response': None,
+                        'context_chunks': [],
+                        'citations': [],
+                        'reasoning_log_id': None
+                    }
             # Step 1: Retrieve context
             context_chunks = AIReasoningService.retrieve_context(
                 case_facts=case_facts,
