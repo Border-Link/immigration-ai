@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.totp_issuer import QRCodeGenerator
+from main_system.utils.totp_issuer import QRCodeGenerator
 from users_access.services.user_setting_service import UserSettingsService
 from .user_settings import valid_fields
 
