@@ -1,6 +1,7 @@
 from typing import Optional
 from django.contrib.auth import authenticate
 from helpers import fields as input_fields
+from helpers.cache_utils import cache_result
 from users_access.repositories.user_repository import UserRepository
 from users_access.repositories.user_profile_repository import UserProfileRepository
 from users_access.selectors.user_selector import UserSelector
@@ -109,6 +110,7 @@ class UserService:
             return None
 
     @staticmethod
+    @cache_result(timeout=300, keys=[])  # 5 minutes - user list changes frequently
     def get_all():
         try:
             return UserSelector.get_all()
@@ -117,6 +119,7 @@ class UserService:
             return []
 
     @staticmethod
+    @cache_result(timeout=300, keys=['email'])  # 5 minutes - cache email existence checks
     def email_exists(email):
         try:
             return UserSelector.email_exists(email)
@@ -126,6 +129,7 @@ class UserService:
 
     @staticmethod
     def login(email: str, password: str, request=None):
+        # Don't cache login - security sensitive
         try:
             user: Optional[CustomUser] = authenticate(request, email=email, password=password)
             if not user:
@@ -140,6 +144,7 @@ class UserService:
             return None, input_fields.INVALID_CREDENTIALS
 
     @staticmethod
+    @cache_result(timeout=600, keys=['email'])  # 10 minutes - cache user lookups by email
     def get_by_email(email):
         try:
             return UserSelector.get_by_email(email)
@@ -148,6 +153,7 @@ class UserService:
             return None
 
     @staticmethod
+    @cache_result(timeout=600, keys=['user_id'])  # 10 minutes - cache user lookups by ID
     def get_by_id(user_id):
         """Get user by ID."""
         try:
