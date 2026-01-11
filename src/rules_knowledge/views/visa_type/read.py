@@ -2,7 +2,7 @@ from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from rules_knowledge.services.visa_type_service import VisaTypeService
 from rules_knowledge.serializers.visa_type.read import VisaTypeSerializer, VisaTypeListSerializer
-from rules_knowledge.helpers.pagination import paginate_queryset
+from main_system.utils import paginate_queryset
 
 
 class VisaTypeListAPI(AuthAPI):
