@@ -8,11 +8,17 @@ using JSON Logic expressions. Designed to work across multiple jurisdictions
 This service follows the design pattern from implementation.md Section 6.2.
 """
 import logging
+import time
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import date, datetime
 from django.utils import timezone
 from django.db.models import Q
 import json_logic
+from rules_knowledge.helpers.metrics import (
+    rule_engine_evaluations_total,
+    rule_engine_evaluation_duration_seconds,
+    rule_engine_requirements_evaluated
+)
 
 from immigration_cases.models.case import Case
 from immigration_cases.selectors.case_fact_selector import CaseFactSelector
@@ -760,7 +766,17 @@ class RuleEngineService:
         Raises:
             ValueError: If case or visa type not found
         """
+        start_time = time.time()
+        visa_type_code = 'unknown'
+        
         try:
+            # Get visa type code for metrics
+            try:
+                visa_type = VisaTypeSelector.get_by_id(visa_type_id)
+                visa_type_code = visa_type.code if visa_type else 'unknown'
+            except Exception:
+                pass  # Use default if can't get visa type
+            
             # Step 1: Load case facts
             case_facts = RuleEngineService.load_case_facts(case_id)
             
@@ -772,6 +788,15 @@ class RuleEngineService:
                 result.warnings.append("Case has no facts")
                 result.outcome = "unlikely"
                 result.confidence = 0.0
+                
+                # Track metrics
+                if rule_engine_evaluations_total:
+                    rule_engine_evaluations_total.labels(visa_type=visa_type_code, outcome='unlikely').inc()
+                if rule_engine_evaluation_duration_seconds:
+                    rule_engine_evaluation_duration_seconds.labels(visa_type=visa_type_code).observe(
+                        time.time() - start_time
+                    )
+                
                 return result
             
             # Step 2: Load active rule version
@@ -798,15 +823,42 @@ class RuleEngineService:
                 result.warnings.append("Rule version has no requirements")
                 result.outcome = "unlikely"
                 result.confidence = 0.0
+                
+                # Track metrics
+                if rule_engine_evaluations_total:
+                    rule_engine_evaluations_total.labels(visa_type=visa_type_code, outcome='unlikely').inc()
+                if rule_engine_evaluation_duration_seconds:
+                    rule_engine_evaluation_duration_seconds.labels(visa_type=visa_type_code).observe(
+                        time.time() - start_time
+                    )
+                
                 return result
             
             # Step 4: Aggregate results
             result = RuleEngineService.aggregate_results(evaluation_results, rule_version)
             
+            # Track metrics
+            duration = time.time() - start_time
+            if rule_engine_evaluations_total:
+                rule_engine_evaluations_total.labels(visa_type=visa_type_code, outcome=result.outcome).inc()
+            if rule_engine_evaluation_duration_seconds:
+                rule_engine_evaluation_duration_seconds.labels(visa_type=visa_type_code).observe(duration)
+            if rule_engine_requirements_evaluated:
+                rule_engine_requirements_evaluated.labels(visa_type=visa_type_code).observe(
+                    result.requirements_total
+                )
+            
             return result
             
         except ValueError as ve:
             logger.error(f"Validation error in eligibility evaluation: {ve}")
+            # Track error metrics
+            if rule_engine_evaluations_total:
+                rule_engine_evaluations_total.labels(visa_type=visa_type_code, outcome='error').inc()
+            if rule_engine_evaluation_duration_seconds:
+                rule_engine_evaluation_duration_seconds.labels(visa_type=visa_type_code).observe(
+                    time.time() - start_time
+                )
             raise
         except Exception as e:
             logger.error(
@@ -814,4 +866,11 @@ class RuleEngineService:
                 f"visa type {visa_type_id}: {e}",
                 exc_info=True
             )
+            # Track error metrics
+            if rule_engine_evaluations_total:
+                rule_engine_evaluations_total.labels(visa_type=visa_type_code, outcome='error').inc()
+            if rule_engine_evaluation_duration_seconds:
+                rule_engine_evaluation_duration_seconds.labels(visa_type=visa_type_code).observe(
+                    time.time() - start_time
+                )
             return None
