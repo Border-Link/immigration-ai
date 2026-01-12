@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -37,7 +37,7 @@ class DocumentCheckAdminListAPI(AuthAPI):
         - date_from: Filter by created date (from)
         - date_to: Filter by created date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = DocumentCheckAdminListQuerySerializer(data=request.query_params)
@@ -66,7 +66,7 @@ class DocumentCheckAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/document-handling/admin/document-checks/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -88,7 +88,7 @@ class DocumentCheckAdminUpdateAPI(BaseAdminUpdateAPI):
     Endpoint: PUT /api/v1/document-handling/admin/document-checks/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -124,7 +124,7 @@ class DocumentCheckAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/document-handling/admin/document-checks/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -151,7 +151,7 @@ class BulkDocumentCheckOperationAPI(BaseBulkOperationAPI):
             "operation": "delete"
         }
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk document check operation serializer."""
