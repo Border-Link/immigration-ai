@@ -41,8 +41,8 @@ class JSONLogicValidator:
             if not expression:
                 return False, "Expression cannot be empty"
             
-            # Validate structure recursively
-            is_valid, error = JSONLogicValidator._validate_structure(expression)
+            # Validate structure recursively (with node counting for complexity limits)
+            is_valid, error = JSONLogicValidator._validate_structure(expression, depth=0, node_count=0)
             if not is_valid:
                 return False, error
             
@@ -60,20 +60,32 @@ class JSONLogicValidator:
             return False, f"Validation error: {str(e)}"
     
     @staticmethod
-    def _validate_structure(expression: Any, depth: int = 0) -> Tuple[bool, Optional[str]]:
+    def _validate_structure(expression: Any, depth: int = 0, node_count: int = 0) -> Tuple[bool, Optional[str]]:
         """
         Recursively validate JSON Logic expression structure.
+        
+        Security: Limits expression complexity to prevent DoS attacks.
         
         Args:
             expression: Expression to validate
             depth: Current recursion depth (to prevent infinite loops)
+            node_count: Current node count (to limit expression size)
             
         Returns:
             Tuple of (is_valid, error_message)
         """
-        # Prevent infinite recursion
-        if depth > 20:
-            return False, "Expression too deeply nested (max depth: 20)"
+        # Security: Prevent infinite recursion
+        MAX_DEPTH = 20
+        if depth > MAX_DEPTH:
+            return False, f"Expression too deeply nested (max depth: {MAX_DEPTH})"
+        
+        # Security: Limit total expression size to prevent DoS
+        MAX_NODES = 1000
+        if node_count > MAX_NODES:
+            return False, f"Expression too complex (max nodes: {MAX_NODES})"
+        
+        # Increment node count for this node
+        node_count += 1
         
         # If it's a dict, check if it's a valid JSON Logic operation
         if isinstance(expression, dict):
@@ -94,11 +106,11 @@ class JSONLogicValidator:
                 if isinstance(value, (list, dict)):
                     if isinstance(value, list):
                         for item in value:
-                            is_valid, error = JSONLogicValidator._validate_structure(item, depth + 1)
+                            is_valid, error = JSONLogicValidator._validate_structure(item, depth + 1, node_count)
                             if not is_valid:
                                 return False, error
                     else:
-                        is_valid, error = JSONLogicValidator._validate_structure(value, depth + 1)
+                        is_valid, error = JSONLogicValidator._validate_structure(value, depth + 1, node_count)
                         if not is_valid:
                             return False, error
             else:
@@ -108,7 +120,7 @@ class JSONLogicValidator:
         # If it's a list, validate each item
         elif isinstance(expression, list):
             for item in expression:
-                is_valid, error = JSONLogicValidator._validate_structure(item, depth + 1)
+                is_valid, error = JSONLogicValidator._validate_structure(item, depth + 1, node_count)
                 if not is_valid:
                     return False, error
         
