@@ -7,7 +7,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from ai_decisions.services.ai_reasoning_log_service import AIReasoningLogService
 from ai_decisions.serializers.ai_reasoning_log.read import AIReasoningLogSerializer, AIReasoningLogListSerializer
 from ai_decisions.serializers.ai_reasoning_log.admin import AIReasoningLogAdminListQuerySerializer
@@ -29,7 +29,7 @@ class AIReasoningLogAdminListAPI(AuthAPI):
         - date_from: Filter by created date (from)
         - date_to: Filter by created date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         # Validate query parameters
@@ -68,7 +68,7 @@ class AIReasoningLogAdminDetailAPI(AuthAPI):
     Endpoint: GET /api/v1/ai-decisions/admin/ai-reasoning-logs/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request, id):
         log = AIReasoningLogService.get_by_id(id)
@@ -93,7 +93,7 @@ class AIReasoningLogAdminDeleteAPI(AuthAPI):
     Endpoint: DELETE /api/v1/ai-decisions/admin/ai-reasoning-logs/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def delete(self, request, id):
         deleted = AIReasoningLogService.delete_reasoning_log(id)
