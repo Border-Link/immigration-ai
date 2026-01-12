@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.ingestion_permission import IngestionPermission
 from data_ingestion.services.data_source_service import DataSourceService
 from data_ingestion.serializers.data_source.read import (
     DataSourceSerializer,
@@ -9,6 +10,7 @@ from data_ingestion.serializers.data_source.read import (
 
 class DataSourceListAPI(AuthAPI):
     """Get all data sources."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request):
         jurisdiction = request.query_params.get('jurisdiction', None)
@@ -27,6 +29,7 @@ class DataSourceListAPI(AuthAPI):
 
 class DataSourceDetailAPI(AuthAPI):
     """Get data source by ID."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request, id):
         data_source = DataSourceService.get_by_id(id)
