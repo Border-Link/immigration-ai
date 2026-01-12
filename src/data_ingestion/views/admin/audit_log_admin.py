@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.base import BaseAdminDetailAPI
 from data_ingestion.services.audit_log_service import RuleParsingAuditLogService
 from data_ingestion.serializers.audit_log.admin import (
@@ -31,7 +31,7 @@ class RuleParsingAuditLogAdminListAPI(AuthAPI):
         - date_from: Filter by created date (from)
         - date_to: Filter by created date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = AuditLogAdminListQuerySerializer(data=request.query_params)
@@ -67,7 +67,7 @@ class RuleParsingAuditLogAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/data-ingestion/admin/audit-logs/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
