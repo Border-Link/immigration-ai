@@ -178,6 +178,63 @@ class EligibilityResultService:
             return EligibilityResultSelector.get_none()
 
     @staticmethod
+    def get_by_user_access(user):
+        """
+        Get eligibility results filtered by user access.
+        
+        Regular users can only see results for their own cases.
+        Admin/reviewer/superuser can see all results.
+        
+        Args:
+            user: User instance
+            
+        Returns:
+            QuerySet of eligibility results
+        """
+        try:
+            all_results = EligibilityResultService.get_all()
+            
+            # If user is admin/reviewer/superuser, return all results
+            if user.is_superuser or user.is_staff or user.role in ['admin', 'reviewer']:
+                return all_results
+            
+            # Regular users can only see their own cases' results
+            return all_results.filter(case__user=user)
+        except Exception as e:
+            logger.error(f"Error fetching eligibility results by user access: {e}")
+            return EligibilityResultSelector.get_none()
+    
+    @staticmethod
+    def get_by_case_with_access_check(case_id: str, user):
+        """
+        Get eligibility results for a case, verifying user has access to the case.
+        
+        Args:
+            case_id: Case ID
+            user: User instance
+            
+        Returns:
+            Tuple of (results QuerySet, error_message)
+            If error_message is not None, user doesn't have access or case not found.
+        """
+        from immigration_cases.services.case_service import CaseService
+        
+        try:
+            case = CaseService.get_by_id(case_id)
+            if not case:
+                return None, f"Case with ID '{case_id}' not found."
+            
+            # Check user access
+            from main_system.permissions.case_ownership import CaseOwnershipPermission
+            if not CaseOwnershipPermission.has_case_access(user, case):
+                return None, "You do not have permission to access this case."
+            
+            return EligibilityResultService.get_by_case(case_id), None
+        except Exception as e:
+            logger.error(f"Error fetching eligibility results for case {case_id}: {e}")
+            return None, f"Error fetching eligibility results: {str(e)}"
+    
+    @staticmethod
     def get_statistics():
         """Get eligibility result statistics."""
         try:
