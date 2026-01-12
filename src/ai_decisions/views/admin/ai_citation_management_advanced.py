@@ -8,7 +8,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import BaseAdminUpdateAPI
 from ai_decisions.services.ai_citation_service import AICitationService
@@ -28,7 +28,7 @@ class AICitationAdminUpdateAPI(BaseAdminUpdateAPI):
     Endpoint: PATCH /api/v1/ai-decisions/admin/ai-citations/<id>/update/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -61,7 +61,7 @@ class BulkAICitationOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/ai-decisions/admin/ai-citations/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk AI citation operation serializer."""
