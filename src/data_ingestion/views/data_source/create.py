@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_superuser import IsSuperUser
+from main_system.permissions.is_superadmin import IsSuperAdmin
 from data_ingestion.services.data_source_service import DataSourceService
 from data_ingestion.serializers.data_source.create import DataSourceCreateSerializer
 from data_ingestion.serializers.data_source.read import DataSourceSerializer
@@ -8,7 +8,7 @@ from data_ingestion.serializers.data_source.read import DataSourceSerializer
 
 class DataSourceCreateAPI(AuthAPI):
     """Create a new data source."""
-    permission_classes = [IsSuperUser]
+    permission_classes = [IsSuperAdmin]
 
     def post(self, request):
         serializer = DataSourceCreateSerializer(data=request.data)
