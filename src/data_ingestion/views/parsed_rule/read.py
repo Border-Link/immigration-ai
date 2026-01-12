@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.ingestion_permission import IngestionPermission
 from data_ingestion.services.parsed_rule_service import ParsedRuleService
 from data_ingestion.serializers.parsed_rule.read import (
     ParsedRuleSerializer,
@@ -9,6 +10,7 @@ from data_ingestion.serializers.parsed_rule.read import (
 
 class ParsedRuleListAPI(AuthAPI):
     """Get all parsed rules."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request):
         status_filter = request.query_params.get('status', None)
@@ -30,6 +32,7 @@ class ParsedRuleListAPI(AuthAPI):
 
 class ParsedRuleDetailAPI(AuthAPI):
     """Get parsed rule by ID."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request, id):
         parsed_rule = ParsedRuleService.get_by_id(id)
@@ -50,6 +53,7 @@ class ParsedRuleDetailAPI(AuthAPI):
 
 class ParsedRulePendingAPI(AuthAPI):
     """Get all pending parsed rules."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request):
         parsed_rules = ParsedRuleService.get_pending()
