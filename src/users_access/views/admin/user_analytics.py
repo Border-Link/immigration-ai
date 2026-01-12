@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from users_access.services.user_service import UserService
 
 
@@ -17,7 +17,7 @@ class UserStatisticsAPI(AuthAPI):
     Endpoint: GET /api/v1/auth/admin/users/statistics/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         statistics = UserService.get_statistics()
@@ -36,7 +36,7 @@ class UserActivityAPI(AuthAPI):
     Endpoint: GET /api/v1/auth/admin/users/<id>/activity/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request, id):
         activity = UserService.get_user_activity(id)
