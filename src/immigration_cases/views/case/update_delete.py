@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.case_permission import CasePermission
 from immigration_cases.services.case_service import CaseService
 from immigration_cases.serializers.case.read import CaseSerializer
 from immigration_cases.serializers.case.update_delete import CaseUpdateSerializer
@@ -7,6 +8,7 @@ from immigration_cases.serializers.case.update_delete import CaseUpdateSerialize
 
 class CaseUpdateAPI(AuthAPI):
     """Update a case."""
+    permission_classes = [CasePermission]
 
     def patch(self, request, id):
         serializer = CaseUpdateSerializer(data=request.data)
@@ -45,6 +47,7 @@ class CaseUpdateAPI(AuthAPI):
 
 class CaseDeleteAPI(AuthAPI):
     """Delete a case."""
+    permission_classes = [CasePermission]
 
     def delete(self, request, id):
         success = CaseService.delete_case(id)
