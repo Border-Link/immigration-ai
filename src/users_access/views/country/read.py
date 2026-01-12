@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.authentication_permission import AuthenticationPermission
 from users_access.services.country_service import CountryService
 from users_access.serializers.country.read import (
     CountrySerializer,
@@ -9,6 +10,7 @@ from users_access.serializers.country.read import (
 
 class CountryListAPI(AuthAPI):
     """Get list of all active countries."""
+    permission_classes = [AuthenticationPermission]
 
     def get(self, request):
         countries = CountryService.get_all()
@@ -21,6 +23,7 @@ class CountryListAPI(AuthAPI):
 
 class CountryDetailAPI(AuthAPI):
     """Get country by ID."""
+    permission_classes = [AuthenticationPermission]
 
     def get(self, request, id):
         country = CountryService.get_by_id(id)
@@ -40,6 +43,7 @@ class CountryDetailAPI(AuthAPI):
 
 class CountryJurisdictionsAPI(AuthAPI):
     """Get all immigration jurisdictions."""
+    permission_classes = [AuthenticationPermission]
 
     def get(self, request):
         jurisdictions = CountryService.get_jurisdictions()
@@ -52,6 +56,7 @@ class CountryJurisdictionsAPI(AuthAPI):
 
 class CountryWithStatesAPI(AuthAPI):
     """Get countries that have states/provinces."""
+    permission_classes = [AuthenticationPermission]
 
     def get(self, request):
         countries = CountryService.get_with_states()
@@ -64,6 +69,7 @@ class CountryWithStatesAPI(AuthAPI):
 
 class CountrySearchAPI(AuthAPI):
     """Search countries by name."""
+    permission_classes = [AuthenticationPermission]
 
     def get(self, request):
         query = request.query_params.get('query', '').strip()
