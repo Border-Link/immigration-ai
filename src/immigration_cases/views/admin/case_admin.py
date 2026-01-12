@@ -7,7 +7,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -41,7 +41,7 @@ class CaseAdminListAPI(AuthAPI):
         - updated_date_from: Filter by updated date (from)
         - updated_date_to: Filter by updated date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         # Validate query parameters
@@ -81,7 +81,7 @@ class CaseAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/immigration-cases/admin/cases/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -103,7 +103,7 @@ class CaseAdminUpdateAPI(BaseAdminUpdateAPI):
     Endpoint: PATCH /api/v1/immigration-cases/admin/cases/<id>/update/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -180,7 +180,7 @@ class CaseAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/immigration-cases/admin/cases/<id>/delete/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -202,7 +202,7 @@ class BulkCaseOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/immigration-cases/admin/cases/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk case operation serializer."""
