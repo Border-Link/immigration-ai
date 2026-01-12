@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.base import BaseAdminDetailAPI
 from compliance.services.audit_log_service import AuditLogService
 from compliance.serializers.audit_log.read import (
@@ -9,12 +9,11 @@ from compliance.serializers.audit_log.read import (
     AuditLogListSerializer
 )
 from main_system.utils import paginate_queryset
-from compliance.models.audit_log import AuditLog
 
 
 class AuditLogListAPI(AuthAPI):
     """Get all audit logs with filtering and pagination."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
 
     def get(self, request):
         # Validate query parameters
@@ -72,7 +71,7 @@ class AuditLogListAPI(AuthAPI):
 
 class AuditLogDetailAPI(BaseAdminDetailAPI):
     """Get audit log by ID."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
