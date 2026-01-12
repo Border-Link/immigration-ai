@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.rule_permission import RulePermission
 from rules_knowledge.services.document_type_service import DocumentTypeService
 from rules_knowledge.serializers.document_type.create import DocumentTypeCreateSerializer
 from rules_knowledge.serializers.document_type.read import DocumentTypeSerializer
@@ -8,7 +8,7 @@ from rules_knowledge.serializers.document_type.read import DocumentTypeSerialize
 
 class DocumentTypeCreateAPI(AuthAPI):
     """Create a new document type. Only admin/staff can access."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [RulePermission]
 
     def post(self, request):
         serializer = DocumentTypeCreateSerializer(data=request.data)
