@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.rule_permission import RulePermission
 from rules_knowledge.services.visa_requirement_service import VisaRequirementService
 from rules_knowledge.serializers.visa_requirement.read import VisaRequirementSerializer
 from rules_knowledge.serializers.visa_requirement.update_delete import VisaRequirementUpdateSerializer
@@ -8,7 +8,7 @@ from rules_knowledge.serializers.visa_requirement.update_delete import VisaRequi
 
 class VisaRequirementUpdateAPI(AuthAPI):
     """Update a visa requirement. Only admin/staff can access."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [RulePermission]
 
     def patch(self, request, id):
         serializer = VisaRequirementUpdateSerializer(data=request.data)
@@ -31,7 +31,7 @@ class VisaRequirementUpdateAPI(AuthAPI):
 
 class VisaRequirementDeleteAPI(AuthAPI):
     """Delete a visa requirement. Only admin/staff can access."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [RulePermission]
 
     def delete(self, request, id):
         success = VisaRequirementService.delete_visa_requirement(id)
