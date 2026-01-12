@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from document_handling.services.case_document_service import CaseDocumentService
 from document_handling.services.document_check_service import DocumentCheckService
 
@@ -18,7 +18,7 @@ class DocumentHandlingStatisticsAPI(AuthAPI):
     Endpoint: GET /api/v1/document-handling/admin/statistics/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         case_document_stats = CaseDocumentService.get_statistics()
