@@ -6,6 +6,7 @@ Views for initiating payments, verifying payment status, and processing refunds.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.payment_permission import PaymentPermission
 from payments.services.payment_service import PaymentService
 from payments.serializers.payment.read import PaymentSerializer
 from payments.exceptions.payment_gateway_exceptions import PaymentGatewayError
@@ -19,6 +20,7 @@ class PaymentInitiateAPI(AuthAPI):
     
     Endpoint: POST /api/v1/payments/<id>/initiate/
     """
+    permission_classes = [PaymentPermission]
     
     def post(self, request, id):
         return_url = request.data.get('return_url')
@@ -50,6 +52,7 @@ class PaymentVerifyAPI(AuthAPI):
     
     Endpoint: POST /api/v1/payments/<id>/verify/
     """
+    permission_classes = [PaymentPermission]
     
     def post(self, request, id):
         result = PaymentService.verify_payment_status(payment_id=str(id))
@@ -80,6 +83,7 @@ class PaymentRefundAPI(AuthAPI):
     
     Endpoint: POST /api/v1/payments/<id>/refund/
     """
+    permission_classes = [PaymentPermission]
     
     def post(self, request, id):
         from decimal import Decimal
