@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.rule_permission import RulePermission
 from rules_knowledge.services.visa_type_service import VisaTypeService
 from rules_knowledge.serializers.visa_type.read import VisaTypeSerializer, VisaTypeListSerializer
 from main_system.utils import paginate_queryset
@@ -7,6 +8,7 @@ from main_system.utils import paginate_queryset
 
 class VisaTypeListAPI(AuthAPI):
     """Get list of visa types. Supports filtering by jurisdiction, is_active."""
+    permission_classes = [RulePermission]
 
     def get(self, request):
         jurisdiction = request.query_params.get('jurisdiction', None)
@@ -40,6 +42,7 @@ class VisaTypeListAPI(AuthAPI):
 
 class VisaTypeDetailAPI(AuthAPI):
     """Get visa type by ID."""
+    permission_classes = [RulePermission]
 
     def get(self, request, id):
         visa_type = VisaTypeService.get_by_id(id)
