@@ -1,9 +1,11 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.authentication_permission import AuthenticationPermission
 from users_access.serializers.users.create_user_success import WhoAmISerializer
 
 
 class UserStatusAPI(AuthAPI):
+    permission_classes = [AuthenticationPermission]
 
     def get(self, request):
         user = request.user
