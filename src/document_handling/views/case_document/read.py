@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.document_permission import DocumentPermission
 from document_handling.services.case_document_service import CaseDocumentService
 from document_handling.serializers.case_document.read import (
     CaseDocumentSerializer,
@@ -9,6 +10,7 @@ from document_handling.serializers.case_document.read import (
 
 class CaseDocumentListAPI(AuthAPI):
     """Get all case documents."""
+    permission_classes = [DocumentPermission]
 
     def get(self, request):
         case_id = request.query_params.get('case_id', None)
@@ -30,6 +32,7 @@ class CaseDocumentListAPI(AuthAPI):
 
 class CaseDocumentDetailAPI(AuthAPI):
     """Get case document by ID."""
+    permission_classes = [DocumentPermission]
 
     def get(self, request, id):
         case_document = CaseDocumentService.get_by_id(id)
@@ -50,6 +53,7 @@ class CaseDocumentDetailAPI(AuthAPI):
 
 class CaseDocumentVerifiedAPI(AuthAPI):
     """Get verified documents for a case."""
+    permission_classes = [DocumentPermission]
 
     def get(self, request, case_id):
         case_documents = CaseDocumentService.get_verified_by_case(case_id)
