@@ -7,7 +7,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from ai_decisions.services.eligibility_result_service import EligibilityResultService
 from ai_decisions.serializers.eligibility_result.read import EligibilityResultSerializer, EligibilityResultListSerializer
 from ai_decisions.serializers.eligibility_result.admin import EligibilityResultAdminListQuerySerializer
@@ -30,7 +30,7 @@ class EligibilityResultAdminListAPI(AuthAPI):
         - date_from: Filter by created date (from)
         - date_to: Filter by created date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         # Validate query parameters
@@ -70,7 +70,7 @@ class EligibilityResultAdminDetailAPI(AuthAPI):
     Endpoint: GET /api/v1/ai-decisions/admin/eligibility-results/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request, id):
         result = EligibilityResultService.get_by_id(id)
@@ -95,7 +95,7 @@ class EligibilityResultAdminDeleteAPI(AuthAPI):
     Endpoint: DELETE /api/v1/ai-decisions/admin/eligibility-results/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def delete(self, request, id):
         deleted = EligibilityResultService.delete_eligibility_result(id)
