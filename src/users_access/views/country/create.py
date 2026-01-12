@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from users_access.services.country_service import CountryService
 from users_access.serializers.country.create import CountryCreateSerializer
 from users_access.serializers.country.read import CountrySerializer
@@ -8,7 +8,7 @@ from users_access.serializers.country.read import CountrySerializer
 
 class CountryCreateAPI(AuthAPI):
     """Create a new country. Only admin/staff can access."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
 
     def post(self, request):
         serializer = CountryCreateSerializer(data=request.data)
