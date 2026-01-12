@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_reviewer import IsReviewer
+from main_system.permissions.review_note_permission import ReviewNotePermission
 from human_reviews.services.review_note_service import ReviewNoteService
 from human_reviews.serializers.review_note.read import ReviewNoteSerializer
 from human_reviews.serializers.review_note.update_delete import ReviewNoteUpdateSerializer
@@ -8,7 +8,7 @@ from human_reviews.serializers.review_note.update_delete import ReviewNoteUpdate
 
 class ReviewNoteUpdateAPI(AuthAPI):
     """Update a review note. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewNotePermission]
 
     def patch(self, request, id):
         serializer = ReviewNoteUpdateSerializer(data=request.data)
@@ -31,7 +31,7 @@ class ReviewNoteUpdateAPI(AuthAPI):
 
 class ReviewNoteDeleteAPI(AuthAPI):
     """Delete a review note. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewNotePermission]
 
     def delete(self, request, id):
         success = ReviewNoteService.delete_review_note(id)
