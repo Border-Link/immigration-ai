@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -34,7 +34,7 @@ class ReviewNoteAdminListAPI(AuthAPI):
         - date_from: Filter by created date (from)
         - date_to: Filter by created date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = ReviewNoteAdminListQuerySerializer(data=request.query_params)
@@ -61,7 +61,7 @@ class ReviewNoteAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/human-reviews/admin/review-notes/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -83,7 +83,7 @@ class ReviewNoteAdminUpdateAPI(BaseAdminUpdateAPI):
     Endpoint: PUT /api/v1/human-reviews/admin/review-notes/<id>/update/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -119,7 +119,7 @@ class ReviewNoteAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/human-reviews/admin/review-notes/<id>/delete/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -141,7 +141,7 @@ class BulkReviewNoteOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/human-reviews/admin/review-notes/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk review note operation serializer."""
