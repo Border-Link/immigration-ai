@@ -1,13 +1,13 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_reviewer import IsReviewer
+from main_system.permissions.decision_override_permission import DecisionOverridePermission
 from human_reviews.services.decision_override_service import DecisionOverrideService
 from human_reviews.serializers.decision_override.read import DecisionOverrideSerializer, DecisionOverrideListSerializer
 
 
 class DecisionOverrideListAPI(AuthAPI):
     """Get list of decision overrides. Supports filtering by case_id, original_result_id, reviewer_id. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [DecisionOverridePermission]
 
     def get(self, request):
         case_id = request.query_params.get('case_id', None)
@@ -32,7 +32,7 @@ class DecisionOverrideListAPI(AuthAPI):
 
 class DecisionOverrideDetailAPI(AuthAPI):
     """Get decision override by ID. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [DecisionOverridePermission]
 
     def get(self, request, id):
         override = DecisionOverrideService.get_by_id(id)
@@ -52,7 +52,7 @@ class DecisionOverrideDetailAPI(AuthAPI):
 
 class DecisionOverrideLatestAPI(AuthAPI):
     """Get latest override for an eligibility result. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [DecisionOverridePermission]
 
     def get(self, request, original_result_id):
         override = DecisionOverrideService.get_latest_by_original_result(original_result_id)

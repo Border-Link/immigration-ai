@@ -7,7 +7,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from immigration_cases.services.case_status_history_service import CaseStatusHistoryService
 from immigration_cases.serializers.case_status_history.read import (
     CaseStatusHistoryListQuerySerializer,
@@ -26,7 +26,7 @@ class CaseStatusHistoryListAPI(AuthAPI):
     Endpoint: GET /api/v1/immigration-cases/admin/cases/<case_id>/status-history/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request, case_id):
         # Validate query parameters
@@ -58,7 +58,7 @@ class CaseStatusHistoryDetailAPI(AuthAPI):
     Endpoint: GET /api/v1/immigration-cases/admin/status-history/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request, id):
         history_entry = CaseStatusHistoryService.get_by_id(id)

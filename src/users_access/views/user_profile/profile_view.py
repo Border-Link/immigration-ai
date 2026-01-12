@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.authentication_permission import AuthenticationPermission
 from users_access.services.user_profile_service import UserProfileService
 from users_access.serializers.user_profile.profile_serializer import (
     UserProfileSerializer,
@@ -9,6 +10,7 @@ from users_access.serializers.user_profile.profile_serializer import (
 
 class UserProfileAPI(AuthAPI):
     """Unified API for user profile - GET, PATCH, POST operations."""
+    permission_classes = [AuthenticationPermission]
 
     def get(self, request):
         """Get user profile."""
@@ -108,6 +110,7 @@ class UserProfileAPI(AuthAPI):
 
 class UserProfileAvatarAPI(AuthAPI):
     """Delete user avatar (separate endpoint for DELETE operation)."""
+    permission_classes = [AuthenticationPermission]
 
     def delete(self, request):
         """Remove user avatar."""

@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.document_permission import DocumentPermission
 from document_handling.services.case_document_service import CaseDocumentService
 from document_handling.serializers.case_document.update_delete import (
     CaseDocumentUpdateSerializer,
@@ -10,6 +11,7 @@ from document_handling.serializers.case_document.read import CaseDocumentSeriali
 
 class CaseDocumentUpdateAPI(AuthAPI):
     """Update a case document by ID."""
+    permission_classes = [DocumentPermission]
 
     def patch(self, request, id):
         serializer = CaseDocumentUpdateSerializer(data=request.data)
@@ -36,6 +38,7 @@ class CaseDocumentUpdateAPI(AuthAPI):
 
 class CaseDocumentDeleteAPI(AuthAPI):
     """Delete a case document by ID."""
+    permission_classes = [DocumentPermission]
 
     def delete(self, request, id):
         success = CaseDocumentService.delete_case_document(id)

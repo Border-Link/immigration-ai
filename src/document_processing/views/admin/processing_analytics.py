@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from document_processing.services.processing_job_service import ProcessingJobService
 from document_processing.services.processing_history_service import ProcessingHistoryService
 
@@ -18,7 +18,7 @@ class DocumentProcessingStatisticsAPI(AuthAPI):
     Endpoint: GET /api/v1/document-processing/admin/statistics/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         processing_job_stats = ProcessingJobService.get_statistics()

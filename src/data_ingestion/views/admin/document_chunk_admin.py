@@ -7,7 +7,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 from rest_framework import status
 from rest_framework import serializers
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -51,7 +51,7 @@ class DocumentChunkAdminListAPI(AuthAPI):
         - document_version_id: Filter by document version ID
         - has_embedding: Filter by embedding presence (true/false)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = DocumentChunkAdminListQuerySerializer(data=request.query_params)
@@ -82,7 +82,7 @@ class DocumentChunkAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/data-ingestion/admin/document-chunks/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -131,7 +131,7 @@ class DocumentChunkAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/data-ingestion/admin/document-chunks/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -153,7 +153,7 @@ class BulkDocumentChunkOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/data-ingestion/admin/document-chunks/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk document chunk operation serializer."""

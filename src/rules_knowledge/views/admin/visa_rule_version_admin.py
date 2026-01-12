@@ -7,7 +7,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 from rest_framework import status
 from django.core.exceptions import ValidationError
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -39,7 +39,7 @@ class VisaRuleVersionAdminListAPI(AuthAPI):
         - effective_from: Filter by effective_from date
         - effective_to: Filter by effective_to date
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         # Validate query parameters
@@ -81,7 +81,7 @@ class VisaRuleVersionAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/rules-knowledge/admin/visa-rule-versions/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -103,7 +103,7 @@ class VisaRuleVersionAdminUpdateAPI(BaseAdminUpdateAPI):
     Endpoint: PATCH /api/v1/rules-knowledge/admin/visa-rule-versions/<id>/update/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -174,7 +174,7 @@ class VisaRuleVersionAdminPublishAPI(AuthAPI):
     Endpoint: POST /api/v1/rules-knowledge/admin/visa-rule-versions/<id>/publish/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request, id):
         serializer = VisaRuleVersionPublishSerializer(data=request.data)
@@ -225,7 +225,7 @@ class VisaRuleVersionAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/rules-knowledge/admin/visa-rule-versions/<id>/delete/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -247,7 +247,7 @@ class BulkVisaRuleVersionOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/rules-knowledge/admin/visa-rule-versions/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk visa rule version operation serializer."""

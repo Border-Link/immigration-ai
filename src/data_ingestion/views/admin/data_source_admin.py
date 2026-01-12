@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -34,7 +34,7 @@ class DataSourceAdminListAPI(AuthAPI):
         - date_from: Filter by created date (from)
         - date_to: Filter by created date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = DataSourceAdminListQuerySerializer(data=request.query_params)
@@ -61,7 +61,7 @@ class DataSourceAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/data-ingestion/admin/data-sources/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -83,7 +83,7 @@ class DataSourceAdminActivateAPI(BaseAdminActivateAPI):
     Endpoint: POST /api/v1/data-ingestion/admin/data-sources/<id>/activate/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -105,7 +105,7 @@ class DataSourceAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/data-ingestion/admin/data-sources/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -127,7 +127,7 @@ class BulkDataSourceOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/data-ingestion/admin/data-sources/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk data source operation serializer."""

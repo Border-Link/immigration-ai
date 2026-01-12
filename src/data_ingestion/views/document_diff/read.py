@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.ingestion_permission import IngestionPermission
 from data_ingestion.services.document_diff_service import DocumentDiffService
 from data_ingestion.serializers.document_diff.read import (
     DocumentDiffSerializer,
@@ -9,6 +10,7 @@ from data_ingestion.serializers.document_diff.read import (
 
 class DocumentDiffListAPI(AuthAPI):
     """Get all document diffs."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request):
         change_type = request.query_params.get('change_type', None)
@@ -27,6 +29,7 @@ class DocumentDiffListAPI(AuthAPI):
 
 class DocumentDiffDetailAPI(AuthAPI):
     """Get document diff by ID."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request, id):
         document_diff = DocumentDiffService.get_by_id(id)

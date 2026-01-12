@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -37,7 +37,7 @@ class RuleValidationTaskAdminListAPI(AuthAPI):
         - date_to: Filter by created date (to)
         - sla_overdue: Filter by overdue SLA tasks
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = RuleValidationTaskAdminListQuerySerializer(data=request.query_params)
@@ -65,7 +65,7 @@ class RuleValidationTaskAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/data-ingestion/admin/validation-tasks/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -87,7 +87,7 @@ class RuleValidationTaskAdminUpdateAPI(AuthAPI):
     Endpoint: PATCH /api/v1/data-ingestion/admin/validation-tasks/<id>/update/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def patch(self, request, id):
         serializer = RuleValidationTaskAdminUpdateSerializer(data=request.data)
@@ -145,7 +145,7 @@ class RuleValidationTaskAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/data-ingestion/admin/validation-tasks/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -167,7 +167,7 @@ class BulkRuleValidationTaskOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/data-ingestion/admin/validation-tasks/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk rule validation task operation serializer."""

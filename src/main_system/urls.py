@@ -35,6 +35,7 @@ urlpatterns = [
     path(f"{API}/imigration-cases/", include("immigration_cases.urls")),
     path(f"{API}/payments/", include("payments.urls")),
     path(f"{API}/rules-knowledge/", include("rules_knowledge.urls")),
+    path(f"{API}/ai-calls/", include("ai_calls.urls")),
 
     #========================= PROMETHEUS =========================
     path(f"{API}metrics/", csrf_exempt(exports.ExportToDjangoView), name='prometheus-metrics'),

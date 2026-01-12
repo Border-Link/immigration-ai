@@ -1,4 +1,3 @@
-from .create import EligibilityResultCreateSerializer
 from .read import EligibilityResultSerializer, EligibilityResultListSerializer
 from .update_delete import EligibilityResultUpdateSerializer, EligibilityResultDeleteSerializer
 from .admin import (
@@ -7,7 +6,6 @@ from .admin import (
 )
 
 __all__ = [
-    'EligibilityResultCreateSerializer',
     'EligibilityResultSerializer',
     'EligibilityResultListSerializer',
     'EligibilityResultUpdateSerializer',

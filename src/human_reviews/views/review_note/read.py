@@ -1,13 +1,13 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_reviewer import IsReviewer
+from main_system.permissions.review_note_permission import ReviewNotePermission
 from human_reviews.services.review_note_service import ReviewNoteService
 from human_reviews.serializers.review_note.read import ReviewNoteSerializer, ReviewNoteListSerializer
 
 
 class ReviewNoteListAPI(AuthAPI):
     """Get list of review notes. Supports filtering by review_id. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewNotePermission]
 
     def get(self, request):
         review_id = request.query_params.get('review_id', None)
@@ -26,7 +26,7 @@ class ReviewNoteListAPI(AuthAPI):
 
 class ReviewNoteDetailAPI(AuthAPI):
     """Get review note by ID. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewNotePermission]
 
     def get(self, request, id):
         note = ReviewNoteService.get_by_id(id)
@@ -46,6 +46,7 @@ class ReviewNoteDetailAPI(AuthAPI):
 
 class ReviewNotePublicAPI(AuthAPI):
     """Get public (non-internal) notes for a review. Authenticated users can access."""
+    permission_classes = [ReviewNotePermission]
 
     def get(self, request, review_id):
         notes = ReviewNoteService.get_public_by_review(review_id)

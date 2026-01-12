@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.rule_permission import RulePermission
 from rules_knowledge.services.visa_document_requirement_service import VisaDocumentRequirementService
 from rules_knowledge.serializers.visa_document_requirement.read import (
     VisaDocumentRequirementSerializer,
@@ -10,6 +11,7 @@ from main_system.utils import paginate_queryset
 
 class VisaDocumentRequirementListAPI(AuthAPI):
     """Get list of visa document requirements. Supports filtering by rule_version_id."""
+    permission_classes = [RulePermission]
 
     def get(self, request):
         rule_version_id = request.query_params.get('rule_version_id', None)
@@ -36,6 +38,7 @@ class VisaDocumentRequirementListAPI(AuthAPI):
 
 class VisaDocumentRequirementDetailAPI(AuthAPI):
     """Get visa document requirement by ID."""
+    permission_classes = [RulePermission]
 
     def get(self, request, id):
         doc_requirement = VisaDocumentRequirementService.get_by_id(id)

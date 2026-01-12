@@ -7,8 +7,8 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
-from main_system.permissions.is_superuser import IsSuperUser
+from main_system.permissions.admin_permission import AdminPermission
+from main_system.permissions.is_superadmin import IsSuperAdmin
 from users_access.services.user_service import UserService
 from users_access.serializers.users.admin import (
     UserSuspendSerializer,
@@ -26,7 +26,7 @@ class UserSuspendAPI(AuthAPI):
     Endpoint: POST /api/v1/auth/admin/users/<id>/suspend/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request, id):
         serializer = UserSuspendSerializer(data=request.data)
@@ -54,7 +54,7 @@ class UserUnsuspendAPI(AuthAPI):
     Endpoint: POST /api/v1/auth/admin/users/<id>/unsuspend/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request, id):
         updated_user = UserService.activate_user_by_id(id)
@@ -79,7 +79,7 @@ class UserVerifyAPI(AuthAPI):
     Endpoint: POST /api/v1/auth/admin/users/<id>/verify/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request, id):
         serializer = UserVerifySerializer(data=request.data)
@@ -120,7 +120,7 @@ class BulkUserOperationAPI(AuthAPI):
     Endpoint: POST /api/v1/auth/admin/users/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request):
         serializer = BulkUserOperationSerializer(data=request.data)
@@ -193,7 +193,7 @@ class AdminPasswordResetAPI(AuthAPI):
     Endpoint: POST /api/v1/auth/admin/users/<id>/reset-password/
     Auth: Required (superuser only)
     """
-    permission_classes = [IsSuperUser]
+    permission_classes = [IsSuperAdmin]
     
     def post(self, request, id):
         serializer = AdminPasswordResetSerializer(data=request.data)
@@ -237,7 +237,7 @@ class UserRoleManagementAPI(AuthAPI):
     Endpoint: PATCH /api/v1/auth/admin/users/<id>/role/
     Auth: Required (superuser only)
     """
-    permission_classes = [IsSuperUser]
+    permission_classes = [IsSuperAdmin]
     
     def patch(self, request, id):
         serializer = UserRoleUpdateSerializer(data=request.data)

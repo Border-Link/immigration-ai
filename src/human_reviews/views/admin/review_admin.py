@@ -7,7 +7,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -41,7 +41,7 @@ class ReviewAdminListAPI(AuthAPI):
         - completed_date_from: Filter by completed date (from)
         - completed_date_to: Filter by completed date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         # Validate query parameters
@@ -76,7 +76,7 @@ class ReviewAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/human-reviews/admin/reviews/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -98,7 +98,7 @@ class ReviewAdminUpdateAPI(BaseAdminUpdateAPI):
     Endpoint: PUT /api/v1/human-reviews/admin/reviews/<id>/update/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -208,7 +208,7 @@ class ReviewAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/human-reviews/admin/reviews/<id>/delete/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -230,7 +230,7 @@ class BulkReviewOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/human-reviews/admin/reviews/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk review operation serializer."""

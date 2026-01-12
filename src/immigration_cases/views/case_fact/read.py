@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.case_fact_permission import CaseFactPermission
 from immigration_cases.services.case_fact_service import CaseFactService
 from immigration_cases.serializers.case_fact.read import (
     CaseFactListQuerySerializer,
@@ -11,6 +12,7 @@ from main_system.utils import paginate_queryset
 
 class CaseFactListAPI(AuthAPI):
     """Get list of case facts. Supports filtering by case_id and pagination."""
+    permission_classes = [CaseFactPermission]
 
     def get(self, request):
         # Validate query parameters
@@ -42,6 +44,7 @@ class CaseFactListAPI(AuthAPI):
 
 class CaseFactDetailAPI(AuthAPI):
     """Get case fact by ID."""
+    permission_classes = [CaseFactPermission]
 
     def get(self, request, id):
         fact = CaseFactService.get_by_id(id)

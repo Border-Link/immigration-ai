@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.document_permission import DocumentPermission
 from document_handling.services.case_document_service import CaseDocumentService
 from document_handling.services.file_storage_service import FileStorageService
 from document_handling.serializers.case_document.create import CaseDocumentCreateSerializer
@@ -11,6 +12,7 @@ logger = logging.getLogger('django')
 
 class CaseDocumentCreateAPI(AuthAPI):
     """Create a new case document with file upload."""
+    permission_classes = [DocumentPermission]
 
     def post(self, request):
         serializer = CaseDocumentCreateSerializer(data=request.data)

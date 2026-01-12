@@ -129,6 +129,44 @@ class AICitationService:
             return AICitationSelector.get_none()
 
     @staticmethod
+    def get_by_quality_filters(citations, min_relevance: float = None, 
+                                high_quality_threshold: float = 0.8,
+                                medium_quality_min: float = 0.5,
+                                medium_quality_max: float = 0.8,
+                                low_quality_threshold: float = 0.5):
+        """
+        Filter citations by quality thresholds.
+        
+        This is a helper method to avoid using .filter() directly in views.
+        Returns filtered queryset based on quality thresholds.
+        
+        Args:
+            citations: QuerySet of citations
+            min_relevance: Minimum relevance score
+            high_quality_threshold: Threshold for high quality (>=)
+            medium_quality_min: Minimum for medium quality (>=)
+            medium_quality_max: Maximum for medium quality (<)
+            low_quality_threshold: Threshold for low quality (<)
+            
+        Returns:
+            Dict with filtered querysets for each quality level
+        """
+        from django.db.models import Q
+        
+        if min_relevance is not None:
+            citations = citations.filter(relevance_score__gte=min_relevance)
+        
+        return {
+            'all': citations,
+            'high_quality': citations.filter(relevance_score__gte=high_quality_threshold),
+            'medium_quality': citations.filter(
+                relevance_score__gte=medium_quality_min,
+                relevance_score__lt=medium_quality_max
+            ),
+            'low_quality': citations.filter(relevance_score__lt=low_quality_threshold),
+        }
+    
+    @staticmethod
     def get_statistics():
         """Get AI citation statistics."""
         try:

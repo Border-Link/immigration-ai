@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.review_permission import ReviewPermission
 from human_reviews.services.review_service import ReviewService
 from human_reviews.serializers.review.read import ReviewSerializer
 from human_reviews.serializers.review.actions import (
@@ -19,7 +19,7 @@ class ReviewReassignAPI(AuthAPI):
     Endpoint: POST /api/v1/human-reviews/reviews/<id>/reassign/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [ReviewPermission]
     
     def post(self, request, id):
         serializer = ReviewReassignSerializer(data=request.data)
@@ -53,7 +53,7 @@ class ReviewEscalateAPI(AuthAPI):
     Endpoint: POST /api/v1/human-reviews/reviews/<id>/escalate/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [ReviewPermission]
     
     def post(self, request, id):
         serializer = ReviewEscalateSerializer(data=request.data)
@@ -87,7 +87,7 @@ class ReviewApproveAPI(AuthAPI):
     Endpoint: POST /api/v1/human-reviews/reviews/<id>/approve/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [ReviewPermission]
     
     def post(self, request, id):
         serializer = ReviewApproveSerializer(data=request.data)
@@ -120,7 +120,7 @@ class ReviewRejectAPI(AuthAPI):
     Endpoint: POST /api/v1/human-reviews/reviews/<id>/reject/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [ReviewPermission]
     
     def post(self, request, id):
         serializer = ReviewRejectSerializer(data=request.data)
@@ -153,7 +153,7 @@ class ReviewRequestChangesAPI(AuthAPI):
     Endpoint: POST /api/v1/human-reviews/reviews/<id>/request-changes/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [ReviewPermission]
     
     def post(self, request, id):
         serializer = ReviewRequestChangesSerializer(data=request.data)

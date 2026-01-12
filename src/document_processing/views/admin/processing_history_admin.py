@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -38,7 +38,7 @@ class ProcessingHistoryAdminListAPI(AuthAPI):
         - date_to: Filter by created date (to)
         - limit: Limit number of results
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = ProcessingHistoryAdminListQuerySerializer(data=request.query_params)
@@ -70,7 +70,7 @@ class ProcessingHistoryAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/document-processing/admin/processing-history/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -92,7 +92,7 @@ class ProcessingHistoryAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/document-processing/admin/processing-history/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -119,7 +119,7 @@ class BulkProcessingHistoryOperationAPI(BaseBulkOperationAPI):
             "operation": "delete"
         }
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk processing history operation serializer."""

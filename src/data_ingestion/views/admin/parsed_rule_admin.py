@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -36,7 +36,7 @@ class ParsedRuleAdminListAPI(AuthAPI):
         - date_from: Filter by created date (from)
         - date_to: Filter by created date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = ParsedRuleAdminListQuerySerializer(data=request.query_params)
@@ -65,7 +65,7 @@ class ParsedRuleAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/data-ingestion/admin/parsed-rules/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -87,7 +87,7 @@ class ParsedRuleAdminUpdateAPI(BaseAdminUpdateAPI):
     Endpoint: PATCH /api/v1/data-ingestion/admin/parsed-rules/<id>/update/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -120,7 +120,7 @@ class ParsedRuleAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/data-ingestion/admin/parsed-rules/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -142,7 +142,7 @@ class BulkParsedRuleOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/data-ingestion/admin/parsed-rules/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk parsed rule operation serializer."""

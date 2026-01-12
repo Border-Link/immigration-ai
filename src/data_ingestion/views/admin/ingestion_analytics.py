@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from data_ingestion.services.data_source_service import DataSourceService
 from data_ingestion.services.source_document_service import SourceDocumentService
 from data_ingestion.services.document_version_service import DocumentVersionService
@@ -25,7 +25,7 @@ class IngestionStatisticsAPI(AuthAPI):
     Endpoint: GET /api/v1/data-ingestion/admin/statistics/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         data_source_stats = DataSourceService.get_statistics()
@@ -64,7 +64,7 @@ class ParsingCostAnalyticsAPI(AuthAPI):
         - date_to: Filter by date (to)
         - llm_model: Filter by LLM model
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = ParsingCostAnalyticsQuerySerializer(data=request.query_params)

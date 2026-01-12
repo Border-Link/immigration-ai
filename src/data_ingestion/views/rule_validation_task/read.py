@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.rule_validation_task_permission import RuleValidationTaskPermission
 from data_ingestion.services.rule_validation_task_service import RuleValidationTaskService
 from data_ingestion.serializers.rule_validation_task.read import (
     RuleValidationTaskSerializer,
@@ -9,6 +10,7 @@ from data_ingestion.serializers.rule_validation_task.read import (
 
 class RuleValidationTaskListAPI(AuthAPI):
     """Get all rule validation tasks."""
+    permission_classes = [RuleValidationTaskPermission]
 
     def get(self, request):
         status_filter = request.query_params.get('status', None)
@@ -30,6 +32,7 @@ class RuleValidationTaskListAPI(AuthAPI):
 
 class RuleValidationTaskDetailAPI(AuthAPI):
     """Get rule validation task by ID."""
+    permission_classes = [RuleValidationTaskPermission]
 
     def get(self, request, id):
         task = RuleValidationTaskService.get_by_id(id)
@@ -50,6 +53,7 @@ class RuleValidationTaskDetailAPI(AuthAPI):
 
 class RuleValidationTaskPendingAPI(AuthAPI):
     """Get all pending rule validation tasks."""
+    permission_classes = [RuleValidationTaskPermission]
 
     def get(self, request):
         tasks = RuleValidationTaskService.get_pending()

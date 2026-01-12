@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_superuser import IsSuperUser
+from main_system.permissions.is_superadmin import IsSuperAdmin
 from data_ingestion.services.data_source_service import DataSourceService
 from data_ingestion.serializers.data_source.update_delete import (
     DataSourceUpdateSerializer,
@@ -11,7 +11,7 @@ from data_ingestion.serializers.data_source.read import DataSourceSerializer
 
 class DataSourceUpdateAPI(AuthAPI):
     """Update a data source by ID."""
-    permission_classes = [IsSuperUser]
+    permission_classes = [IsSuperAdmin]
 
     def patch(self, request, id):
         serializer = DataSourceUpdateSerializer(
@@ -49,7 +49,7 @@ class DataSourceUpdateAPI(AuthAPI):
 
 class DataSourceIngestionTriggerAPI(AuthAPI):
     """Trigger ingestion for a data source."""
-    permission_classes = [IsSuperUser]
+    permission_classes = [IsSuperAdmin]
 
     def post(self, request, id):
         serializer = DataSourceIngestionTriggerSerializer(data=request.data)

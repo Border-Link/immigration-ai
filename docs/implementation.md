@@ -17,11 +17,12 @@
 6. [AI Reasoning & Rule Engine Flow](#section-6-ai-reasoning--rule-engine-flow)
 7. [Human-in-Loop Validation Flow](#section-7-human-in-loop-validation-flow)
 8. [Document Upload & Checking](#section-8-document-upload--checking)
-9. [Security, GDPR, and Compliance](#section-9-security-gdpr-and-compliance)
-10. [Step-by-Step Implementation Plan](#section-10-step-by-step-implementation-plan)
-11. [Example Code Snippets / Pseudocode](#section-11-example-code-snippets--pseudocode)
-12. [Phased Roadmap](#section-12-phased-roadmap)
-13. [Developer Notes](#section-13-developer-notes)
+9. [AI Call Service](#section-9-ai-call-service)
+10. [Security, GDPR, and Compliance](#section-10-security-gdpr-and-compliance)
+11. [Step-by-Step Implementation Plan](#section-11-step-by-step-implementation-plan)
+12. [Example Code Snippets / Pseudocode](#section-12-example-code-snippets--pseudocode)
+13. [Phased Roadmap](#section-13-phased-roadmap)
+14. [Developer Notes](#section-14-developer-notes)
 
 ---
 
@@ -860,7 +861,8 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 
 ### 4.3.1 Run Eligibility Check
 **Endpoint**: `POST /api/v1/cases/{case_id}/eligibility`  
-**Auth**: Required (user: own case, reviewer/admin: any)  
+**Auth**: Required (reviewer/admin only - regular users cannot manually request eligibility checks)  
+**Permission**: `IsReviewerOrAdmin` (role='reviewer' AND is_staff/is_superuser, OR is_staff/is_superuser)  
 **Request**: (optional query params)
 ```json
 {
@@ -912,25 +914,37 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
   "generated_at": "2024-01-15T10:30:00Z"
 }
 ```
+**Important Notes**:
+- **Regular users CANNOT manually request eligibility checks** - This endpoint is restricted to reviewers and admins only
+- **Eligibility checks are automatically triggered** by the system at appropriate times:
+  - When case is submitted (status changes to `'submitted'` or `'pending_review'`)
+  - When all required documents are processed and verified
+  - When payment is completed for a case
+- **Eligibility results are system-generated** - Users cannot manually create eligibility results. Results are automatically created by the eligibility check process
+- **Payment validation required** - All eligibility checks require a completed payment for the case before execution
+
 **DB Mapping**:
-1. Load `case_facts` for case_id
-2. Load active `visa_rule_versions` (filter by jurisdiction, effective dates)
-3. For each visa type:
+1. **Payment Validation**: Verify case has completed payment (required before proceeding)
+2. Load `case_facts` for case_id
+3. Load active `visa_rule_versions` (filter by jurisdiction, effective dates)
+4. For each visa type:
    - Evaluate `visa_requirements` using rule engine (JSON Logic)
    - Call AI Reasoning Service for nuanced interpretation
-   - Store `eligibility_results`
+   - Store `eligibility_results` (automatically created, not user-created)
    - Store `ai_reasoning_logs`
    - Store `ai_citations`
-4. Update `cases.status` to `evaluated`
-5. **Edge Cases**:
+5. Update `cases.status` to `evaluated`
+6. **Edge Cases**:
    - Missing critical facts → Returns `missing_requirements` with `status: "missing_fact"`
    - AI service unavailable → Falls back to rule engine only, `confidence` reduced
    - Low confidence (<0.6) → `requires_human_review: true`, `low_confidence_flags: ["uncertain_interpretation"]`
    - Rule conflicts → Escalates to human, returns `pending_review` status
+   - Payment not completed → Returns error, eligibility check blocked
 
 ### 4.3.2 Get Eligibility Explanation
 **Endpoint**: `GET /api/v1/cases/{case_id}/eligibility/{result_id}/explanation`  
 **Auth**: Required  
+**Permission**: User must own the case OR be reviewer/admin (checked via case ownership)
 **Response**:
 ```json
 {
@@ -964,9 +978,54 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 - Joins `eligibility_results`, `ai_reasoning_logs`, `ai_citations`, `visa_requirements`
 - **Edge Cases**: Result not found → 404
 
-### 4.3.3 List AI Reasoning Logs (Reviewer Only)
+### 4.3.3 List Eligibility Results
+**Endpoint**: `GET /api/v1/ai-decisions/eligibility-results/`  
+**Auth**: Required  
+**Permission**: `CanViewEligibilityResult` - Users can view results for cases they own, reviewers/admins can view all  
+**Query Params**:
+- `case_id` (optional): Filter by case ID
+
+**Response**:
+```json
+{
+  "message": "Eligibility results retrieved successfully.",
+  "data": {
+    "items": [
+      {
+        "id": "880e8400-e29b-41d4-a716-446655440003",
+        "case_id": "550e8400-e29b-41d4-a716-446655440000",
+        "visa_type": "SKILLED_WORKER",
+        "outcome": "likely",
+        "confidence": 0.92,
+        "created_at": "2024-01-15T10:30:00Z"
+      }
+    ],
+    "pagination": {...}
+  }
+}
+```
+
+**Note**: Eligibility results are **system-generated** and cannot be manually created by users. Users can only view, update, or delete their own results.
+
+### 4.3.4 Get Eligibility Result Detail
+**Endpoint**: `GET /api/v1/ai-decisions/eligibility-results/{id}/`  
+**Auth**: Required  
+**Permission**: `CanViewEligibilityResult` - User must own the case OR be reviewer/admin
+
+### 4.3.5 Update Eligibility Result
+**Endpoint**: `PATCH /api/v1/ai-decisions/eligibility-results/{id}/update/`  
+**Auth**: Required  
+**Permission**: `CanModifyEligibilityResult` - User must own the case OR be admin (reviewers cannot modify)
+
+### 4.3.6 Delete Eligibility Result
+**Endpoint**: `DELETE /api/v1/ai-decisions/eligibility-results/{id}/delete/`  
+**Auth**: Required  
+**Permission**: `CanModifyEligibilityResult` - User must own the case OR be admin (reviewers cannot delete)
+
+### 4.3.7 List AI Reasoning Logs (Reviewer/Admin Only)
 **Endpoint**: `GET /api/v1/ai-decisions/ai-reasoning-logs/`  
-**Auth**: Required (reviewer only - reviewers review AI decisions)  
+**Auth**: Required (reviewer or admin/staff only)  
+**Permission**: `CanViewAIReasoningLog` - Reviewers and admins can view AI reasoning logs  
 **Query Params**:
 - `case_id` (optional): Filter by case ID
 - `model_name` (optional): Filter by model name (e.g., "gpt-4")
@@ -988,9 +1047,10 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 ```
 **Use Cases**: Debugging, auditing, token usage tracking, AI quality analysis
 
-### 4.3.4 Get AI Reasoning Log Detail (Reviewer Only)
+### 4.3.8 Get AI Reasoning Log Detail (Reviewer/Admin Only)
 **Endpoint**: `GET /api/v1/ai-decisions/ai-reasoning-logs/{log_id}/`  
-**Auth**: Required (reviewer only - reviewers review AI decisions)  
+**Auth**: Required (reviewer or admin/staff only)  
+**Permission**: `CanViewAIReasoningLog` - Reviewers and admins can view AI reasoning logs  
 **Response**:
 ```json
 {
@@ -1009,9 +1069,10 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 ```
 **Use Cases**: Full prompt/response inspection for debugging, compliance auditing
 
-### 4.3.5 List AI Citations (Reviewer Only)
+### 4.3.9 List AI Citations (Reviewer/Admin Only)
 **Endpoint**: `GET /api/v1/ai-decisions/ai-citations/`  
-**Auth**: Required (reviewer only - reviewers review AI decisions)  
+**Auth**: Required (reviewer or admin/staff only)  
+**Permission**: `CanViewAICitation` - Reviewers and admins can view AI citations  
 **Query Params**:
 - `reasoning_log_id` (optional): Filter by reasoning log ID
 - `document_version_id` (optional): Filter by document version ID
@@ -1033,9 +1094,10 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 ```
 **Use Cases**: Citation quality analysis, source verification, debugging
 
-### 4.3.6 Get AI Citation Detail (Reviewer Only)
+### 4.3.10 Get AI Citation Detail (Reviewer/Admin Only)
 **Endpoint**: `GET /api/v1/ai-decisions/ai-citations/{citation_id}/`  
-**Auth**: Required (reviewer only - reviewers review AI decisions)  
+**Auth**: Required (reviewer or admin/staff only)  
+**Permission**: `CanViewAICitation` - Reviewers and admins can view AI citations  
 **Response**:
 ```json
 {
@@ -1055,13 +1117,21 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 ```
 **Use Cases**: Detailed citation inspection, source verification, quality assurance
 
-**Note**: These endpoints (4.3.3-4.3.6) are **read-only** and restricted to reviewers (who review AI decisions) for:
+**Note**: These endpoints (4.3.7-4.3.10) are **read-only** and restricted to reviewers and admins for:
 - **Observability**: Monitor AI reasoning quality
 - **Debugging**: Investigate AI decision issues
 - **Compliance**: Audit AI outputs and citations
 - **Analytics**: Track token usage and citation quality
 
-### 4.3.7 Admin Management Endpoints (Staff/Superuser Only)
+**Permission Classes**: The `ai_decisions` module uses dedicated permission classes:
+- `CanViewEligibilityResult` - View eligibility results (users: own cases, reviewers/admins: all)
+- `CanModifyEligibilityResult` - Modify eligibility results (users: own cases, admins: all, reviewers: read-only)
+- `CanViewAIReasoningLog` - View AI reasoning logs (reviewers and admins only)
+- `CanViewAICitation` - View AI citations (reviewers and admins only)
+
+These permissions are module-specific and provide clear, self-documenting access control. See `docs/AI_DECISIONS_PERMISSIONS.md` for details.
+
+### 4.3.11 Admin Management Endpoints (Staff/Superuser Only)
 **Base Path**: `/api/v1/ai-decisions/admin/`
 
 All admin endpoints use `IsAdminOrStaff` permission class (requires `is_staff=True` OR `is_superuser=True`).
@@ -2733,19 +2803,38 @@ Shows:
 ### Step-by-Step Implementation
 
 1. **Encryption at Rest**:
-   - Enable database encryption (PostgreSQL TDE or cloud provider encryption)
-   - Encrypt S3 objects (SSE-S3 or SSE-KMS)
-   - Encrypt sensitive fields in database (PII fields like email, phone) using application-level encryption
+   - ✅ **Database Encryption**: PostgreSQL TDE or cloud provider encryption (verification required)
+     - AWS RDS: Verify `storage_encrypted = true`
+     - Azure: Verify "Transparent Data Encryption" is enabled
+     - GCP: Verify "Encryption at rest" is enabled
+     - See `docs/SECURITY_ENCRYPTION_STRATEGY.md` for verification steps
+   - ✅ **S3/Object Storage Encryption**: SSE-S3 or SSE-KMS (verification required)
+     - Files stored with `ACL: 'private'` ✅
+     - Server-side encryption configuration needs verification ⚠️
+     - See `docs/SECURITY_ENCRYPTION_STRATEGY.md` for verification steps
+   - ✅ **Application-Level Encryption**: `django-encrypted-model-fields` available for sensitive fields
+     - Encryption keys stored in `FIELD_ENCRYPTION_KEY` environment variable
+     - Fields that should be encrypted: User PII, API keys (if stored in database)
 
 2. **Encryption in Transit**:
-   - Enforce HTTPS/TLS 1.3 for all API endpoints
-   - Use secure connections for database (SSL/TLS)
-   - Use secure connections for S3 (HTTPS)
+   - ✅ **HTTPS/TLS**: Enforced for all API endpoints
+     - `SECURE_HSTS_SECONDS = 31536000` (1 year in production) ✅
+     - `SECURE_HSTS_INCLUDE_SUBDOMAINS = True` ✅
+     - `SECURE_HSTS_PRELOAD = True` ✅
+     - `SESSION_COOKIE_SECURE = True` ✅
+     - `CSRF_COOKIE_SECURE = True` ✅
+   - ⚠️ **Database SSL/TLS**: Verification required
+     - Database connections should use SSL/TLS
+     - Recommended: `sslmode: 'verify-full'` for production
+     - See `docs/SECURITY_DATABASE_CONNECTION.md` for configuration details
+   - ✅ **S3 HTTPS**: All S3 connections use HTTPS
 
 3. **Key Management**:
-   - Use cloud KMS (AWS KMS, Azure Key Vault, GCP KMS) for encryption keys
-   - Rotate keys periodically (annually or as per compliance requirements)
-   - Never store keys in code or environment variables (use secrets manager)
+   - ⚠️ **Secrets Management**: Migration to cloud KMS recommended
+     - Use AWS Secrets Manager, Azure Key Vault, or GCP Secret Manager
+     - Never store keys in code or environment variables
+     - Rotate keys periodically (annually or as per compliance requirements)
+     - See `docs/SECURITY_API_KEY_HANDLING.md` for API key handling strategy
 
 ## 9.3 GDPR Compliance
 
@@ -2852,10 +2941,203 @@ Shows:
    - Auto-block user account if suspicious activity detected
 
 3. **Rate Limiting**:
-   - Implement rate limits per user/IP
-   - Limit: 100 requests per minute per user
-   - Limit: 10 document uploads per hour per user
+   - ✅ **Implemented**: Rate limits configured in `src/main_system/settings.py`
+     - Anonymous users: 5 requests per minute
+     - Authenticated users: 300 requests per minute
+     - OTP requests: 3 requests per minute
+     - Login attempts: 5 requests per minute
+     - Registration: 3 requests per minute
    - Return 429 Too Many Requests if exceeded
+
+## 9.7 Payment Validation Requirements
+
+### Overview
+
+Payment validation is enforced across all critical operations to ensure users have completed payment before performing case-related operations. This is a core business requirement and security measure.
+
+### Payment Validation Implementation
+
+**Validator**: `PaymentValidator` (`src/payments/helpers/payment_validator.py`)
+
+**Key Methods**:
+- `validate_case_has_payment(case, operation_name)` - Validates case has completed payment
+- `has_completed_payment_for_case(case, use_cache=True)` - Checks for completed payment (with caching)
+- `can_create_case_for_user(user_id)` - Checks if user can create a new case
+
+**Features**:
+- ✅ Caching enabled for performance (payment status cached)
+- ✅ Detailed error messages for users
+- ✅ Comprehensive logging for security auditing
+- ✅ Soft delete support (deleted payments are not valid)
+- ✅ Status verification (only 'completed' payments are valid)
+
+### Operations Requiring Payment Validation
+
+1. **AI Decisions Module** ✅:
+   - Eligibility checks (`EligibilityCheckService.run_eligibility_check()`)
+   - Eligibility result creation/update/delete (`EligibilityResultService`)
+   - AI reasoning (`AIReasoningService.run_ai_reasoning()`)
+   - Celery tasks (`run_eligibility_check_task()`)
+
+2. **Immigration Cases Module** ✅:
+   - Case updates (`CaseService.update_case()`)
+   - Case status transitions to 'evaluated', 'awaiting_review', 'reviewed'
+   - Case deletions and restorations
+   - Case fact creation/updates/deletions (`CaseFactService`)
+
+3. **Document Handling Module** ✅:
+   - Document status updates (`CaseDocumentService.update_status()`)
+   - Document updates/deletions (`CaseDocumentService`)
+   - Document checklist generation (`DocumentChecklistService`)
+   - Document reprocessing (`DocumentReprocessingService`)
+   - Document checks (`DocumentCheckService`)
+   - Document requirement matching (`DocumentRequirementMatchingService`)
+   - Document processing tasks (`process_document_task()`)
+
+4. **Document Processing Module** ✅:
+   - Processing job creation/updates (`ProcessingJobService`)
+   - Processing job retries (`ProcessingJobRetryService`)
+   - Processing history deletions (`ProcessingHistoryService`)
+
+5. **Human Reviews Module** ✅:
+   - Review creation/updates/deletions (`ReviewService`)
+   - Review actions (approve, reject, request changes)
+   - Review notes (`ReviewNoteService`)
+   - Decision overrides (`DecisionOverrideService`)
+
+6. **Rules Knowledge Module** ✅:
+   - Case fact loading for rule evaluation (`RuleEngineService`)
+   - Eligibility evaluations (`RuleEngineService`)
+
+### Payment Validation Flow
+
+1. **User initiates operation** (e.g., update case, run eligibility check)
+2. **Service method called** (e.g., `CaseService.update_case()`)
+3. **Payment validation executed**:
+   ```python
+   from payments.helpers.payment_validator import PaymentValidator
+   is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="operation")
+   if not is_valid:
+       return None, error, 400
+   ```
+4. **If validation fails**: Operation blocked, error returned to user
+5. **If validation passes**: Operation proceeds normally
+
+### Error Messages
+
+Payment validation provides clear, user-friendly error messages:
+- "Case requires a completed payment before {operation} can be performed. Please complete your payment first."
+- "Payment status is '{status}'. Payment must be completed before {operation} can be performed."
+- "Payment has been deleted. Please create a new payment before {operation} can be performed."
+
+### Performance Considerations
+
+- **Caching**: Payment status is cached to avoid repeated database queries
+- **Early Validation**: Payment validation occurs early in service methods, before expensive operations
+- **Celery Tasks**: Payment validation in async tasks prevents wasted processing on unpaid cases
+
+### Documentation
+
+- `docs/AI_DECISIONS_PAYMENT_VALIDATION.md` - AI decisions payment validation details
+- `src/payments/helpers/payment_validator.py` - Payment validator implementation
+
+## 9.8 Security Implementation Status
+
+### ✅ Implemented Security Features
+
+1. **Security Headers** ✅:
+   - Content-Security-Policy (CSP) for HTML responses only (API-optimized)
+   - HSTS (HTTP Strict Transport Security) - 1 year in production
+   - X-Content-Type-Options: nosniff
+   - X-Frame-Options: DENY
+   - X-XSS-Protection: 1; mode=block
+   - Referrer-Policy: strict-origin-when-cross-origin
+   - Cross-Origin-Embedder-Policy, Cross-Origin-Opener-Policy, Cross-Origin-Resource-Policy
+   - Permissions-Policy header
+   - See `src/main_system/middlewares/security_headers.py`
+
+2. **Log Sanitization** ✅:
+   - Redacts passwords, tokens, API keys from logs
+   - Truncates emails and tokens
+   - Recursive sanitization for nested structures
+   - See `src/main_system/utils/log_sanitizer.py`
+   - API keys added to `LOG_REDACT_PATTERNS`: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+
+3. **File Content Validation** ✅:
+   - Content-based file validation using `python-magic` (magic bytes)
+   - Validates actual file content, not just declared MIME type
+   - Prevents MIME type spoofing attacks
+   - See `src/document_handling/services/file_storage_service.py`
+
+4. **Virus Scanning** ✅:
+   - ClamAV integration (local) or AWS Macie (cloud-based)
+   - Configurable via `VIRUS_SCAN_BACKEND` setting
+   - Integrated into file upload flow
+   - Fails secure (rejects file if scan fails)
+   - See `src/document_handling/services/virus_scan_service.py`
+
+5. **Payment Amount Validation** ✅:
+   - Webhook amount validation
+   - Compares webhook amount with payment amount
+   - Allows small rounding differences (0.01)
+   - Logs and rejects mismatched amounts
+   - See `src/payments/services/payment_webhook_service.py`
+
+6. **JSON Logic Expression Validation** ✅:
+   - Complexity limits: max 1000 nodes, max depth 20
+   - Prevents DoS attacks via complex expressions
+   - See `src/rules_knowledge/helpers/json_logic_validator.py`
+
+7. **Security Event Logging** ✅:
+   - Logs authentication failures
+   - Logs authorization denials (403 errors)
+   - Logs payment security events
+   - Logs suspicious activity
+   - Logs rate limit exceeded events
+   - All logs sanitized for PII
+   - See `src/compliance/services/security_event_logger.py`
+
+8. **API Exception Handling** ✅:
+   - Customized for API-only backend
+   - Client errors (4xx): Returns specific DRF error messages
+   - Server errors (5xx): Returns generic message in production, detailed in development
+   - All errors logged with full details
+   - See `src/main_system/base/base_api.py`
+
+9. **Request Size Limits** ✅:
+   - `DATA_UPLOAD_MAX_MEMORY_SIZE = 10MB`
+   - `FILE_UPLOAD_MAX_MEMORY_SIZE = 10MB`
+   - `DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000`
+
+10. **Cookie Security** ✅:
+    - `CSRF_COOKIE_HTTPONLY = True`
+    - `SESSION_COOKIE_SECURE = True` (in production)
+    - `CSRF_COOKIE_SECURE = True` (in production)
+    - SameSite configuration verified
+    - See `src/main_system/cookies/manager.py`
+
+11. **Dependency Scanning** ✅:
+    - Dependabot configured (`.github/dependabot.yml`)
+    - Weekly dependency updates
+    - Security updates automatically
+    - See `docs/SECURITY_DEPENDENCY_SCANNING.md` for details
+
+### ⚠️ Verification Required
+
+1. **Database Encryption**: Verify database encryption is enabled (see `docs/SECURITY_ENCRYPTION_STRATEGY.md`)
+2. **S3 Encryption**: Verify S3/Spaces bucket encryption is enabled (see `docs/SECURITY_ENCRYPTION_STRATEGY.md`)
+3. **Database SSL/TLS**: Add SSL configuration to database settings (see `docs/SECURITY_DATABASE_CONNECTION.md`)
+4. **Database Network Security**: Verify database is not publicly accessible (see `docs/SECURITY_DATABASE_CONNECTION.md`)
+5. **Secrets Management**: Migrate to AWS Secrets Manager or similar (see `docs/SECURITY_API_KEY_HANDLING.md`)
+
+### 📚 Security Documentation
+
+- `docs/SECURITY_FIXES_IMPLEMENTED.md` - Complete list of implemented security fixes
+- `docs/SECURITY_ENCRYPTION_STRATEGY.md` - Encryption strategy and verification steps
+- `docs/SECURITY_DATABASE_CONNECTION.md` - Database connection security requirements
+- `docs/SECURITY_API_KEY_HANDLING.md` - API key handling and rotation policy
+- `docs/SECURITY_DEPENDENCY_SCANNING.md` - Dependency scanning strategy
+- `docs/SECURITY_IMPLEMENTATION_COMPLETE.md` - Complete security implementation summary
 
 ---
 

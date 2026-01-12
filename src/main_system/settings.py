@@ -27,15 +27,22 @@ FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY")
 FINGERPRINT_SECRET = env("FINGERPRINT_SECRET")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env("DEBUG")
+DEBUG = env("DEBUG", default=False)
+
+# Environment
+APP_ENV = env("APP_ENV", default="local")
+
+# Force DEBUG=False in production for security
+if APP_ENV == "production":
+    DEBUG = False
+    assert not DEBUG, "DEBUG must be False in production"
 
 # Helper to split comma-separated env vars
 def get_list_from_env(var_name, default=""):
     value = env(var_name, default=default)
     return [v.strip() for v in value.split(",") if v.strip()]
 
-# Environment
-APP_ENV = env("APP_ENV", default="local")
+
 
 # Hosts & CORS
 ALLOWED_HOSTS = get_list_from_env("ALLOWED_HOSTS")
@@ -44,13 +51,22 @@ CSRF_TRUSTED_ORIGINS = get_list_from_env("CSRF_TRUSTED_ORIGINS")
 
 CORS_ALLOW_CREDENTIALS = True
 
-# In local dev, allow all origins if needed
+# CORS Configuration - Security: Explicit environment checks
 APP_ENVIRONMENTS = ["local", "dev", "qa"]
 if APP_ENV in APP_ENVIRONMENTS:
+    # In non-production, allow all origins but log warning
     CORS_ALLOW_ALL_ORIGINS = True
+    import logging
+    logger = logging.getLogger('django')
+    logger.warning("CORS_ALLOW_ALL_ORIGINS is True in non-production environment")
 
 if APP_ENV == "production":
     CORS_ALLOW_ALL_ORIGINS = False
+    # Ensure CORS_ALLOWED_ORIGINS is set in production
+    if not CORS_ALLOWED_ORIGINS:
+        import logging
+        logger = logging.getLogger('django')
+        logger.error("CORS_ALLOWED_ORIGINS is empty in production! This is a security risk.")
 
 CORS_ALLOW_HEADERS = [
     'content-type',
@@ -71,13 +87,19 @@ APPEND_SLASH = True
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = 3600
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+# HSTS Configuration - Production: 1 year, Dev: Disabled
+if APP_ENV == "production":
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+else:
+    SECURE_HSTS_SECONDS = 0  # Disable in dev
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-CSRF_COOKIE_HTTPONLY=False
-SESSION_COOKIE_HTTPONLY=True
+CSRF_COOKIE_HTTPONLY = False
+SESSION_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = "DENY"
 
 CSRF_COOKIE_DOMAIN = ".borderlink.app"
@@ -118,6 +140,7 @@ INSTALLED_APPS = [
     "corsheaders", # for CORS support
 
     #my apps
+    "ai_calls",
     "ai_decisions",
     "compliance",
     "data_ingestion",
@@ -290,8 +313,11 @@ MIDDLEWARE = [
     "main_system.middlewares.slash_fix.EnforceTrailingSlashMiddleware",
     "main_system.middlewares.device_access_manager.DeviceSessionRefreshMiddleware",
     "main_system.middlewares.two_factor_auth.TwoFactorAuthMiddleware",
+    
+    # 5. Security headers middleware (add security headers)
+    "main_system.middlewares.security_headers.SecurityHeadersMiddleware",
 
-    # 5. Django final middleware
+    # 6. Django final middleware
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 
     # Django Prometheus after middleware
@@ -379,6 +405,11 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Security: Request size limits to prevent DoS attacks
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000  # Limit number of form fields
+
 
 # REST FRAMEWORK SETTINGS
 REST_FRAMEWORK = {
@@ -393,13 +424,15 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
 
-    # Rate limits
+    # Rate limits - Security: Adjusted for better protection
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "10/minute",  # All endpoints accessed without token
-        "user": "500/minute", # All endpoints accessed with token
+        "anon": "5/minute",  # Reduced from 10/min for better brute force protection
+        "user": "300/minute", # Reduced from 500/min for better DoS protection
         "request_rate": "5/minute",
-        "otp": "5/minute",
+        "otp": "3/minute",  # Reduced from 5/min for OTP endpoints
         "refresh_token": "10/minute",
+        "login": "5/minute",  # Specific rate limit for login endpoints
+        "registration": "3/minute",  # Specific rate limit for registration
     },
 
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

@@ -7,7 +7,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from ai_decisions.services.eligibility_result_service import EligibilityResultService
 from ai_decisions.services.ai_reasoning_log_service import AIReasoningLogService
 from ai_decisions.services.ai_citation_service import AICitationService
@@ -26,7 +26,7 @@ class AIDecisionsStatisticsAPI(AuthAPI):
     Endpoint: GET /api/v1/ai-decisions/admin/statistics/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         eligibility_stats = EligibilityResultService.get_statistics()
@@ -57,7 +57,7 @@ class TokenUsageAnalyticsAPI(AuthAPI):
         - date_from: Filter by date (from)
         - date_to: Filter by date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         # Validate query parameters
@@ -109,7 +109,7 @@ class CitationQualityAnalyticsAPI(AuthAPI):
         - date_from: Filter by date (from)
         - date_to: Filter by date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         # Validate query parameters
@@ -128,14 +128,16 @@ class CitationQualityAnalyticsAPI(AuthAPI):
         total_citations = citations.count()
         avg_relevance = citations.aggregate(avg=Avg('relevance_score'))['avg'] or 0.0
         
-        # Quality distribution
+        # Quality distribution - use service method instead of .filter()
+        quality_filters = AICitationService.get_by_quality_filters(
+            citations,
+            min_relevance=validated_params.get('min_relevance')
+        )
+        
         quality_distribution = {
-            'high_quality': citations.filter(relevance_score__gte=0.8).count(),
-            'medium_quality': citations.filter(
-                relevance_score__gte=0.5,
-                relevance_score__lt=0.8
-            ).count(),
-            'low_quality': citations.filter(relevance_score__lt=0.5).count(),
+            'high_quality': quality_filters['high_quality'].count(),
+            'medium_quality': quality_filters['medium_quality'].count(),
+            'low_quality': quality_filters['low_quality'].count(),
         }
         
         # Citations per reasoning log

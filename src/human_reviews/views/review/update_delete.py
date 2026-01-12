@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_reviewer import IsReviewer
+from main_system.permissions.review_permission import ReviewPermission
 from human_reviews.services.review_service import ReviewService
 from human_reviews.serializers.review.read import ReviewSerializer
 from human_reviews.serializers.review.update_delete import ReviewUpdateSerializer, ReviewAssignSerializer
@@ -8,7 +8,7 @@ from human_reviews.serializers.review.update_delete import ReviewUpdateSerialize
 
 class ReviewUpdateAPI(AuthAPI):
     """Update a review. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewPermission]
 
     def patch(self, request, id):
         serializer = ReviewUpdateSerializer(data=request.data)
@@ -31,7 +31,7 @@ class ReviewUpdateAPI(AuthAPI):
 
 class ReviewAssignAPI(AuthAPI):
     """Assign a reviewer to a review. Only reviewers/admins can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewPermission]
 
     def post(self, request, id):
         serializer = ReviewAssignSerializer(data=request.data)
@@ -58,7 +58,7 @@ class ReviewAssignAPI(AuthAPI):
 
 class ReviewCompleteAPI(AuthAPI):
     """Complete a review. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewPermission]
 
     def post(self, request, id):
         review = ReviewService.complete_review(id)
@@ -78,7 +78,7 @@ class ReviewCompleteAPI(AuthAPI):
 
 class ReviewCancelAPI(AuthAPI):
     """Cancel a review. Only reviewers/admins can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewPermission]
 
     def post(self, request, id):
         review = ReviewService.cancel_review(id)
@@ -98,7 +98,7 @@ class ReviewCancelAPI(AuthAPI):
 
 class ReviewDeleteAPI(AuthAPI):
     """Delete a review. Only reviewers/admins can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewPermission]
 
     def delete(self, request, id):
         success = ReviewService.delete_review(id)
