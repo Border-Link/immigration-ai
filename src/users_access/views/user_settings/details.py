@@ -1,11 +1,13 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.authentication_permission import AuthenticationPermission
 from main_system.utils.totp_issuer import QRCodeGenerator
 from users_access.serializers.user_settings.setting_serializer import UserSettingSerializer
 from users_access.services.user_setting_service import UserSettingsService
 
 
 class UserSettingsListAPIView(AuthAPI):
+    permission_classes = [AuthenticationPermission]
 
     def get(self, request):
         user = request.user
