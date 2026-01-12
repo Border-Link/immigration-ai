@@ -1,11 +1,13 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.authentication_permission import AuthenticationPermission
 from users_access.services.notification_service import NotificationService
 from users_access.serializers.notification.read import NotificationSerializer, NotificationListSerializer
 
 
 class NotificationListAPI(AuthAPI):
     """Get list of notifications for the current user."""
+    permission_classes = [AuthenticationPermission]
 
     def get(self, request):
         unread_only = request.query_params.get('unread_only', 'false').lower() == 'true'
@@ -24,6 +26,7 @@ class NotificationListAPI(AuthAPI):
 
 class NotificationDetailAPI(AuthAPI):
     """Get notification by ID."""
+    permission_classes = [AuthenticationPermission]
 
     def get(self, request, id):
         notification = NotificationService.get_by_id(id)
@@ -51,6 +54,7 @@ class NotificationDetailAPI(AuthAPI):
 
 class NotificationUnreadCountAPI(AuthAPI):
     """Get count of unread notifications for the current user."""
+    permission_classes = [AuthenticationPermission]
 
     def get(self, request):
         count = NotificationService.count_unread(str(request.user.id))
