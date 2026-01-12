@@ -7,7 +7,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from immigration_cases.services.case_service import CaseService
 from immigration_cases.services.case_fact_service import CaseFactService
 from immigration_cases.serializers.case.admin import CaseAdminStatisticsQuerySerializer
@@ -26,7 +26,7 @@ class ImmigrationCasesStatisticsAPI(AuthAPI):
         - date_from: Filter by created date (from)
         - date_to: Filter by created date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         # Validate query parameters
