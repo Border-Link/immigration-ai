@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.rule_permission import RulePermission
 from rules_knowledge.services.document_type_service import DocumentTypeService
 from rules_knowledge.serializers.document_type.read import DocumentTypeSerializer, DocumentTypeListSerializer
 from main_system.utils import paginate_queryset
@@ -7,6 +8,7 @@ from main_system.utils import paginate_queryset
 
 class DocumentTypeListAPI(AuthAPI):
     """Get list of document types. Supports filtering by is_active."""
+    permission_classes = [RulePermission]
 
     def get(self, request):
         is_active = request.query_params.get('is_active', None)
@@ -37,6 +39,7 @@ class DocumentTypeListAPI(AuthAPI):
 
 class DocumentTypeDetailAPI(AuthAPI):
     """Get document type by ID."""
+    permission_classes = [RulePermission]
 
     def get(self, request, id):
         document_type = DocumentTypeService.get_by_id(id)
