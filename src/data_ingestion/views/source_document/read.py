@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.ingestion_permission import IngestionPermission
 from data_ingestion.services.source_document_service import SourceDocumentService
 from data_ingestion.serializers.source_document.read import (
     SourceDocumentSerializer,
@@ -9,6 +10,7 @@ from data_ingestion.serializers.source_document.read import (
 
 class SourceDocumentListAPI(AuthAPI):
     """Get all source documents."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request):
         data_source_id = request.query_params.get('data_source_id', None)
@@ -27,6 +29,7 @@ class SourceDocumentListAPI(AuthAPI):
 
 class SourceDocumentDetailAPI(AuthAPI):
     """Get source document by ID."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request, id):
         source_document = SourceDocumentService.get_by_id(id)
@@ -47,6 +50,7 @@ class SourceDocumentDetailAPI(AuthAPI):
 
 class SourceDocumentLatestAPI(AuthAPI):
     """Get latest source document for a data source."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request, data_source_id):
         source_document = SourceDocumentService.get_latest_by_data_source(data_source_id)
