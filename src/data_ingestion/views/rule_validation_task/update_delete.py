@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.rule_validation_task_permission import RuleValidationTaskPermission
 from data_ingestion.services.rule_validation_task_service import RuleValidationTaskService
 from data_ingestion.serializers.rule_validation_task.update_delete import (
     RuleValidationTaskUpdateSerializer,
@@ -13,7 +13,7 @@ from data_ingestion.serializers.rule_validation_task.read import RuleValidationT
 
 class RuleValidationTaskUpdateAPI(AuthAPI):
     """Update a rule validation task by ID."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [RuleValidationTaskPermission]
 
     def patch(self, request, id):
         serializer = RuleValidationTaskUpdateSerializer(data=request.data)
@@ -37,7 +37,7 @@ class RuleValidationTaskUpdateAPI(AuthAPI):
 
 class RuleValidationTaskAssignAPI(AuthAPI):
     """Assign a reviewer to a rule validation task."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [RuleValidationTaskPermission]
 
     def post(self, request, id):
         serializer = RuleValidationTaskAssignSerializer(data=request.data)
@@ -64,7 +64,7 @@ class RuleValidationTaskAssignAPI(AuthAPI):
 
 class RuleValidationTaskApproveAPI(AuthAPI):
     """Approve a rule validation task."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [RuleValidationTaskPermission]
 
     def post(self, request, id):
         serializer = RuleValidationTaskApproveSerializer(data=request.data)
@@ -91,7 +91,7 @@ class RuleValidationTaskApproveAPI(AuthAPI):
 
 class RuleValidationTaskRejectAPI(AuthAPI):
     """Reject a rule validation task."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [RuleValidationTaskPermission]
 
     def post(self, request, id):
         serializer = RuleValidationTaskRejectSerializer(data=request.data)
