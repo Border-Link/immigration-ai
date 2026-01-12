@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.payment_permission import PaymentPermission
 from payments.models.payment import Payment
 from payments.services.payment_service import PaymentService
 from payments.serializers.payment.create import PaymentCreateSerializer
@@ -8,6 +9,7 @@ from payments.serializers.payment.read import PaymentSerializer
 
 class PaymentCreateAPI(AuthAPI):
     """Create a new payment. Authenticated users can create payments."""
+    permission_classes = [PaymentPermission]
 
     def post(self, request):
         serializer = PaymentCreateSerializer(data=request.data)

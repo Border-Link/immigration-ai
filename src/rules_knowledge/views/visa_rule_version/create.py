@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.rule_permission import RulePermission
 from rules_knowledge.services.visa_rule_version_service import VisaRuleVersionService
 from rules_knowledge.serializers.visa_rule_version.create import VisaRuleVersionCreateSerializer
 from rules_knowledge.serializers.visa_rule_version.read import VisaRuleVersionSerializer
@@ -8,7 +8,7 @@ from rules_knowledge.serializers.visa_rule_version.read import VisaRuleVersionSe
 
 class VisaRuleVersionCreateAPI(AuthAPI):
     """Create a new visa rule version. Only admin/staff can access."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [RulePermission]
 
     def post(self, request):
         serializer = VisaRuleVersionCreateSerializer(data=request.data)

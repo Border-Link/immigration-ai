@@ -8,6 +8,8 @@ from rest_framework import status
 from typing import List, Optional
 from django.utils import timezone
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.is_reviewer_or_admin import IsReviewerOrAdmin
+from main_system.permissions.case_permission import CasePermission
 from immigration_cases.services.case_service import CaseService
 from ai_decisions.services.eligibility_check_service import EligibilityCheckService
 from ai_decisions.selectors.eligibility_result_selector import EligibilityResultSelector
@@ -22,8 +24,14 @@ class CaseEligibilityCheckAPI(AuthAPI):
     Run eligibility check for a case.
     
     Endpoint: POST /api/v1/cases/{case_id}/eligibility
-    Auth: Required (user: own case, reviewer: any case, superuser: any case)
+    Auth: Required (reviewer OR admin/staff only)
+    
+    Note: Regular users cannot request eligibility checks manually.
+    Eligibility checks are automatically triggered by the system when appropriate
+    (e.g., when case is submitted, when documents are processed).
+    Only reviewers and admins can manually request eligibility checks for review purposes.
     """
+    permission_classes = [IsReviewerOrAdmin]
     
     def post(self, request, id):
         """
@@ -44,11 +52,12 @@ class CaseEligibilityCheckAPI(AuthAPI):
                 status_code=status.HTTP_404_NOT_FOUND
             )
         
-        # Permission check: user owns case OR is reviewer OR is superuser
+        # Permission check: Only reviewers and admins can request eligibility checks
+        # The permission_classes already enforce this, but we verify case access
         user = request.user
         if not self._has_permission(user, case):
             return self.api_response(
-                message="You do not have permission to access this case.",
+                message="You do not have permission to request eligibility checks for this case.",
                 data=None,
                 status_code=status.HTTP_403_FORBIDDEN
             )
@@ -148,23 +157,29 @@ class CaseEligibilityCheckAPI(AuthAPI):
     
     def _has_permission(self, user, case) -> bool:
         """
-        Check if user has permission to access case.
+        Check if user has permission to request eligibility check for case.
         
         Rules:
-        - User owns the case (case.user == user)
-        - User is reviewer (role='reviewer' AND is_staff/is_superuser)
-        - User is superuser
-        """
-        # User owns case
-        if case.user == user:
-            return True
+        - User is reviewer (role='reviewer' AND is_staff/is_superuser) - can check any case
+        - User is admin/staff (is_staff OR is_superuser) - can check any case
         
+        Note: Regular users cannot request eligibility checks manually.
+        The permission_classes already enforce this at the view level.
+        """
         # User is superuser
         if user.is_superuser:
             return True
         
+        # User is staff
+        if user.is_staff:
+            return True
+        
         # User is reviewer (must be staff or superuser per IsReviewer permission)
         if user.role == 'reviewer' and (user.is_staff or user.is_superuser):
+            return True
+        
+        # User is admin (role='admin')
+        if user.role == 'admin':
             return True
         
         return False
@@ -221,6 +236,7 @@ class CaseEligibilityExplanationAPI(AuthAPI):
     Endpoint: GET /api/v1/cases/{case_id}/eligibility/{result_id}/explanation
     Auth: Required
     """
+    permission_classes = [CasePermission]
     
     def get(self, request, id, result_id):
         """

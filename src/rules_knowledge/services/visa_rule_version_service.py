@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from main_system.utils.cache_utils import cache_result
 from rules_knowledge.models.visa_rule_version import VisaRuleVersion
 from rules_knowledge.repositories.visa_rule_version_repository import VisaRuleVersionRepository
@@ -235,3 +236,8 @@ class VisaRuleVersionService:
         except Exception as e:
             logger.error(f"Error publishing/unpublishing rule version: {e}")
             return None
+
+    @staticmethod
+    def delete_visa_rule_version(version_id: str) -> bool:
+        """Delete visa rule version (alias for delete_rule_version)."""
+        return VisaRuleVersionService.delete_rule_version(version_id)

@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.base import BaseAdminDeleteAPI
 from users_access.services.notification_service import NotificationService
 from users_access.serializers.notification.read import NotificationSerializer, NotificationListSerializer
@@ -31,7 +31,7 @@ class NotificationAdminListAPI(AuthAPI):
         - date_from: Filter by created date (from)
         - date_to: Filter by created date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = NotificationAdminListQuerySerializer(data=request.query_params)
@@ -70,7 +70,7 @@ class NotificationAdminCreateAPI(AuthAPI):
     Endpoint: POST /api/v1/auth/admin/notifications/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request):
         serializer = NotificationCreateSerializer(data=request.data)
@@ -108,7 +108,7 @@ class NotificationAdminBulkCreateAPI(AuthAPI):
     Endpoint: POST /api/v1/auth/admin/notifications/bulk/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request):
         serializer = BulkNotificationCreateSerializer(data=request.data)
@@ -154,7 +154,7 @@ class NotificationAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/auth/admin/notifications/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""

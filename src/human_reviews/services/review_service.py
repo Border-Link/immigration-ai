@@ -749,3 +749,117 @@ class ReviewService:
         except Exception as e:
             logger.error(f"Error requesting changes for review {review_id}: {e}")
             return None
+
+    @staticmethod
+    def get_statistics():
+        """
+        Get comprehensive statistics for human reviews.
+        
+        Returns a dictionary with statistics for reviews, review notes, and decision overrides.
+        """
+        from django.db.models import Count, Avg, Q
+        from django.utils import timezone
+        from datetime import timedelta
+        from human_reviews.selectors.review_note_selector import ReviewNoteSelector
+        from human_reviews.selectors.decision_override_selector import DecisionOverrideSelector
+        
+        try:
+            # Review statistics
+            all_reviews = ReviewSelector.get_all()
+            total_reviews = all_reviews.count()
+            reviews_by_status = all_reviews.values('status').annotate(count=Count('id'))
+            pending_reviews = ReviewSelector.get_by_status('pending').count()
+            in_progress_reviews = ReviewSelector.get_by_status('in_progress').count()
+            completed_reviews = ReviewSelector.get_by_status('completed').count()
+            cancelled_reviews = ReviewSelector.get_by_status('cancelled').count()
+            
+            # Reviews with assigned reviewers
+            assigned_reviews = all_reviews.filter(reviewer__isnull=False).count()
+            unassigned_reviews = all_reviews.filter(reviewer__isnull=True).count()
+            
+            # Average time to completion
+            completed_reviews_with_times = ReviewSelector.get_by_status('completed').filter(
+                completed_at__isnull=False,
+                assigned_at__isnull=False
+            )
+            avg_completion_time = None
+            if completed_reviews_with_times.exists():
+                time_diffs = []
+                for review in completed_reviews_with_times:
+                    if review.assigned_at and review.completed_at:
+                        diff = review.completed_at - review.assigned_at
+                        time_diffs.append(diff.total_seconds() / 3600)  # Convert to hours
+                if time_diffs:
+                    avg_completion_time = sum(time_diffs) / len(time_diffs)
+            
+            # Review note statistics
+            all_notes = ReviewNoteSelector.get_all()
+            total_notes = all_notes.count()
+            internal_notes = all_notes.filter(is_internal=True).count()
+            public_notes = all_notes.filter(is_internal=False).count()
+            notes_per_review = all_notes.values('review').annotate(count=Count('id'))
+            avg_notes_per_review = notes_per_review.aggregate(avg=Avg('count'))['avg'] or 0.0
+            
+            # Decision override statistics
+            all_overrides = DecisionOverrideSelector.get_all()
+            total_overrides = all_overrides.count()
+            overrides_by_outcome = all_overrides.values('overridden_outcome').annotate(count=Count('id'))
+            overrides_with_reviewer = all_overrides.filter(reviewer__isnull=False).count()
+            
+            # Recent activity (last 7 days)
+            seven_days_ago = timezone.now() - timedelta(days=7)
+            recent_reviews = all_reviews.filter(created_at__gte=seven_days_ago).count()
+            recent_completions = ReviewSelector.get_by_status('completed').filter(
+                completed_at__gte=seven_days_ago
+            ).count()
+            recent_overrides = all_overrides.filter(created_at__gte=seven_days_ago).count()
+            
+            # Reviewer workload
+            reviewer_workload = all_reviews.filter(
+                reviewer__isnull=False,
+                status__in=['pending', 'in_progress']
+            ).values('reviewer__email').annotate(
+                count=Count('id')
+            ).order_by('-count')[:10]
+            
+            return {
+                'reviews': {
+                    'total': total_reviews,
+                    'by_status': {item['status']: item['count'] for item in reviews_by_status},
+                    'pending': pending_reviews,
+                    'in_progress': in_progress_reviews,
+                    'completed': completed_reviews,
+                    'cancelled': cancelled_reviews,
+                    'assigned': assigned_reviews,
+                    'unassigned': unassigned_reviews,
+                    'average_completion_time_hours': round(avg_completion_time, 2) if avg_completion_time else None,
+                },
+                'review_notes': {
+                    'total': total_notes,
+                    'internal': internal_notes,
+                    'public': public_notes,
+                    'average_per_review': round(avg_notes_per_review, 2),
+                },
+                'decision_overrides': {
+                    'total': total_overrides,
+                    'by_outcome': {item['overridden_outcome']: item['count'] for item in overrides_by_outcome},
+                    'with_reviewer': overrides_with_reviewer,
+                },
+                'recent_activity': {
+                    'last_7_days': {
+                        'reviews_created': recent_reviews,
+                        'reviews_completed': recent_completions,
+                        'overrides_created': recent_overrides,
+                    }
+                },
+                'reviewer_workload': [
+                    {
+                        'reviewer_email': item['reviewer__email'],
+                        'active_reviews': item['count']
+                    }
+                    for item in reviewer_workload
+                ],
+            }
+        except Exception as e:
+            logger.error(f"Error getting human reviews statistics: {e}")
+            return {}

@@ -147,3 +147,32 @@ class VisaDocumentRequirementService:
         except Exception as e:
             logger.error(f"Error filtering document requirements: {e}")
             return VisaDocumentRequirement.objects.none()
+
+    @staticmethod
+    def create_visa_document_requirement(rule_version_id: str, document_type_id: str,
+                                       mandatory: bool = True, description: str = None):
+        """
+        Create a new visa document requirement (wrapper method for views).
+        Maps description to conditional_logic if provided.
+        """
+        conditional_logic = None
+        if description:
+            # Store description in conditional_logic as metadata
+            conditional_logic = {'description': description}
+        
+        return VisaDocumentRequirementService.create_document_requirement(
+            rule_version_id=rule_version_id,
+            document_type_id=document_type_id,
+            mandatory=mandatory,
+            conditional_logic=conditional_logic
+        )
+
+    @staticmethod
+    def update_visa_document_requirement(requirement_id: str, **fields) -> Optional[VisaDocumentRequirement]:
+        """Update visa document requirement (alias for update_document_requirement)."""
+        return VisaDocumentRequirementService.update_document_requirement(requirement_id, **fields)
+
+    @staticmethod
+    def delete_visa_document_requirement(requirement_id: str) -> bool:
+        """Delete visa document requirement (alias for delete_document_requirement)."""
+        return VisaDocumentRequirementService.delete_document_requirement(requirement_id)

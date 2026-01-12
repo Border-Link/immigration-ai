@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.document_permission import DocumentPermission
 from document_handling.services.document_check_service import DocumentCheckService
 from document_handling.serializers.document_check.create import DocumentCheckCreateSerializer
 from document_handling.serializers.document_check.read import DocumentCheckSerializer
@@ -7,6 +8,7 @@ from document_handling.serializers.document_check.read import DocumentCheckSeria
 
 class DocumentCheckCreateAPI(AuthAPI):
     """Create a new document check."""
+    permission_classes = [DocumentPermission]
 
     def post(self, request):
         serializer = DocumentCheckCreateSerializer(data=request.data)

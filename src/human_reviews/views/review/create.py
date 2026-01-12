@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.review_permission import ReviewPermission
 from human_reviews.services.review_service import ReviewService
 from human_reviews.serializers.review.create import ReviewCreateSerializer
 from human_reviews.serializers.review.read import ReviewSerializer
@@ -7,6 +8,7 @@ from human_reviews.serializers.review.read import ReviewSerializer
 
 class ReviewCreateAPI(AuthAPI):
     """Create a new review. Authenticated users can create reviews."""
+    permission_classes = [ReviewPermission]
 
     def post(self, request):
         serializer = ReviewCreateSerializer(data=request.data)

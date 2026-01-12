@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -40,7 +40,7 @@ class PaymentAdminListAPI(AuthAPI):
         
     Note: All payments are in USD (unified currency). Payment gateway handles currency conversion.
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = PaymentAdminListQuerySerializer(data=request.query_params)
@@ -77,7 +77,7 @@ class PaymentAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/payments/admin/payments/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -99,7 +99,7 @@ class PaymentAdminUpdateAPI(BaseAdminUpdateAPI):
     Endpoint: PATCH /api/v1/payments/admin/payments/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -136,7 +136,7 @@ class PaymentAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/payments/admin/payments/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -162,7 +162,7 @@ class BulkPaymentOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/payments/admin/payments/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk payment operation serializer."""

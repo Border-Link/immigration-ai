@@ -7,7 +7,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -38,7 +38,7 @@ class VisaTypeAdminListAPI(AuthAPI):
         - date_from: Filter by created date (from)
         - date_to: Filter by created date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         # Validate query parameters
@@ -78,7 +78,7 @@ class VisaTypeAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/rules-knowledge/admin/visa-types/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -100,7 +100,7 @@ class VisaTypeAdminActivateAPI(BaseAdminActivateAPI):
     Endpoint: POST /api/v1/rules-knowledge/admin/visa-types/<id>/activate/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -163,7 +163,7 @@ class VisaTypeAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/rules-knowledge/admin/visa-types/<id>/delete/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -185,7 +185,7 @@ class BulkVisaTypeOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/rules-knowledge/admin/visa-types/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk visa type operation serializer."""

@@ -41,6 +41,9 @@ class FileStorageService:
         """
         Validate uploaded file.
         
+        Security: Validates file size, extension, MIME type, and actual file content
+        using magic bytes to prevent MIME type spoofing.
+        
         Args:
             file: UploadedFile instance
             
@@ -57,10 +60,34 @@ class FileStorageService:
             allowed = ', '.join(FileStorageService.ALLOWED_EXTENSIONS)
             return False, f"File type not allowed. Allowed types: {allowed}"
         
-        # Check MIME type if available
+        # Check MIME type if available (declared MIME type)
         if hasattr(file, 'content_type') and file.content_type:
             if file.content_type not in FileStorageService.ALLOWED_MIME_TYPES:
                 return False, f"File MIME type '{file.content_type}' not allowed"
+        
+        # Security: Validate actual file content using magic bytes (prevents MIME spoofing)
+        try:
+            import magic
+            file.seek(0)
+            file_content = file.read(1024)  # Read first 1KB for magic bytes
+            file.seek(0)  # Reset file pointer
+            
+            if file_content:
+                detected_mime = magic.from_buffer(file_content, mime=True)
+                if detected_mime not in FileStorageService.ALLOWED_MIME_TYPES:
+                    logger.warning(
+                        f"File content validation failed: "
+                        f"declared MIME type '{file.content_type if hasattr(file, 'content_type') else 'unknown'}' "
+                        f"but detected '{detected_mime}'"
+                    )
+                    return False, f"File content does not match declared type. Detected: {detected_mime}"
+        except ImportError:
+            # python-magic not installed, log warning but continue
+            logger.warning("python-magic not installed. File content validation skipped.")
+        except Exception as e:
+            # If magic detection fails, log error but don't block (defensive)
+            logger.error(f"Error validating file content with magic bytes: {e}", exc_info=True)
+            # In production, you might want to fail here, but for now we'll be defensive
         
         return True, None
 
@@ -185,6 +212,8 @@ class FileStorageService:
         """
         Store uploaded file (local or S3 based on configuration).
         
+        Security: Validates file, scans for viruses, then stores.
+        
         Args:
             file: UploadedFile instance
             case_id: UUID of the case
@@ -193,10 +222,32 @@ class FileStorageService:
         Returns:
             Tuple of (file_path, error_message)
         """
-        # Validate file
+        # Step 1: Validate file (size, extension, MIME type, content)
         is_valid, error = FileStorageService.validate_file(file)
         if not is_valid:
             return None, error
+        
+        # Step 2: Security - Scan file for viruses/malware
+        try:
+            from document_handling.services.virus_scan_service import VirusScanService
+            is_clean, threat_name, scan_error = VirusScanService.scan_file(file)
+            
+            if not is_clean:
+                if threat_name:
+                    logger.error(f"Virus detected in uploaded file: {threat_name}")
+                    return None, f"File rejected: Threat detected ({threat_name})"
+                else:
+                    logger.error(f"Virus scan failed: {scan_error}")
+                    return None, f"File rejected: Virus scan failed. {scan_error}"
+            
+            logger.info(f"File passed virus scan: {file.name}")
+        except ImportError:
+            # Virus scanning service not available - log warning but continue
+            logger.warning("Virus scanning service not available. File upload proceeding without scan.")
+        except Exception as e:
+            # If scanning fails, fail secure: reject the file
+            logger.error(f"Error during virus scan: {e}", exc_info=True)
+            return None, "File rejected: Virus scan error. Please try again or contact support."
         
         # Generate file path
         file_path = FileStorageService.generate_file_path(
@@ -219,16 +270,27 @@ class FileStorageService:
             return None, error
 
     @staticmethod
-    def get_file_url(file_path: str) -> str:
+    def get_file_url(file_path: str, case_id: str = None, user_id: str = None) -> str:
         """
         Get URL to access the stored file.
         
+        Security: This method should be called with authorization checks in the view/service layer.
+        The caller is responsible for verifying the user has access to the case/document.
+        
         Args:
             file_path: Relative file path
+            case_id: Optional case ID for authorization (not validated here, caller must check)
+            user_id: Optional user ID for authorization (not validated here, caller must check)
             
         Returns:
             URL string
         """
+        # Security: Log file access for audit trail
+        if case_id or user_id:
+            logger.info(
+                f"File access requested: path={file_path}, case_id={case_id}, user_id={user_id}"
+            )
+        
         use_s3 = getattr(settings, 'USE_S3_STORAGE', False)
         
         if use_s3:

@@ -1,11 +1,13 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.payment_permission import PaymentPermission
 from payments.services.payment_service import PaymentService
 from payments.serializers.payment.read import PaymentSerializer, PaymentListSerializer
 
 
 class PaymentListAPI(AuthAPI):
     """Get list of payments. Supports filtering by case_id, status."""
+    permission_classes = [PaymentPermission]
 
     def get(self, request):
         case_id = request.query_params.get('case_id', None)
@@ -27,6 +29,7 @@ class PaymentListAPI(AuthAPI):
 
 class PaymentDetailAPI(AuthAPI):
     """Get payment by ID."""
+    permission_classes = [PaymentPermission]
 
     def get(self, request, id):
         payment = PaymentService.get_by_id(str(id))

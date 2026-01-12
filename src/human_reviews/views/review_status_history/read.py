@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.review_permission import ReviewPermission
 from human_reviews.services.review_service import ReviewService
 from human_reviews.selectors.review_status_history_selector import ReviewStatusHistorySelector
 from human_reviews.serializers.review_status_history.read import ReviewStatusHistorySerializer, ReviewStatusHistoryListSerializer
@@ -13,7 +13,7 @@ class ReviewStatusHistoryListAPI(AuthAPI):
     Endpoint: GET /api/v1/human-reviews/reviews/<review_id>/status-history/
     Auth: Required
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [ReviewPermission]
     
     def get(self, request, review_id):
         review = ReviewService.get_by_id(review_id)
@@ -40,7 +40,7 @@ class ReviewStatusHistoryDetailAPI(AuthAPI):
     Endpoint: GET /api/v1/human-reviews/status-history/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [ReviewPermission]
     
     def get(self, request, id):
         history = ReviewStatusHistorySelector.get_by_id(id)

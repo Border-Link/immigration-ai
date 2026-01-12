@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.authentication_permission import AuthenticationPermission
 from users_access.services.notification_service import NotificationService
 from users_access.serializers.notification.create import NotificationMarkReadSerializer
 from users_access.serializers.notification.read import NotificationSerializer
@@ -7,6 +8,7 @@ from users_access.serializers.notification.read import NotificationSerializer
 
 class NotificationMarkReadAPI(AuthAPI):
     """Mark a notification or all notifications as read."""
+    permission_classes = [AuthenticationPermission]
 
     def post(self, request):
         serializer = NotificationMarkReadSerializer(data=request.data)

@@ -24,23 +24,10 @@ class PreventBackButtonMiddleware(MiddlewareMixin):
             response.headers["X-Content-Type-Options"] = "nosniff"
             response.headers["X-XSS-Protection"] = "1; mode=block"
 
-            # Dynamic CSP based on CORS_ALLOWED_ORIGINS
-            cors_origins = getattr(settings, "CORS_ALLOWED_ORIGINS", [])
-            # Always include 'self'
-            csp_sources = ["'self'"] + cors_origins
-
-            # Convert list to space-separated string
-            sources_str = " ".join(csp_sources)
-
-            # Only set if not already set
-            if "Content-Security-Policy" not in response.headers:
-                response.headers["Content-Security-Policy"] = (
-                    f"default-src {sources_str}; "
-                    f"style-src {sources_str} 'unsafe-inline'; "
-                    f"script-src {sources_str} 'unsafe-inline'; "
-                    f"img-src {sources_str} data:; "
-                    f"connect-src {sources_str};"
-                )
+            # SECURITY: Removed CSP from this middleware to avoid conflicts
+            # CSP is now handled by SecurityHeadersMiddleware with strict policies
+            # This prevents unsafe-inline/unsafe-eval vulnerabilities
+            # Only set basic security headers here, CSP is handled elsewhere
 
         except Exception as e:
             logger.warning(f"PreventBackButtonMiddleware error: {e}")

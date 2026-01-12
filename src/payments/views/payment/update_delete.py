@@ -1,6 +1,7 @@
 from rest_framework import status
 from django.core.exceptions import ValidationError
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.payment_permission import PaymentPermission
 from payments.services.payment_service import PaymentService
 from payments.serializers.payment.read import PaymentSerializer
 from payments.serializers.payment.update_delete import PaymentUpdateSerializer
@@ -8,6 +9,7 @@ from payments.serializers.payment.update_delete import PaymentUpdateSerializer
 
 class PaymentUpdateAPI(AuthAPI):
     """Update a payment."""
+    permission_classes = [PaymentPermission]
 
     def patch(self, request, id):
         serializer = PaymentUpdateSerializer(data=request.data)
@@ -37,6 +39,7 @@ class PaymentUpdateAPI(AuthAPI):
 
 class PaymentDeleteAPI(AuthAPI):
     """Delete a payment."""
+    permission_classes = [PaymentPermission]
 
     def delete(self, request, id):
         success = PaymentService.delete_payment(

@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from users_access.services.state_province_service import StateProvinceService
 from users_access.serializers.state_province.update_delete import (
     StateProvinceUpdateSerializer,
@@ -11,7 +11,7 @@ from users_access.serializers.state_province.read import StateProvinceSerializer
 
 class StateProvinceUpdateAPI(AuthAPI):
     """Update a state/province by ID. Only admin/staff can access."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
 
     def patch(self, request, id):
         serializer = StateProvinceUpdateSerializer(data=request.data)
@@ -46,7 +46,7 @@ class StateProvinceUpdateAPI(AuthAPI):
 
 class StateProvinceDeleteAPI(AuthAPI):
     """Delete a state/province. Only admin/staff can access."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
 
     def delete(self, request, id):
         serializer = StateProvinceDeleteSerializer(data={'id': id})

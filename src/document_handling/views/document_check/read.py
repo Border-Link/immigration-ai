@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.document_permission import DocumentPermission
 from document_handling.services.document_check_service import DocumentCheckService
 from document_handling.serializers.document_check.read import (
     DocumentCheckSerializer,
@@ -9,6 +10,7 @@ from document_handling.serializers.document_check.read import (
 
 class DocumentCheckListAPI(AuthAPI):
     """Get all document checks."""
+    permission_classes = [DocumentPermission]
 
     def get(self, request):
         case_document_id = request.query_params.get('case_document_id', None)
@@ -33,6 +35,7 @@ class DocumentCheckListAPI(AuthAPI):
 
 class DocumentCheckDetailAPI(AuthAPI):
     """Get document check by ID."""
+    permission_classes = [DocumentPermission]
 
     def get(self, request, id):
         document_check = DocumentCheckService.get_by_id(id)

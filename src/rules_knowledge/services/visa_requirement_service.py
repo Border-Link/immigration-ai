@@ -146,3 +146,29 @@ class VisaRequirementService:
         except Exception as e:
             logger.error(f"Error filtering requirements: {e}")
             return VisaRequirement.objects.none()
+
+    @staticmethod
+    def create_visa_requirement(rule_version_id: str, requirement_code: str, description: str,
+                               condition_expression: dict, is_active: bool = True):
+        """
+        Create a new visa requirement (wrapper method for views).
+        Maps is_active to is_mandatory and defaults rule_type to 'eligibility'.
+        """
+        return VisaRequirementService.create_requirement(
+            rule_version_id=rule_version_id,
+            requirement_code=requirement_code,
+            rule_type='eligibility',  # Default to eligibility if not specified
+            description=description,
+            condition_expression=condition_expression,
+            is_mandatory=is_active  # Map is_active to is_mandatory
+        )
+
+    @staticmethod
+    def update_visa_requirement(requirement_id: str, **fields) -> Optional[VisaRequirement]:
+        """Update visa requirement (alias for update_requirement)."""
+        return VisaRequirementService.update_requirement(requirement_id, **fields)
+
+    @staticmethod
+    def delete_visa_requirement(requirement_id: str) -> bool:
+        """Delete visa requirement (alias for delete_requirement)."""
+        return VisaRequirementService.delete_requirement(requirement_id)

@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
     BaseAdminDeleteAPI,
@@ -39,7 +39,7 @@ class ProcessingJobAdminListAPI(AuthAPI):
         - min_priority: Filter by minimum priority
         - max_retries_exceeded: Filter by retry count exceeded (true/false)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = ProcessingJobAdminListQuerySerializer(data=request.query_params)
@@ -71,7 +71,7 @@ class ProcessingJobAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/document-processing/admin/processing-jobs/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -93,7 +93,7 @@ class ProcessingJobAdminUpdateAPI(BaseAdminUpdateAPI):
     Endpoint: PUT /api/v1/document-processing/admin/processing-jobs/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -129,7 +129,7 @@ class ProcessingJobAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/document-processing/admin/processing-jobs/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -158,7 +158,7 @@ class BulkProcessingJobOperationAPI(AuthAPI):
             "priority": 8 (required if operation is update_priority)
         }
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request):
         serializer = BulkProcessingJobOperationSerializer(data=request.data)
@@ -168,135 +168,135 @@ class BulkProcessingJobOperationAPI(AuthAPI):
         operation = serializer.validated_data['operation']
         
         if operation == 'delete':
-                deleted_count = 0
-                failed_count = 0
-                
-                for job_id in job_ids:
-                    success = ProcessingJobService.delete_processing_job(str(job_id))
-                    if success:
-                        deleted_count += 1
-                    else:
-                        failed_count += 1
-                
-                return self.api_response(
-                    message=f"Bulk operation completed. Deleted: {deleted_count}, Failed: {failed_count}.",
-                    data={
-                        'deleted_count': deleted_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(job_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            elif operation == 'cancel':
-                cancelled_count = 0
-                failed_count = 0
-                
-                for job_id in job_ids:
-                    updated = ProcessingJobService.update_status(str(job_id), 'cancelled')
-                    if updated:
-                        cancelled_count += 1
-                    else:
-                        failed_count += 1
-                
-                return self.api_response(
-                    message=f"Bulk operation completed. Cancelled: {cancelled_count}, Failed: {failed_count}.",
-                    data={
-                        'cancelled_count': cancelled_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(job_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            elif operation == 'retry':
-                # Reset failed jobs to pending for retry
-                retried_count = 0
-                failed_count = 0
-                
-                for job_id in job_ids:
-                    job = ProcessingJobService.get_by_id(str(job_id))
-                    if job and job.status == 'failed' and job.retry_count < job.max_retries:
-                        updated = ProcessingJobService.update_processing_job(
-                            str(job_id),
-                            status='pending',
-                            retry_count=0,
-                            error_message=None,
-                            error_type=None
-                        )
-                        if updated:
-                            retried_count += 1
-                        else:
-                            failed_count += 1
-                    else:
-                        failed_count += 1
-                
-                return self.api_response(
-                    message=f"Bulk operation completed. Retried: {retried_count}, Failed: {failed_count}.",
-                    data={
-                        'retried_count': retried_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(job_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            elif operation == 'update_status':
-                status_value = serializer.validated_data.get('status')
-                if not status_value:
-                    return self.api_response(
-                        message="Status is required for update_status operation.",
-                        data=None,
-                        status_code=status.HTTP_400_BAD_REQUEST
+            deleted_count = 0
+            failed_count = 0
+            
+            for job_id in job_ids:
+                success = ProcessingJobService.delete_processing_job(str(job_id))
+                if success:
+                    deleted_count += 1
+                else:
+                    failed_count += 1
+            
+            return self.api_response(
+                message=f"Bulk operation completed. Deleted: {deleted_count}, Failed: {failed_count}.",
+                data={
+                    'deleted_count': deleted_count,
+                    'failed_count': failed_count,
+                    'total_requested': len(job_ids),
+                },
+                status_code=status.HTTP_200_OK
+            )
+        elif operation == 'cancel':
+            cancelled_count = 0
+            failed_count = 0
+            
+            for job_id in job_ids:
+                updated = ProcessingJobService.update_status(str(job_id), 'cancelled')
+                if updated:
+                    cancelled_count += 1
+                else:
+                    failed_count += 1
+            
+            return self.api_response(
+                message=f"Bulk operation completed. Cancelled: {cancelled_count}, Failed: {failed_count}.",
+                data={
+                    'cancelled_count': cancelled_count,
+                    'failed_count': failed_count,
+                    'total_requested': len(job_ids),
+                },
+                status_code=status.HTTP_200_OK
+            )
+        elif operation == 'retry':
+            # Reset failed jobs to pending for retry
+            retried_count = 0
+            failed_count = 0
+            
+            for job_id in job_ids:
+                job = ProcessingJobService.get_by_id(str(job_id))
+                if job and job.status == 'failed' and job.retry_count < job.max_retries:
+                    updated = ProcessingJobService.update_processing_job(
+                        str(job_id),
+                        status='pending',
+                        retry_count=0,
+                        error_message=None,
+                        error_type=None
                     )
-                
-                updated_count = 0
-                failed_count = 0
-                
-                for job_id in job_ids:
-                    updated = ProcessingJobService.update_status(str(job_id), status_value)
                     if updated:
-                        updated_count += 1
+                        retried_count += 1
                     else:
                         failed_count += 1
-                
+                else:
+                    failed_count += 1
+            
+            return self.api_response(
+                message=f"Bulk operation completed. Retried: {retried_count}, Failed: {failed_count}.",
+                data={
+                    'retried_count': retried_count,
+                    'failed_count': failed_count,
+                    'total_requested': len(job_ids),
+                },
+                status_code=status.HTTP_200_OK
+            )
+        elif operation == 'update_status':
+            status_value = serializer.validated_data.get('status')
+            if not status_value:
                 return self.api_response(
-                    message=f"Bulk operation completed. Updated: {updated_count}, Failed: {failed_count}.",
-                    data={
-                        'updated_count': updated_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(job_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            elif operation == 'update_priority':
-                priority_value = serializer.validated_data.get('priority')
-                if priority_value is None:
-                    return self.api_response(
-                        message="Priority is required for update_priority operation.",
-                        data=None,
-                        status_code=status.HTTP_400_BAD_REQUEST
-                    )
-                
-                updated_count = 0
-                failed_count = 0
-                
-                for job_id in job_ids:
-                    updated = ProcessingJobService.update_processing_job(str(job_id), priority=priority_value)
-                    if updated:
-                        updated_count += 1
-                    else:
-                        failed_count += 1
-                
-                return self.api_response(
-                    message=f"Bulk operation completed. Updated: {updated_count}, Failed: {failed_count}.",
-                    data={
-                        'updated_count': updated_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(job_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            else:
-                return self.api_response(
-                    message=f"Unknown operation: {operation}",
+                    message="Status is required for update_status operation.",
                     data=None,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
+            
+            updated_count = 0
+            failed_count = 0
+            
+            for job_id in job_ids:
+                updated = ProcessingJobService.update_status(str(job_id), status_value)
+                if updated:
+                    updated_count += 1
+                else:
+                    failed_count += 1
+            
+            return self.api_response(
+                message=f"Bulk operation completed. Updated: {updated_count}, Failed: {failed_count}.",
+                data={
+                    'updated_count': updated_count,
+                    'failed_count': failed_count,
+                    'total_requested': len(job_ids),
+                },
+                status_code=status.HTTP_200_OK
+            )
+        elif operation == 'update_priority':
+            priority_value = serializer.validated_data.get('priority')
+            if priority_value is None:
+                return self.api_response(
+                    message="Priority is required for update_priority operation.",
+                    data=None,
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+            
+            updated_count = 0
+            failed_count = 0
+            
+            for job_id in job_ids:
+                updated = ProcessingJobService.update_processing_job(str(job_id), priority=priority_value)
+                if updated:
+                    updated_count += 1
+                else:
+                    failed_count += 1
+            
+            return self.api_response(
+                message=f"Bulk operation completed. Updated: {updated_count}, Failed: {failed_count}.",
+                data={
+                    'updated_count': updated_count,
+                    'failed_count': failed_count,
+                    'total_requested': len(job_ids),
+                },
+                status_code=status.HTTP_200_OK
+            )
+        else:
+            return self.api_response(
+                message=f"Unknown operation: {operation}",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )

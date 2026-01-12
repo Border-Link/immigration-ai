@@ -7,7 +7,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from users_access.services.country_service import CountryService
 from users_access.services.state_province_service import StateProvinceService
 from users_access.serializers.country.read import CountrySerializer
@@ -26,7 +26,7 @@ class CountryActivateAPI(AuthAPI):
     Endpoint: POST /api/v1/auth/admin/countries/<id>/activate/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request, id):
         serializer = CountryActivateSerializer(data=request.data)
@@ -58,7 +58,7 @@ class CountrySetJurisdictionAPI(AuthAPI):
     Endpoint: POST /api/v1/auth/admin/countries/<id>/set-jurisdiction/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request, id):
         serializer = CountrySetJurisdictionSerializer(data=request.data)
@@ -90,7 +90,7 @@ class StateProvinceActivateAPI(AuthAPI):
     Endpoint: POST /api/v1/auth/admin/states/<id>/activate/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request, id):
         serializer = StateProvinceActivateSerializer(data=request.data)

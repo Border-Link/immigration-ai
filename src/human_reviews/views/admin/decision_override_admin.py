@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
@@ -36,7 +36,7 @@ class DecisionOverrideAdminListAPI(AuthAPI):
         - date_from: Filter by created date (from)
         - date_to: Filter by created date (to)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = DecisionOverrideAdminListQuerySerializer(data=request.query_params)
@@ -65,7 +65,7 @@ class DecisionOverrideAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/human-reviews/admin/decision-overrides/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -87,7 +87,7 @@ class DecisionOverrideAdminUpdateAPI(BaseAdminUpdateAPI):
     Endpoint: PUT /api/v1/human-reviews/admin/decision-overrides/<id>/update/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -123,7 +123,7 @@ class DecisionOverrideAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/human-reviews/admin/decision-overrides/<id>/delete/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -145,7 +145,7 @@ class BulkDecisionOverrideOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/human-reviews/admin/decision-overrides/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk decision override operation serializer."""

@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.rule_permission import RulePermission
 from rules_knowledge.services.visa_type_service import VisaTypeService
 from rules_knowledge.serializers.visa_type.create import VisaTypeCreateSerializer
 from rules_knowledge.serializers.visa_type.read import VisaTypeSerializer
@@ -8,7 +8,7 @@ from rules_knowledge.serializers.visa_type.read import VisaTypeSerializer
 
 class VisaTypeCreateAPI(AuthAPI):
     """Create a new visa type. Only admin/staff can access."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [RulePermission]
 
     def post(self, request):
         serializer = VisaTypeCreateSerializer(data=request.data)

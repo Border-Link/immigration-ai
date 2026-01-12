@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_reviewer import IsReviewer
+from main_system.permissions.decision_override_permission import DecisionOverridePermission
 from human_reviews.services.decision_override_service import DecisionOverrideService
 from human_reviews.serializers.decision_override.create import DecisionOverrideCreateSerializer
 from human_reviews.serializers.decision_override.read import DecisionOverrideSerializer
@@ -8,7 +8,7 @@ from human_reviews.serializers.decision_override.read import DecisionOverrideSer
 
 class DecisionOverrideCreateAPI(AuthAPI):
     """Create a new decision override. Only reviewers can create overrides."""
-    permission_classes = [IsReviewer]
+    permission_classes = [DecisionOverridePermission]
 
     def post(self, request):
         serializer = DecisionOverrideCreateSerializer(data=request.data)

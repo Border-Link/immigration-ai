@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.ingestion_permission import IngestionPermission
 from data_ingestion.services.parsed_rule_service import ParsedRuleService
 from data_ingestion.serializers.parsed_rule.update_delete import (
     ParsedRuleUpdateSerializer,
@@ -11,7 +11,7 @@ from data_ingestion.serializers.parsed_rule.read import ParsedRuleSerializer
 
 class ParsedRuleUpdateAPI(AuthAPI):
     """Update a parsed rule by ID."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [IngestionPermission]
 
     def patch(self, request, id):
         serializer = ParsedRuleUpdateSerializer(data=request.data)
@@ -35,7 +35,7 @@ class ParsedRuleUpdateAPI(AuthAPI):
 
 class ParsedRuleStatusUpdateAPI(AuthAPI):
     """Update parsed rule status by ID."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [IngestionPermission]
 
     def patch(self, request, id):
         serializer = ParsedRuleStatusUpdateSerializer(data=request.data)

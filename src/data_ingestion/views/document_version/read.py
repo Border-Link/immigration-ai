@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.ingestion_permission import IngestionPermission
 from data_ingestion.services.document_version_service import DocumentVersionService
 from data_ingestion.serializers.document_version.read import (
     DocumentVersionSerializer,
@@ -9,6 +10,7 @@ from data_ingestion.serializers.document_version.read import (
 
 class DocumentVersionListAPI(AuthAPI):
     """Get all document versions."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request):
         source_document_id = request.query_params.get('source_document_id', None)
@@ -27,6 +29,7 @@ class DocumentVersionListAPI(AuthAPI):
 
 class DocumentVersionDetailAPI(AuthAPI):
     """Get document version by ID."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request, id):
         document_version = DocumentVersionService.get_by_id(id)
@@ -47,6 +50,7 @@ class DocumentVersionDetailAPI(AuthAPI):
 
 class DocumentVersionLatestAPI(AuthAPI):
     """Get latest document version for a source document."""
+    permission_classes = [IngestionPermission]
 
     def get(self, request, source_document_id):
         document_version = DocumentVersionService.get_latest_by_source_document(source_document_id)

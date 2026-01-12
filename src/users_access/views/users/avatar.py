@@ -1,11 +1,13 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.authentication_permission import AuthenticationPermission
 from users_access.services.user_profile_service import UserProfileService
 from users_access.serializers.user_profile.profile_serializer import UserProfileSerializer
 from users_access.serializers.users.add_avatar import UserAvatarSerializer
 
 
 class UserAvatarAPI(AuthAPI):
+    permission_classes = [AuthenticationPermission]
 
     def patch(self, request):
         serializer = UserAvatarSerializer(data=request.data, context={"request": request})

@@ -160,6 +160,29 @@ class PaymentWebhookService:
                     reason="Webhook: transaction ID set"
                 )
             
+            # Step 5.5: Security: Validate payment amount to prevent tampering
+            webhook_amount = webhook_result.get('amount')
+            if webhook_amount is not None:
+                from decimal import Decimal
+                try:
+                    webhook_amount_decimal = Decimal(str(webhook_amount))
+                    payment_amount = payment.amount
+                    
+                    # Allow small rounding differences (0.01)
+                    amount_diff = abs(webhook_amount_decimal - payment_amount)
+                    if amount_diff > Decimal('0.01'):
+                        logger.error(
+                            f"Payment amount mismatch for payment {payment.id}: "
+                            f"expected {payment_amount}, received {webhook_amount_decimal}"
+                        )
+                        return {
+                            'success': False,
+                            'error': f'Payment amount mismatch: expected {payment_amount}, received {webhook_amount_decimal}'
+                        }
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Error validating payment amount: {e}")
+                    # Continue processing if amount validation fails (defensive)
+            
             # Step 6: Update status if changed
             if new_status and payment.status != new_status:
                 try:

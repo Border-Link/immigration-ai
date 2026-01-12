@@ -1,13 +1,13 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_reviewer import IsReviewer
+from main_system.permissions.review_permission import ReviewPermission
 from human_reviews.services.review_service import ReviewService
 from human_reviews.serializers.review.read import ReviewSerializer, ReviewListSerializer
 
 
 class ReviewListAPI(AuthAPI):
     """Get list of reviews. Supports filtering by status, case_id, reviewer_id. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewPermission]
 
     def get(self, request):
         status_filter = request.query_params.get('status', None)
@@ -32,7 +32,7 @@ class ReviewListAPI(AuthAPI):
 
 class ReviewDetailAPI(AuthAPI):
     """Get review by ID. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewPermission]
 
     def get(self, request, id):
         review = ReviewService.get_by_id(id)
@@ -52,7 +52,7 @@ class ReviewDetailAPI(AuthAPI):
 
 class ReviewPendingAPI(AuthAPI):
     """Get all pending reviews (not assigned). Only reviewers/admins can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewPermission]
 
     def get(self, request):
         reviews = ReviewService.get_pending()
@@ -66,7 +66,7 @@ class ReviewPendingAPI(AuthAPI):
 
 class ReviewByReviewerAPI(AuthAPI):
     """Get pending/in_progress reviews for the authenticated reviewer. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewPermission]
 
     def get(self, request):
         reviewer_id = request.user.id

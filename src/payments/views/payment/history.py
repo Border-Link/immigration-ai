@@ -5,6 +5,7 @@ Views for accessing payment history.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.payment_permission import PaymentPermission
 from payments.services.payment_service import PaymentService
 from payments.services.payment_history_service import PaymentHistoryService
 from payments.serializers.payment.history import PaymentHistorySerializer
@@ -16,6 +17,7 @@ class PaymentHistoryAPI(AuthAPI):
     
     Endpoint: GET /api/v1/payments/<id>/history/
     """
+    permission_classes = [PaymentPermission]
     
     def get(self, request, id):
         # Verify payment exists and user has access
@@ -50,6 +52,7 @@ class PaymentRetryAPI(AuthAPI):
     
     Endpoint: POST /api/v1/payments/<id>/retry/
     """
+    permission_classes = [PaymentPermission]
     
     def post(self, request, id):
         from payments.services.payment_retry_service import PaymentRetryService

@@ -1,11 +1,13 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.authentication_permission import AuthenticationPermission
 from users_access.services.user_profile_service import UserProfileService
 from users_access.serializers.user_profile.profile_serializer import UserProfileSerializer
 from users_access.serializers.users.names_update import NamesUpdateSerializer
 
 
 class UserNamesUpdateAPI(AuthAPI):
+    permission_classes = [AuthenticationPermission]
     serializer_class = NamesUpdateSerializer
 
     def patch(self, request):
