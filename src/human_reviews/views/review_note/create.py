@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_reviewer import IsReviewer
+from main_system.permissions.review_note_permission import ReviewNotePermission
 from human_reviews.services.review_note_service import ReviewNoteService
 from human_reviews.serializers.review_note.create import ReviewNoteCreateSerializer
 from human_reviews.serializers.review_note.read import ReviewNoteSerializer
@@ -8,7 +8,7 @@ from human_reviews.serializers.review_note.read import ReviewNoteSerializer
 
 class ReviewNoteCreateAPI(AuthAPI):
     """Create a new review note. Only reviewers can access."""
-    permission_classes = [IsReviewer]
+    permission_classes = [ReviewNotePermission]
 
     def post(self, request):
         serializer = ReviewNoteCreateSerializer(data=request.data)
