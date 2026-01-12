@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.rule_permission import RulePermission
 from rules_knowledge.services.visa_rule_version_service import VisaRuleVersionService
 from rules_knowledge.serializers.visa_rule_version.read import VisaRuleVersionSerializer, VisaRuleVersionListSerializer
 from main_system.utils import paginate_queryset
@@ -7,6 +8,7 @@ from main_system.utils import paginate_queryset
 
 class VisaRuleVersionListAPI(AuthAPI):
     """Get list of visa rule versions. Supports filtering by visa_type_id."""
+    permission_classes = [RulePermission]
 
     def get(self, request):
         visa_type_id = request.query_params.get('visa_type_id', None)
@@ -33,6 +35,7 @@ class VisaRuleVersionListAPI(AuthAPI):
 
 class VisaRuleVersionDetailAPI(AuthAPI):
     """Get visa rule version by ID."""
+    permission_classes = [RulePermission]
 
     def get(self, request, id):
         rule_version = VisaRuleVersionService.get_by_id(id)
