@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.case_permission import CasePermission
 from immigration_cases.services.case_service import CaseService
 from immigration_cases.serializers.case.read import (
     CaseListQuerySerializer,
@@ -11,6 +12,7 @@ from main_system.utils import paginate_queryset
 
 class CaseListAPI(AuthAPI):
     """Get list of cases. Supports filtering by user_id, status, jurisdiction and pagination."""
+    permission_classes = [CasePermission]
 
     def get(self, request):
         # Validate query parameters
@@ -50,6 +52,7 @@ class CaseListAPI(AuthAPI):
 
 class CaseDetailAPI(AuthAPI):
     """Get case by ID."""
+    permission_classes = [CasePermission]
 
     def get(self, request, id):
         case = CaseService.get_by_id(id)
