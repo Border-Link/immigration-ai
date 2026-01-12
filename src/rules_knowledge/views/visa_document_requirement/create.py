@@ -1,6 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.rule_permission import RulePermission
 from rules_knowledge.services.visa_document_requirement_service import VisaDocumentRequirementService
 from rules_knowledge.serializers.visa_document_requirement.create import VisaDocumentRequirementCreateSerializer
 from rules_knowledge.serializers.visa_document_requirement.read import VisaDocumentRequirementSerializer
@@ -8,7 +8,7 @@ from rules_knowledge.serializers.visa_document_requirement.read import VisaDocum
 
 class VisaDocumentRequirementCreateAPI(AuthAPI):
     """Create a new visa document requirement. Only admin/staff can access."""
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [RulePermission]
 
     def post(self, request):
         serializer = VisaDocumentRequirementCreateSerializer(data=request.data)
