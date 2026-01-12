@@ -98,7 +98,7 @@ else:
     SECURE_HSTS_PRELOAD = False
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-CSRF_COOKIE_HTTPONLY = True  # Security: Prevent XSS access to CSRF token
+CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = "DENY"
 
@@ -140,6 +140,7 @@ INSTALLED_APPS = [
     "corsheaders", # for CORS support
 
     #my apps
+    "ai_calls",
     "ai_decisions",
     "compliance",
     "data_ingestion",

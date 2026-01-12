@@ -1,9 +1,10 @@
 # One-on-One AI Immigration Case Call — Service Design
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Date:** 2025  
-**Status:** Design-Ready Implementation Plan  
-**Author:** Lead Principal Engineer
+**Status:** Enterprise-Ready Implementation Plan  
+**Author:** Lead Principal Engineer  
+**Last Updated:** 2025-01-XX
 
 ---
 
@@ -12,13 +13,21 @@
 1. [Executive Summary](#1-executive-summary)
 2. [Architecture Overview](#2-architecture-overview)
 3. [Core Design Principles](#3-core-design-principles)
-4. [Data Models](#4-data-models)
-5. [Service Layer Design](#5-service-layer-design)
-6. [API Specification](#6-api-specification)
-7. [Integration Points](#7-integration-points)
-8. [Security & Compliance](#8-security--compliance)
-9. [Implementation Plan](#9-implementation-plan)
-10. [Directory Structure](#10-directory-structure)
+4. [State Machine & Enforced Transitions](#4-state-machine--enforced-transitions)
+5. [Data Models](#5-data-models)
+6. [Service Layer Design](#6-service-layer-design)
+7. [API Specification](#7-api-specification)
+8. [Integration Points](#8-integration-points)
+9. [Security & Compliance](#9-security--compliance)
+10. [Enterprise Failure Modes](#10-enterprise-failure-modes)
+11. [Non-Goals & Compliance Boundaries](#11-non-goals--compliance-boundaries)
+12. [Implementation Plan](#12-implementation-plan)
+13. [Directory Structure](#13-directory-structure)
+14. [Key Implementation Details](#14-key-implementation-details)
+15. [Testing Strategy](#15-testing-strategy)
+16. [Monitoring & Observability](#16-monitoring--observability)
+17. [Future Enhancements](#17-future-enhancements)
+18. [Compliance Notes](#18-compliance-notes)
 
 ---
 
@@ -53,10 +62,32 @@ The AI Call Service enables applicants to have a **30-minute, case-scoped, voice
 | Generic Interview AI | AI Call Service |
 |---------------------|-----------------|
 | Generic interview | Case-specific reasoning |
-| External meeting tool | Native, controlled environment |
+| External meeting tool (Google Meet, Zoom) | Native, controlled environment |
 | Broad questioning | Strictly scoped to immigration case |
 | No persistent context | Case timeline integration |
 | Hard to audit | Fully logged & reviewable |
+| Proactive AI guidance | Reactive-only (user-driven) |
+| No state machine enforcement | Strict state machine with validation |
+| Single-layer guardrails | Dual-layer (pre-prompt + post-response) |
+| Traffic-dependent timebox | Independent background scheduler |
+
+### 1.4 Architectural Decisions
+
+**Why NOT Google Meet / External Meeting Tools**:
+- **Compliance Risk**: External tools cannot enforce our strict guardrails
+- **Audit Trail Gaps**: Cannot guarantee full transcript capture or context sealing
+- **No State Machine Control**: External tools don't respect our enforced state transitions
+- **Data Sovereignty**: Call data would flow through third-party infrastructure
+- **Integration Complexity**: Cannot integrate with case timeline or context bundle
+- **Cost Control**: External tools charge per-minute, no fixed pricing model
+- **Custom Guardrails**: Cannot implement dual-layer validation or reactive-only model
+
+**Why Native WebRTC / Managed Voice Provider**:
+- Full control over call lifecycle and state machine
+- Complete audit trail and transcript capture
+- Native integration with case context and guardrails
+- Predictable pricing and cost control
+- Compliance-friendly data handling
 
 ---
 
@@ -226,9 +257,152 @@ ai_calls/
 - Refusal templates for off-scope questions
 - Escalation to human review when guardrails triggered
 
+### 3.6 Reactive-Only Conversation Model
+
+**Rule**: AI never initiates conversation or leads the user. AI only responds to user questions.
+
+**Implementation**:
+- AI waits for user input before generating any response
+- No proactive suggestions, prompts, or guidance
+- No "Would you like to know about X?" type questions
+- AI responds only when user asks a question
+- This prevents AI from steering conversation into off-scope territory
+- Reduces compliance risk of AI appearing to give unsolicited advice
+
+**Rationale**:
+- User-driven conversation ensures compliance boundaries
+- Prevents AI from accidentally venturing into legal advice territory
+- Reduces guardrails trigger rate
+- Aligns with OISC guidance: information provided only when requested
+
+### 3.7 Context Versioning & Deterministic Audits
+
+**Rule**: Context bundle is versioned and hashed for deterministic audit trails.
+
+**Implementation**:
+- Context bundle includes `version` and `content_hash` fields
+- Hash computed using SHA-256 of canonicalized JSON
+- Version increments when context is rebuilt (case updated)
+- Audit logs reference context version and hash
+- Enables deterministic replay of AI responses for compliance review
+- Prevents context tampering or drift during call
+
+### 3.8 Prompt Governance
+
+**Rule**: Raw prompts are not stored by default (privacy and security).
+
+**Implementation**:
+- `CallTranscript.ai_prompt_used` field is optional and only populated when:
+  - Admin explicitly requests prompt storage (for debugging)
+  - Guardrails are triggered (for compliance review)
+  - Call is escalated (for human review)
+- Default behavior: Store prompt hash only, not full prompt
+- Prompt reconstruction possible from context bundle + conversation history
+- Reduces storage costs and privacy exposure
+- Still enables compliance audits when needed
+
 ---
 
-## 4. Data Models
+## 4. State Machine & Enforced Transitions
+
+### 4.1 State Machine Definition
+
+**Strict State Machine**: All status transitions are enforced programmatically. Invalid transitions raise exceptions and are logged as security events.
+
+**Valid States**:
+- `created`: Session created, context not yet built
+- `ready`: Context built and sealed, call can start
+- `in_progress`: Call is active
+- `completed`: Call ended normally (30 minutes or user ended)
+- `expired`: Call session expired before starting (TTL exceeded)
+- `terminated`: Call terminated manually (user or admin)
+
+**Valid Transitions**:
+```python
+VALID_TRANSITIONS = {
+    'created': ['ready', 'expired', 'terminated'],
+    'ready': ['in_progress', 'expired', 'terminated'],
+    'in_progress': ['completed', 'terminated'],
+    'completed': [],  # Terminal state
+    'expired': [],  # Terminal state
+    'terminated': [],  # Terminal state
+}
+```
+
+### 4.2 State Transition Validator
+
+**Implementation**:
+```python
+class CallSessionStateValidator:
+    """Enforces strict state machine for call sessions."""
+    
+    VALID_TRANSITIONS = {
+        'created': ['ready', 'expired', 'terminated'],
+        'ready': ['in_progress', 'expired', 'terminated'],
+        'in_progress': ['completed', 'terminated'],
+        'completed': [],
+        'expired': [],
+        'terminated': [],
+    }
+    
+    @staticmethod
+    def validate_transition(current_status: str, new_status: str) -> Tuple[bool, Optional[str]]:
+        """
+        Validate a status transition.
+        
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if current_status == new_status:
+            return True, None
+        
+        if current_status not in VALID_TRANSITIONS:
+            return False, f"Invalid current status: {current_status}"
+        
+        if new_status not in VALID_TRANSITIONS:
+            return False, f"Invalid new status: {new_status}"
+        
+        if new_status not in VALID_TRANSITIONS[current_status]:
+            return False, (
+                f"Invalid transition from '{current_status}' to '{new_status}'. "
+                f"Valid transitions: {', '.join(VALID_TRANSITIONS[current_status])}"
+            )
+        
+        return True, None
+    
+    @staticmethod
+    def get_valid_transitions(current_status: str) -> List[str]:
+        """Get list of valid transitions from current status."""
+        return VALID_TRANSITIONS.get(current_status, [])
+```
+
+**Enforcement Points**:
+- All service methods that update status must call validator
+- Repository layer enforces validation before database write
+- Invalid transitions raise `InvalidStateTransitionError`
+- Security event logged for invalid transition attempts
+- Optimistic locking prevents race conditions in state updates
+
+### 4.3 State Transition Examples
+
+**Valid Flow**:
+1. `created` → `ready` (context built)
+2. `ready` → `in_progress` (call started)
+3. `in_progress` → `completed` (call ended normally)
+
+**Invalid Flow** (will raise exception):
+1. `created` → `in_progress` (skipping `ready` - INVALID)
+2. `completed` → `in_progress` (terminal state - INVALID)
+3. `expired` → `ready` (terminal state - INVALID)
+
+**Security Implications**:
+- Invalid transitions indicate potential security issue or bug
+- All invalid transition attempts are logged to `CallAuditLog`
+- Admin alerts triggered if invalid transitions detected in production
+
+---
+
+## 5. Data Models
 
 ### 4.1 CallSession Model
 
@@ -285,6 +459,20 @@ class CallSession(models.Model):
         null=True,
         blank=True,
         help_text="Pre-built case context bundle (sealed before call starts)"
+    )
+    
+    # Context versioning for deterministic audits
+    context_version = models.IntegerField(
+        default=1,
+        help_text="Version number of context bundle (increments when rebuilt)"
+    )
+    
+    context_hash = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="SHA-256 hash of context bundle for deterministic audits"
     )
     
     # Voice infrastructure
@@ -392,10 +580,19 @@ class CallTranscript(models.Model):
         help_text="AI model used (e.g., 'gpt-4', 'claude-3')"
     )
     
+    # Prompt governance: store hash by default, full prompt only when needed
+    ai_prompt_hash = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="SHA-256 hash of prompt (stored by default for privacy)"
+    )
+    
     ai_prompt_used = models.TextField(
         null=True,
         blank=True,
-        help_text="Full prompt sent to AI (for audit)"
+        help_text="Full prompt sent to AI (only stored when guardrails triggered or admin requested)"
     )
     
     # Guardrails metadata
@@ -422,6 +619,21 @@ class CallTranscript(models.Model):
         null=True,
         blank=True,
         help_text="Duration of this turn in seconds"
+    )
+    
+    # Storage tier (for scaling strategy)
+    storage_tier = models.CharField(
+        max_length=20,
+        choices=[('hot', 'Hot'), ('cold', 'Cold')],
+        default='hot',
+        db_index=True,
+        help_text="Storage tier: hot (recent, frequently accessed) or cold (archived)"
+    )
+    
+    archived_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When transcript was moved to cold storage"
     )
 
     class Meta:
@@ -566,7 +778,7 @@ class CallSummary(models.Model):
 
 ---
 
-## 5. Service Layer Design
+## 6. Service Layer Design
 
 ### 5.1 CallSessionService (Core Orchestrator)
 
@@ -603,9 +815,12 @@ class CallSessionService:
         Prepare call session by building context bundle.
         
         Steps:
-        1. Build case context (CaseContextBuilder)
-        2. Seal context bundle
-        3. Update status to 'ready'
+        1. Validate current status is 'created' (state machine enforcement)
+        2. Build case context (CaseContextBuilder)
+        3. Compute context hash (SHA-256)
+        4. Seal context bundle (mark as read-only)
+        5. Validate transition 'created' → 'ready'
+        6. Update status to 'ready' with optimistic locking
         
         Returns:
         - CallSession in 'ready' status
@@ -617,11 +832,12 @@ class CallSessionService:
         Start the call.
         
         Steps:
-        1. Validate session is 'ready'
-        2. Initialize WebRTC session
-        3. Start timebox timer
-        4. Update status to 'in_progress'
-        5. Record started_at timestamp
+        1. Validate session is 'ready' (state machine check)
+        2. Validate transition 'ready' → 'in_progress'
+        3. Initialize WebRTC session
+        4. Schedule timebox enforcement task (background scheduler)
+        5. Update status to 'in_progress' with optimistic locking
+        6. Record started_at timestamp
         
         Returns:
         - CallSession in 'in_progress' status
@@ -633,12 +849,13 @@ class CallSessionService:
         End the call normally.
         
         Steps:
-        1. Validate session is 'in_progress'
-        2. Stop timebox timer
-        3. Generate post-call summary
-        4. Attach summary to case timeline
-        5. Update status to 'completed'
-        6. Record ended_at and duration_seconds
+        1. Validate session is 'in_progress' (state machine check)
+        2. Validate transition 'in_progress' → 'completed'
+        3. Cancel timebox enforcement task
+        4. Generate post-call summary
+        5. Attach summary to case timeline
+        6. Update status to 'completed' with optimistic locking
+        7. Record ended_at and duration_seconds
         
         Returns:
         - CallSession in 'completed' status
@@ -683,9 +900,9 @@ class CallSessionService:
 ```python
 class CaseContextBuilder:
     @staticmethod
-    def build_context_bundle(case_id: str) -> Dict[str, Any]:
+    def build_context_bundle(case_id: str, version: int = None) -> Dict[str, Any]:
         """
-        Build comprehensive case context bundle.
+        Build comprehensive case context bundle with versioning.
         
         Includes:
         - Case metadata (type, status, jurisdiction)
@@ -695,9 +912,18 @@ class CaseContextBuilder:
         - AI decisions (eligibility results, confidence scores)
         - Applicable rules (visa requirements, document requirements)
         - Outstanding issues/flags
+        - Version and timestamp for deterministic audits
         
         Returns:
-        - Sealed context bundle (dict)
+        - Sealed context bundle (dict) with version and hash
+        """
+    
+    @staticmethod
+    def compute_context_hash(context_bundle: Dict[str, Any]) -> str:
+        """
+        Compute SHA-256 hash of context bundle for deterministic audits.
+        
+        Uses canonicalized JSON (sorted keys, no whitespace).
         """
     
     @staticmethod
@@ -737,21 +963,28 @@ class VoiceOrchestrator:
         """
     
     @staticmethod
-    def generate_ai_response(user_text: str, session_id: str) -> Dict[str, Any]:
+    def generate_ai_response(user_text: str, session_id: str, store_prompt: bool = False) -> Dict[str, Any]:
         """
-        Generate AI response to user input.
+        Generate AI response to user input (REACTIVE-ONLY).
+        
+        IMPORTANT: AI never initiates conversation. This method is only called
+        in response to user input.
         
         Steps:
-        1. Validate user input against guardrails
-        2. Build AI prompt with context bundle
-        3. Call LLM API
-        4. Validate AI response against guardrails
-        5. Create CallTranscript entry (AI turn)
-        6. Convert text to speech
-        7. Return audio + text
+        1. Pre-prompt guardrails: Validate user input against case scope
+        2. Build AI prompt with context bundle (includes reactive-only instructions)
+        3. Compute prompt hash (for audit trail)
+        4. Call LLM API
+        5. Post-response guardrails: Validate AI response for compliance
+        6. Apply safety language if needed
+        7. Create CallTranscript entry (AI turn)
+           - Store prompt hash by default
+           - Store full prompt only if store_prompt=True or guardrails triggered
+        8. Convert text to speech
+        9. Return audio + text
         
         Returns:
-        - Dict with 'text', 'audio', 'turn_id', 'guardrails_triggered'
+        - Dict with 'text', 'audio', 'turn_id', 'guardrails_triggered', 'prompt_hash'
         """
     
     @staticmethod
@@ -759,17 +992,34 @@ class VoiceOrchestrator:
         """Handle user interruption during AI response."""
 ```
 
-### 5.4 TimeboxService
+### 5.4 TimeboxService (Independent Background Scheduler)
 
 **Responsibilities**:
-- Enforce 30-minute limit
-- Provide warnings
-- Auto-terminate at limit
+- Enforce 30-minute limit independently (not traffic-dependent)
+- Provide warnings at 5 minutes and 1 minute
+- Auto-terminate at limit via background scheduler
+- Handle network drops and silence gracefully
 
 **Key Methods**:
 
 ```python
 class TimeboxService:
+    @staticmethod
+    def schedule_timebox_enforcement(session_id: str, started_at: datetime) -> str:
+        """
+        Schedule background task to enforce timebox.
+        
+        Creates Celery task scheduled for 30 minutes from started_at.
+        Task runs independently of API traffic.
+        
+        Returns:
+        - Task ID for cancellation if needed
+        """
+    
+    @staticmethod
+    def cancel_timebox_enforcement(task_id: str) -> bool:
+        """Cancel scheduled timebox enforcement task."""
+    
     @staticmethod
     def check_time_remaining(session_id: str) -> Dict[str, Any]:
         """
@@ -788,48 +1038,103 @@ class TimeboxService:
         """Check if call should be auto-terminated (30 minutes reached)."""
     
     @staticmethod
-    def auto_terminate_if_needed(session_id: str) -> Optional[CallSession]:
+    def enforce_timebox(session_id: str) -> Optional[CallSession]:
         """
-        Auto-terminate call if 30 minutes reached.
+        Background task: Enforce 30-minute timebox.
         
-        Called by background task or on each turn.
+        Called by Celery scheduler at 30-minute mark.
+        Independent of API traffic - ensures timebox is enforced even if
+        user stops making requests.
+        
+        Steps:
+        1. Check if call is still 'in_progress'
+        2. Check if 30 minutes have elapsed
+        3. If yes, auto-terminate call
+        4. Generate partial summary
+        5. Log termination in audit log
+        """
+    
+    @staticmethod
+    def send_warning(session_id: str, warning_level: str) -> bool:
+        """
+        Send timebox warning (5 min or 1 min remaining).
+        
+        Called by background scheduler, not dependent on user requests.
         """
 ```
 
-### 5.5 GuardrailsService
+### 5.5 GuardrailsService (Dual-Layer Validation)
 
 **Responsibilities**:
-- Validate user questions against case scope
-- Validate AI responses for compliance
+- **Pre-prompt validation**: Validate user questions before sending to AI
+- **Post-response validation**: Validate AI responses before returning to user
 - Trigger refusals/warnings/escalations
+- Enforce reactive-only conversation model
+
+**Dual-Layer Architecture**:
+1. **Pre-Prompt Layer**: Validates user input before AI sees it
+   - Prevents off-scope questions from reaching AI
+   - Reduces AI confusion and guardrails triggers
+   - Faster response (no AI call needed for refusals)
+   
+2. **Post-Response Layer**: Validates AI output before user sees it
+   - Catches AI drift or compliance violations
+   - Ensures safety language is present
+   - Prevents legal advice language
 
 **Key Methods**:
 
 ```python
 class GuardrailsService:
     @staticmethod
-    def validate_user_input(user_text: str, context_bundle: Dict) -> Tuple[bool, Optional[str], Optional[str]]:
+    def validate_user_input_pre_prompt(user_text: str, context_bundle: Dict) -> Tuple[bool, Optional[str], Optional[str]]:
         """
-        Validate user input against case scope.
+        PRE-PROMPT VALIDATION: Validate user input before sending to AI.
+        
+        Checks:
+        - Is question within case scope?
+        - Does question request legal advice?
+        - Does question request guarantees?
+        - Is question attempting to discuss other cases/visas?
         
         Returns:
         - Tuple of (is_valid, error_message, action)
         - Actions: 'allow', 'refuse', 'warn', 'escalate'
+        
+        If 'refuse': Return refusal message immediately (no AI call)
+        If 'warn': Allow but log warning
+        If 'escalate': Allow but flag for human review
         """
     
     @staticmethod
-    def validate_ai_response(ai_text: str, context_bundle: Dict) -> Tuple[bool, Optional[str], Optional[str]]:
+    def validate_ai_response_post_response(ai_text: str, context_bundle: Dict) -> Tuple[bool, Optional[str], Optional[str]]:
         """
-        Validate AI response for compliance.
+        POST-RESPONSE VALIDATION: Validate AI output before returning to user.
         
         Checks:
         - No legal advice language
         - Stays within case scope
-        - Uses safety language
+        - Uses safety language ("Based on your case information...")
         - No guarantees or promises
+        - No proactive suggestions (reactive-only enforcement)
         
         Returns:
         - Tuple of (is_valid, error_message, action)
+        - If invalid: Response is sanitized or replaced with safe message
+        """
+    
+    @staticmethod
+    def enforce_reactive_only(ai_text: str) -> bool:
+        """
+        Check if AI response violates reactive-only model.
+        
+        Detects:
+        - Proactive questions ("Would you like to know about X?")
+        - Unsolicited suggestions
+        - AI-initiated topics
+        
+        Returns:
+        - True if reactive-only is violated
         """
     
     @staticmethod
@@ -839,6 +1144,14 @@ class GuardrailsService:
     @staticmethod
     def generate_safety_language() -> str:
         """Generate safety language prefix for AI responses."""
+    
+    @staticmethod
+    def sanitize_ai_response(ai_text: str, violations: List[str]) -> str:
+        """
+        Sanitize AI response that failed post-response validation.
+        
+        Replaces unsafe content with compliant message.
+        """
 ```
 
 ### 5.6 PostCallSummaryService
@@ -875,9 +1188,51 @@ class PostCallSummaryService:
         """Attach summary to case timeline (creates case note or status history entry)."""
 ```
 
+### 5.7 TranscriptStorageService (Hot vs Cold Storage)
+
+**Responsibilities**:
+- Manage transcript storage tiers
+- Archive old transcripts to cold storage
+- Optimize query performance for recent transcripts
+
+**Storage Strategy**:
+- **Hot Storage**: Recent transcripts (< 90 days), frequently accessed
+  - Stored in primary database
+  - Fast queries, full text search
+  - Used for active case review
+  
+- **Cold Storage**: Archived transcripts (> 90 days), rarely accessed
+  - Stored in object storage (S3) or archive database
+  - Slower queries, but lower cost
+  - Used for compliance audits and historical analysis
+
+**Key Methods**:
+
+```python
+class TranscriptStorageService:
+    @staticmethod
+    def archive_old_transcripts(days_threshold: int = 90) -> int:
+        """
+        Archive transcripts older than threshold to cold storage.
+        
+        Background task runs daily.
+        Moves transcripts from hot to cold storage.
+        Updates storage_tier and archived_at fields.
+        """
+    
+    @staticmethod
+    def get_transcript(session_id: str, include_cold: bool = False) -> List[CallTranscript]:
+        """
+        Get transcript for session.
+        
+        By default, only returns hot storage transcripts.
+        If include_cold=True, also fetches from cold storage.
+        """
+```
+
 ---
 
-## 6. API Specification
+## 7. API Specification
 
 ### 6.1 Create Call Session
 
@@ -1083,7 +1438,7 @@ audio: <binary audio data>
 
 ---
 
-## 7. Integration Points
+## 8. Integration Points
 
 ### 7.1 Integration with Immigration Cases
 
@@ -1124,7 +1479,7 @@ audio: <binary audio data>
 
 ---
 
-## 8. Security & Compliance
+## 9. Security & Compliance
 
 ### 8.1 Authentication & Authorization
 
@@ -1154,56 +1509,252 @@ audio: <binary audio data>
 
 ---
 
-## 9. Implementation Plan
+## 10. Enterprise Failure Modes
 
-### 9.1 Phase 1: Core Infrastructure (Week 1-2)
+### 10.1 Network Drops
+
+**Scenario**: User's network connection drops during call.
+
+**Handling**:
+- WebRTC connection monitoring detects drop
+- Call session remains in `in_progress` state
+- Timebox enforcement continues (independent scheduler)
+- If connection restored within 5 minutes:
+  - Resume call from same session
+  - Continue from last transcript turn
+- If connection not restored within 5 minutes:
+  - Auto-terminate call after 5 minutes of silence
+  - Generate partial summary
+  - Status: `terminated` (reason: "network_drop")
+
+**Implementation**:
+- WebRTC connection state monitoring
+- Heartbeat mechanism (ping every 30 seconds)
+- Graceful timeout handling
+
+### 10.2 User Silence / No Input
+
+**Scenario**: User doesn't provide input for extended period.
+
+**Handling**:
+- After 2 minutes of silence: System message "Are you still there?"
+- After 5 minutes of silence: Auto-terminate call
+- Generate partial summary with available content
+- Status: `terminated` (reason: "user_silence")
+
+**Implementation**:
+- Silence detection in VoiceOrchestrator
+- Background task monitors last user turn timestamp
+- Auto-termination via TimeboxService
+
+### 10.3 AI Service Failure
+
+**Scenario**: LLM API fails or times out.
+
+**Handling**:
+- Retry with exponential backoff (max 3 retries)
+- If all retries fail:
+  - Return graceful error message to user
+  - Log failure in CallAuditLog
+  - Allow user to retry question
+  - If 3 consecutive AI failures: Escalate to human review
+- Call continues (not terminated) unless user chooses to end
+
+**Implementation**:
+- Retry logic in VoiceOrchestrator
+- Circuit breaker pattern for LLM API
+- Fallback to cached responses if available
+
+### 10.4 Speech-to-Text Failure
+
+**Scenario**: Speech recognition service fails or returns low confidence.
+
+**Handling**:
+- If confidence < 0.7: Request user to repeat
+- If confidence < 0.5: Offer text input alternative
+- If 3 consecutive failures: Escalate to text-only mode
+- Log failures in CallAuditLog
+
+**Implementation**:
+- Confidence threshold validation
+- Graceful degradation to text input
+- User preference for text-only mode
+
+### 10.5 Context Building Failure
+
+**Scenario**: Case context cannot be built (missing data, service unavailable).
+
+**Handling**:
+- Call session cannot transition to `ready` state
+- User receives error: "Unable to prepare call. Please try again later."
+- Case flagged for admin review
+- Retry mechanism: User can retry after case data is updated
+
+**Implementation**:
+- Context building validation in CaseContextBuilder
+- Partial context fallback (if some data missing)
+- Admin alert for context building failures
+
+### 10.6 Timebox Enforcement Failure
+
+**Scenario**: Background scheduler fails to enforce 30-minute limit.
+
+**Handling**:
+- Redundant enforcement: API layer also checks time on each request
+- If background task fails, API layer catches it
+- Alert monitoring system if timebox exceeded
+- Emergency termination: Admin can manually terminate
+
+**Implementation**:
+- Dual enforcement: Background scheduler + API layer checks
+- Monitoring alerts for timebox violations
+- Admin override capability
+
+---
+
+## 11. Non-Goals & Compliance Boundaries
+
+### 11.1 Explicit Non-Goals
+
+**What This Service Does NOT Do**:
+
+1. **Legal Advice**: 
+   - Does not provide legal advice or legal opinions
+   - Does not guarantee application outcomes
+   - Does not recommend specific legal strategies
+   - **Boundary**: Information only, not advice
+
+2. **Proactive Guidance**:
+   - Does not initiate conversation topics
+   - Does not suggest questions to ask
+   - Does not prompt users about missing documents
+   - **Boundary**: Reactive-only, user-driven
+
+3. **Case Modification**:
+   - Does not update case facts during call
+   - Does not upload documents during call
+   - Does not change case status
+   - **Boundary**: Read-only case access during call
+
+4. **Multi-Case Discussion**:
+   - Does not discuss other user cases
+   - Does not compare cases
+   - Does not provide general immigration advice
+   - **Boundary**: Single case scope only
+
+5. **Real-Time Case Updates**:
+   - Does not query database during call
+   - Does not reflect case changes made during call
+   - **Boundary**: Sealed context bundle only
+
+6. **Call Recording** (Phase 1):
+   - Does not store audio recordings
+   - Does not provide call replay
+   - **Boundary**: Transcripts only, no audio storage
+
+7. **External Meeting Tools**:
+   - Does not integrate with Google Meet, Zoom, etc.
+   - Does not use third-party call infrastructure
+   - **Boundary**: Native WebRTC only
+
+### 11.2 Compliance Boundaries
+
+**OISC Compliance**:
+- Clear "Not Legal Advice" disclaimers in all AI responses
+- Informational guidance only
+- Escalation to human reviewers for complex cases
+- Full audit trail for compliance review
+
+**GDPR Compliance**:
+- Right to erasure for call data
+- Data minimization (prompts not stored by default)
+- Encryption at rest
+- User consent for data processing
+
+**Accessibility**:
+- Support for users with hearing impairments (transcript display)
+- Support for users with speech impairments (text input option)
+- WCAG 2.1 AA compliance
+
+---
+
+## 12. Implementation Plan
+
+### 12.1 Phase 1: Core Infrastructure (Week 1-2)
 
 **Week 1**:
 1. Create models (CallSession, CallTranscript, CallAuditLog, CallSummary)
+   - Add context_version, context_hash fields
+   - Add prompt_hash, storage_tier fields
+   - Add state machine constraints
 2. Create migrations
-3. Create repositories and selectors
-4. Create serializers
-5. Write unit tests for models
+3. Create state machine validator (CallSessionStateValidator)
+4. Create repositories and selectors
+5. Create serializers
+6. Write unit tests for models and state machine
 
 **Week 2**:
 1. Implement CallSessionService (create, prepare, start, end, terminate)
+   - Enforce state machine transitions
+   - Add optimistic locking
 2. Implement CaseContextBuilder
-3. Implement basic guardrails validation
-4. Write unit tests for services
+   - Add context versioning and hashing
+3. Implement dual-layer GuardrailsService
+   - Pre-prompt validation
+   - Post-response validation
+   - Reactive-only enforcement
+4. Write unit tests for services and state machine
 
-### 9.2 Phase 2: Voice Integration (Week 3-4)
+### 12.2 Phase 2: Voice Integration (Week 3-4)
 
 **Week 3**:
 1. Integrate speech-to-text service (Google Speech-to-Text or AWS Transcribe)
 2. Integrate text-to-speech service (Google TTS or AWS Polly)
 3. Implement VoiceOrchestrator
+   - Reactive-only conversation model
+   - Prompt governance (hash by default)
+   - Dual-layer guardrails integration
 4. Write integration tests
 
 **Week 4**:
 1. Implement WebRTC or managed voice provider integration
+   - Connection monitoring
+   - Heartbeat mechanism
+   - Network drop handling
 2. Implement turn-taking logic
 3. Implement interruption handling
-4. Write end-to-end tests
+4. Implement failure mode handling (silence, network drops)
+5. Write end-to-end tests
 
-### 9.3 Phase 3: Timebox & Guardrails (Week 5)
+### 12.3 Phase 3: Timebox & Guardrails (Week 5)
 
 **Week 5**:
-1. Implement TimeboxService (30-minute enforcement)
-2. Implement GuardrailsService (scope validation, compliance checks)
-3. Implement warning system (5 min, 1 min)
-4. Implement auto-termination
-5. Write tests
+1. Implement TimeboxService (independent background scheduler)
+   - Celery task scheduling
+   - Dual enforcement (background + API layer)
+   - Warning system (5 min, 1 min)
+   - Auto-termination
+2. Complete GuardrailsService implementation
+   - Pre-prompt validation
+   - Post-response validation
+   - Reactive-only enforcement
+3. Implement failure mode handling
+   - Network drop recovery
+   - Silence detection
+   - AI service retry logic
+4. Write tests (including chaos tests for timebox)
 
-### 9.4 Phase 4: Post-Call & Admin (Week 6)
+### 12.4 Phase 4: Post-Call & Admin (Week 6)
 
 **Week 6**:
 1. Implement PostCallSummaryService
 2. Implement summary attachment to case timeline
-3. Create admin views (list, detail, analytics)
-4. Create admin serializers
-5. Write tests
+3. Implement TranscriptStorageService (hot/cold storage)
+4. Create admin views (list, detail, analytics)
+5. Create admin serializers
+6. Write tests
 
-### 9.5 Phase 5: Polish & Production (Week 7-8)
+### 12.5 Phase 5: Polish & Production (Week 7-8)
 
 **Week 7**:
 1. Add caching to selectors
@@ -1219,7 +1770,7 @@ audio: <binary audio data>
 
 ---
 
-## 10. Directory Structure
+## 13. Directory Structure
 
 ```
 ai_calls/
@@ -1282,13 +1833,16 @@ ai_calls/
 │   ├── __init__.py
 │   ├── context_builder.py
 │   ├── guardrails_validator.py
+│   ├── state_machine_validator.py  # State transition enforcement
+│   ├── prompt_governance.py         # Prompt hashing and storage logic
 │   └── voice_utils.py
 ├── signals/
 │   ├── __init__.py
 │   └── call_session_signals.py
 ├── tasks/
 │   ├── __init__.py
-│   └── timebox_tasks.py
+│   ├── timebox_tasks.py              # Background timebox enforcement
+│   └── transcript_archive_tasks.py    # Hot/cold storage management
 └── tests/
     ├── __init__.py
     ├── test_models.py
@@ -1298,12 +1852,16 @@ ai_calls/
 
 ---
 
-## 11. Key Implementation Details
+## 14. Key Implementation Details
 
-### 11.1 Context Bundle Structure
+### 14.1 Context Bundle Structure (with Versioning)
 
 ```python
 {
+    "version": 1,
+    "created_at": "2025-01-01T10:00:00Z",
+    "content_hash": "sha256:abc123...",
+    
     "case_id": "uuid",
     "case_type": "StudentVisa",
     "jurisdiction": "UK",
@@ -1383,39 +1941,60 @@ ai_calls/
 }
 ```
 
-### 11.2 Guardrails Validation Examples
+### 14.2 Dual-Layer Guardrails Examples
 
-**Off-Scope Question**:
+**Off-Scope Question (Pre-Prompt Refusal)**:
 - User: "Can I switch to a work visa?"
-- Guardrails: Refuse (off-scope)
+- Pre-Prompt Guardrails: **REFUSE** (off-scope detected)
+- **No AI call made** - Immediate refusal response
 - AI Response: "I can only discuss information related to your current Student Visa case. For questions about other visa types, please consult a qualified immigration adviser."
+- Audit Log: Refusal logged with user input
 
-**Legal Advice Attempt**:
+**Legal Advice Attempt (Pre-Prompt Refusal)**:
 - User: "Will my application be approved?"
-- Guardrails: Refuse (no guarantees)
+- Pre-Prompt Guardrails: **REFUSE** (guarantee request detected)
+- **No AI call made** - Immediate refusal response
 - AI Response: "I cannot provide guarantees about application outcomes. Based on your case information, you appear to meet the requirements, but final decisions are made by immigration authorities."
+- Audit Log: Refusal logged
 
-**Safe Question**:
+**Safe Question (Pre-Prompt Allow, Post-Response Validate)**:
 - User: "What documents do I need?"
-- Guardrails: Allow
+- Pre-Prompt Guardrails: **ALLOW**
+- AI generates response
+- Post-Response Guardrails: **VALIDATE** (checks safety language, scope)
 - AI Response: "Based on your case information, you need: [list from context bundle]..."
+- Audit Log: No violations
 
-### 11.3 Timebox Warnings
+**AI Drift (Post-Response Sanitization)**:
+- User: "What documents do I need?"
+- Pre-Prompt Guardrails: **ALLOW**
+- AI generates response with legal advice language
+- Post-Response Guardrails: **SANITIZE** (detects legal advice)
+- AI Response replaced with: "Based on your case information, the required documents are: [list]. Please note this is informational guidance only, not legal advice."
+- Audit Log: Post-response violation logged, response sanitized
+
+### 14.3 Timebox Warnings (Independent Scheduler)
 
 **5 Minutes Remaining**:
-- System message: "You have 5 minutes remaining in this call."
+- Background scheduler detects 25 minutes elapsed
+- System message sent via WebRTC: "You have 5 minutes remaining in this call."
 - Visual indicator: Yellow warning badge
+- **Independent of user requests** - scheduler sends warning even if user silent
 
 **1 Minute Remaining**:
-- System message: "You have 1 minute remaining. The call will end automatically."
+- Background scheduler detects 29 minutes elapsed
+- System message sent via WebRTC: "You have 1 minute remaining. The call will end automatically."
 - Visual indicator: Red warning badge
+- **Independent of user requests**
 
 **Auto-Termination**:
+- Background scheduler detects 30 minutes elapsed
 - System message: "Your 30-minute call has ended. A summary will be available shortly."
-- Call status: 'completed'
+- Call status: 'completed' (enforced state machine transition)
 - Summary generation triggered
+- **Independent of user requests** - termination happens even if user stops making requests
 
-### 11.4 Post-Call Summary Example
+### 14.4 Post-Call Summary Example
 
 ```json
 {
@@ -1452,105 +2031,187 @@ ai_calls/
 }
 ```
 
+### 14.5 State Machine Transition Tests
+
+**Required Test Coverage**:
+- All valid transitions succeed
+- All invalid transitions raise `InvalidStateTransitionError`
+- Optimistic locking prevents race conditions
+- Security events logged for invalid transitions
+- Terminal states cannot transition
+
+**Example Test**:
+```python
+def test_invalid_transition_raises_error():
+    session = create_call_session(status='completed')
+    with pytest.raises(InvalidStateTransitionError):
+        CallSessionService.start_call(session.id)  # Terminal state
+```
+
 ---
 
-## 12. Testing Strategy
+## 15. Testing Strategy
 
-### 12.1 Unit Tests
+### 15.1 Unit Tests
 
 - Model validation tests
+- **State machine transition tests** (all valid/invalid transitions)
 - Service method tests
-- Guardrails validation tests
-- Context builder tests
-- Timebox service tests
+- **Dual-layer guardrails tests** (pre-prompt + post-response)
+- Context builder tests (versioning, hashing)
+- Timebox service tests (independent scheduler)
+- Prompt governance tests (hash vs full prompt storage)
 
-### 12.2 Integration Tests
+### 15.2 Integration Tests
 
 - End-to-end call flow (create → prepare → start → end)
+- **State machine enforcement** (invalid transitions blocked)
 - Voice processing integration
 - Case context building integration
 - Post-call summary generation
+- **Reactive-only conversation model** (no proactive AI)
 
-### 12.3 Compliance Tests
+### 15.3 Compliance Tests
 
-- Guardrails enforcement
+- Guardrails enforcement (pre-prompt + post-response)
 - Refusal message generation
 - Safety language enforcement
 - Audit log completeness
+- **Context versioning and hashing** (deterministic audits)
+- **Prompt governance** (privacy compliance)
+
+### 15.4 Chaos Tests
+
+- **Timebox enforcement** (background scheduler failure scenarios)
+- Network drop recovery
+- AI service failure handling
+- Speech-to-text failure handling
+- Context building failure handling
 
 ---
 
-## 13. Monitoring & Observability
+## 16. Monitoring & Observability
 
-### 13.1 Metrics
+### 16.1 Metrics
 
 - Call creation rate
 - Call completion rate
 - Average call duration
-- Guardrails trigger rate
+- **Dual-layer guardrails trigger rate** (pre-prompt vs post-response)
 - Auto-termination rate
 - Voice processing latency
+- **State machine violation rate** (invalid transitions attempted)
+- **Timebox enforcement accuracy** (background scheduler vs API layer)
+- **Context versioning** (how often contexts are rebuilt)
+- **Prompt storage rate** (hash-only vs full prompt)
 
-### 13.2 Alerts
+### 16.2 Alerts
 
 - High guardrails trigger rate (>20%)
+- **State machine violations** (invalid transitions - security concern)
 - Voice processing failures
-- Timebox enforcement failures
+- **Timebox enforcement failures** (background scheduler not running)
+- **Timebox exceeded** (call running > 30 minutes - critical)
 - Context building failures
+- **Network drop rate** (high connection failures)
+- **AI service failure rate** (LLM API issues)
 
-### 13.3 Logging
+### 16.3 Logging
 
 - All call events logged to `CallAuditLog`
+- **State machine transitions** logged with validation results
+- **Invalid transition attempts** logged as security events
 - Integration with `AuditLogService` for system-wide audit
 - Error logging with full context
+- **Context version and hash** logged for deterministic audits
 
 ---
 
-## 14. Future Enhancements
+## 17. Future Enhancements
 
-### 14.1 Phase 2 Features
+### 17.1 Phase 2 Features
 
 - Multi-language support
-- Call recording (with user consent)
+- Call recording (with user consent and GDPR compliance)
 - Call replay functionality
 - Advanced analytics dashboard
+- **Context bundle versioning UI** (show context changes over time)
 
-### 14.2 Phase 3 Features
+### 17.2 Phase 3 Features
 
-- Proactive AI suggestions during call
-- Real-time document validation during call
+- **Note**: Proactive AI suggestions are explicitly NOT included (compliance boundary)
+- Real-time document validation during call (read-only, no uploads)
 - Integration with payment system for premium calls
 - Mobile app support
+- **Advanced transcript analytics** (topic extraction, sentiment analysis)
 
 ---
 
-## 15. Compliance Notes
+## 18. Compliance Notes
 
-### 15.1 OISC Boundaries
+### 18.1 OISC Boundaries
 
-- Clear "Not Legal Advice" disclaimers
-- Informational guidance only
+- Clear "Not Legal Advice" disclaimers in all AI responses
+- Informational guidance only (reactive, not proactive)
 - Escalation to human reviewers for complex cases
 - Full audit trail for compliance review
+- **Dual-layer guardrails** prevent legal advice drift
+- **Reactive-only model** prevents unsolicited advice
 
-### 15.2 GDPR Compliance
+### 18.2 GDPR Compliance
 
 - Right to erasure for call data
-- Data minimization (only store necessary data)
+- **Data minimization**: Prompts not stored by default (hash only)
 - Encryption at rest
-- User consent for call recording (if implemented)
+- User consent for call recording (if implemented in Phase 2)
+- **Context versioning** enables selective data deletion
+- **Transcript archiving** (hot/cold storage) for data lifecycle management
 
-### 15.3 Accessibility
+### 18.3 Accessibility
 
 - Support for users with hearing impairments (transcript display)
 - Support for users with speech impairments (text input option)
 - WCAG 2.1 AA compliance
+- **Reactive-only model** benefits users who need time to formulate questions
 
 ---
 
-**Status**: Ready for Implementation  
+---
+
+## 19. Summary of Enterprise Hardening
+
+This design document incorporates **production-critical hardening** beyond the initial design:
+
+### ✅ Implemented Hardening Features
+
+1. **Strict State Machine**: Enforced programmatically with validation, not just described
+2. **Reactive-Only Model**: AI never initiates conversation, prevents compliance drift
+3. **Dual-Layer Guardrails**: Pre-prompt + post-response validation for defense in depth
+4. **Independent Timebox**: Background scheduler, not traffic-dependent
+5. **Context Versioning & Hashing**: Deterministic audits, prevents tampering
+6. **Prompt Governance**: Hash by default, full prompt only when needed (privacy)
+7. **Transcript Scaling**: Hot/cold storage strategy for cost optimization
+8. **Google Meet Rejection**: Explicit architectural justification for native approach
+9. **Failure Mode Handling**: Network drops, silence, AI failures, timebox failures
+10. **Non-Goals**: Clear compliance boundaries to protect against scope creep
+
+### 🎯 Ready For
+
+- ✅ Hand to senior engineering team
+- ✅ Share with compliance / legal
+- ✅ Use for security review
+- ✅ Foundation for implementation tickets
+- ✅ Push back on generic meeting tools
+- ✅ Push back on proactive AI features
+- ✅ Push back on skipping audit/context sealing
+
+---
+
+**Status**: Enterprise-Ready for Implementation  
+**Version**: 2.0  
 **Next Steps**: 
-1. Review and approve design
-2. Create implementation tickets
-3. Begin Phase 1 implementation
-4. Set up voice infrastructure (WebRTC or managed provider)
+1. Review and approve enterprise design
+2. Create implementation tickets with state machine tests
+3. Set up voice infrastructure (WebRTC or managed provider)
+4. Begin Phase 1 implementation with state machine enforcement
+5. Schedule compliance review with legal team

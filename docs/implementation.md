@@ -17,11 +17,12 @@
 6. [AI Reasoning & Rule Engine Flow](#section-6-ai-reasoning--rule-engine-flow)
 7. [Human-in-Loop Validation Flow](#section-7-human-in-loop-validation-flow)
 8. [Document Upload & Checking](#section-8-document-upload--checking)
-9. [Security, GDPR, and Compliance](#section-9-security-gdpr-and-compliance)
-10. [Step-by-Step Implementation Plan](#section-10-step-by-step-implementation-plan)
-11. [Example Code Snippets / Pseudocode](#section-11-example-code-snippets--pseudocode)
-12. [Phased Roadmap](#section-12-phased-roadmap)
-13. [Developer Notes](#section-13-developer-notes)
+9. [AI Call Service](#section-9-ai-call-service)
+10. [Security, GDPR, and Compliance](#section-10-security-gdpr-and-compliance)
+11. [Step-by-Step Implementation Plan](#section-11-step-by-step-implementation-plan)
+12. [Example Code Snippets / Pseudocode](#section-12-example-code-snippets--pseudocode)
+13. [Phased Roadmap](#section-13-phased-roadmap)
+14. [Developer Notes](#section-14-developer-notes)
 
 ---
 
