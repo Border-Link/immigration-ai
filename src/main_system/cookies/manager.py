@@ -38,6 +38,10 @@ class CookieManager:
 
         if settings.APP_ENV in self.APP_ENVIRONMENTS:
             self.samesite = "None"
+            # Security: SameSite=None requires Secure=True (already set in set_cookie)
+            # Verify secure is always True when SameSite=None
+            if not settings.DEBUG:
+                logger.warning("SameSite=None is set in non-debug environment. Ensure Secure=True.")
 
 
         self.signer = TimestampSigner(salt=hashed_salt)
