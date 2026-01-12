@@ -6,7 +6,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.base import (
     BaseAdminDetailAPI,
     BaseAdminDeleteAPI,
@@ -44,7 +44,7 @@ class CaseDocumentAdminListAPI(AuthAPI):
         - content_validation_status: Filter by content validation status (pending, passed, failed, warning)
         - is_expired: Filter by expired documents (true/false)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get(self, request):
         query_serializer = CaseDocumentAdminListQuerySerializer(data=request.query_params)
@@ -80,7 +80,7 @@ class CaseDocumentAdminDetailAPI(BaseAdminDetailAPI):
     Endpoint: GET /api/v1/document-handling/admin/case-documents/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -102,7 +102,7 @@ class CaseDocumentAdminUpdateAPI(BaseAdminUpdateAPI):
     Endpoint: PUT /api/v1/document-handling/admin/case-documents/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -138,7 +138,7 @@ class CaseDocumentAdminDeleteAPI(BaseAdminDeleteAPI):
     Endpoint: DELETE /api/v1/document-handling/admin/case-documents/<id>/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_entity_name(self):
         """Get human-readable entity name."""
@@ -166,7 +166,7 @@ class BulkCaseDocumentOperationAPI(AuthAPI):
             "status": "verified" (required if operation is update_status)
         }
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def post(self, request):
         serializer = BulkCaseDocumentOperationSerializer(data=request.data)
@@ -176,136 +176,136 @@ class BulkCaseDocumentOperationAPI(AuthAPI):
         operation = serializer.validated_data['operation']
         
         if operation == 'delete':
-                deleted_count = 0
-                failed_count = 0
-                
-                for doc_id in document_ids:
-                    success = CaseDocumentService.delete_case_document(str(doc_id))
-                    if success:
-                        deleted_count += 1
-                    else:
-                        failed_count += 1
-                
+            deleted_count = 0
+            failed_count = 0
+            
+            for doc_id in document_ids:
+                success = CaseDocumentService.delete_case_document(str(doc_id))
+                if success:
+                    deleted_count += 1
+                else:
+                    failed_count += 1
+            
+            return self.api_response(
+                message=f"Bulk operation completed. Deleted: {deleted_count}, Failed: {failed_count}.",
+                data={
+                    'deleted_count': deleted_count,
+                    'failed_count': failed_count,
+                    'total_requested': len(document_ids),
+                },
+                status_code=status.HTTP_200_OK
+            )
+        elif operation == 'update_status':
+            status_value = serializer.validated_data.get('status')
+            if not status_value:
                 return self.api_response(
-                    message=f"Bulk operation completed. Deleted: {deleted_count}, Failed: {failed_count}.",
-                    data={
-                        'deleted_count': deleted_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(document_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            elif operation == 'update_status':
-                status_value = serializer.validated_data.get('status')
-                if not status_value:
-                    return self.api_response(
-                        message="Status is required for update_status operation.",
-                        data=None,
-                        status_code=status.HTTP_400_BAD_REQUEST
-                    )
-                
-                updated_count = 0
-                failed_count = 0
-                
-                for doc_id in document_ids:
-                    updated = CaseDocumentService.update_status(str(doc_id), status_value)
-                    if updated:
-                        updated_count += 1
-                    else:
-                        failed_count += 1
-                
-                return self.api_response(
-                    message=f"Bulk operation completed. Updated: {updated_count}, Failed: {failed_count}.",
-                    data={
-                        'updated_count': updated_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(document_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            elif operation == 'reprocess_ocr':
-                reprocessed_count = 0
-                failed_count = 0
-                
-                for doc_id in document_ids:
-                    success = DocumentReprocessingService.reprocess_ocr(str(doc_id))
-                    if success:
-                        reprocessed_count += 1
-                    else:
-                        failed_count += 1
-                
-                return self.api_response(
-                    message=f"Bulk operation completed. Reprocessed: {reprocessed_count}, Failed: {failed_count}.",
-                    data={
-                        'reprocessed_count': reprocessed_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(document_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            elif operation == 'reprocess_classification':
-                reprocessed_count = 0
-                failed_count = 0
-                
-                for doc_id in document_ids:
-                    success = DocumentReprocessingService.reprocess_classification(str(doc_id))
-                    if success:
-                        reprocessed_count += 1
-                    else:
-                        failed_count += 1
-                
-                return self.api_response(
-                    message=f"Bulk operation completed. Reprocessed: {reprocessed_count}, Failed: {failed_count}.",
-                    data={
-                        'reprocessed_count': reprocessed_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(document_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            elif operation == 'reprocess_validation':
-                reprocessed_count = 0
-                failed_count = 0
-                
-                for doc_id in document_ids:
-                    success = DocumentReprocessingService.reprocess_validation(str(doc_id))
-                    if success:
-                        reprocessed_count += 1
-                    else:
-                        failed_count += 1
-                
-                return self.api_response(
-                    message=f"Bulk operation completed. Reprocessed: {reprocessed_count}, Failed: {failed_count}.",
-                    data={
-                        'reprocessed_count': reprocessed_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(document_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            elif operation == 'reprocess_full':
-                reprocessed_count = 0
-                failed_count = 0
-                
-                for doc_id in document_ids:
-                    success = DocumentReprocessingService.reprocess_full(str(doc_id))
-                    if success:
-                        reprocessed_count += 1
-                    else:
-                        failed_count += 1
-                
-                return self.api_response(
-                    message=f"Bulk operation completed. Reprocessing initiated: {reprocessed_count}, Failed: {failed_count}.",
-                    data={
-                        'reprocessed_count': reprocessed_count,
-                        'failed_count': failed_count,
-                        'total_requested': len(document_ids),
-                    },
-                    status_code=status.HTTP_200_OK
-                )
-            else:
-                return self.api_response(
-                    message=f"Unknown operation: {operation}",
+                    message="Status is required for update_status operation.",
                     data=None,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
+            
+            updated_count = 0
+            failed_count = 0
+            
+            for doc_id in document_ids:
+                updated = CaseDocumentService.update_status(str(doc_id), status_value)
+                if updated:
+                    updated_count += 1
+                else:
+                    failed_count += 1
+            
+            return self.api_response(
+                message=f"Bulk operation completed. Updated: {updated_count}, Failed: {failed_count}.",
+                data={
+                    'updated_count': updated_count,
+                    'failed_count': failed_count,
+                    'total_requested': len(document_ids),
+                },
+                status_code=status.HTTP_200_OK
+            )
+        elif operation == 'reprocess_ocr':
+            reprocessed_count = 0
+            failed_count = 0
+            
+            for doc_id in document_ids:
+                success = DocumentReprocessingService.reprocess_ocr(str(doc_id))
+                if success:
+                    reprocessed_count += 1
+                else:
+                    failed_count += 1
+            
+            return self.api_response(
+                message=f"Bulk operation completed. Reprocessed: {reprocessed_count}, Failed: {failed_count}.",
+                data={
+                    'reprocessed_count': reprocessed_count,
+                    'failed_count': failed_count,
+                    'total_requested': len(document_ids),
+                },
+                status_code=status.HTTP_200_OK
+            )
+        elif operation == 'reprocess_classification':
+            reprocessed_count = 0
+            failed_count = 0
+            
+            for doc_id in document_ids:
+                success = DocumentReprocessingService.reprocess_classification(str(doc_id))
+                if success:
+                    reprocessed_count += 1
+                else:
+                    failed_count += 1
+            
+            return self.api_response(
+                message=f"Bulk operation completed. Reprocessed: {reprocessed_count}, Failed: {failed_count}.",
+                data={
+                    'reprocessed_count': reprocessed_count,
+                    'failed_count': failed_count,
+                    'total_requested': len(document_ids),
+                },
+                status_code=status.HTTP_200_OK
+            )
+        elif operation == 'reprocess_validation':
+            reprocessed_count = 0
+            failed_count = 0
+            
+            for doc_id in document_ids:
+                success = DocumentReprocessingService.reprocess_validation(str(doc_id))
+                if success:
+                    reprocessed_count += 1
+                else:
+                    failed_count += 1
+            
+            return self.api_response(
+                message=f"Bulk operation completed. Reprocessed: {reprocessed_count}, Failed: {failed_count}.",
+                data={
+                    'reprocessed_count': reprocessed_count,
+                    'failed_count': failed_count,
+                    'total_requested': len(document_ids),
+                },
+                status_code=status.HTTP_200_OK
+            )
+        elif operation == 'reprocess_full':
+            reprocessed_count = 0
+            failed_count = 0
+            
+            for doc_id in document_ids:
+                success = DocumentReprocessingService.reprocess_full(str(doc_id))
+                if success:
+                    reprocessed_count += 1
+                else:
+                    failed_count += 1
+            
+            return self.api_response(
+                message=f"Bulk operation completed. Reprocessing initiated: {reprocessed_count}, Failed: {failed_count}.",
+                data={
+                    'reprocessed_count': reprocessed_count,
+                    'failed_count': failed_count,
+                    'total_requested': len(document_ids),
+                },
+                status_code=status.HTTP_200_OK
+            )
+        else:
+            return self.api_response(
+                message=f"Unknown operation: {operation}",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
