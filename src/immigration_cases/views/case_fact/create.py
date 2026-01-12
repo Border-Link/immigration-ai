@@ -1,5 +1,6 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
+from main_system.permissions.case_fact_permission import CaseFactPermission
 from immigration_cases.services.case_fact_service import CaseFactService
 from immigration_cases.serializers.case_fact.create import CaseFactCreateSerializer
 from immigration_cases.serializers.case_fact.read import CaseFactSerializer
@@ -7,6 +8,7 @@ from immigration_cases.serializers.case_fact.read import CaseFactSerializer
 
 class CaseFactCreateAPI(AuthAPI):
     """Create a new case fact. Authenticated users can create facts."""
+    permission_classes = [CaseFactPermission]
 
     def post(self, request):
         serializer = CaseFactCreateSerializer(data=request.data)
