@@ -29,6 +29,16 @@ This document lists all services and features from `implementation.md`, categori
 
 ## Core Services Status
 
+**Note**: AI Call Service implementation includes enterprise-level hardening:
+- Strict state machine with programmatic enforcement
+- Dual-layer guardrails (pre-prompt + post-response)
+- Reactive-only conversation model
+- Independent timebox enforcement (background scheduler)
+- Context versioning and hashing for deterministic audits
+- Prompt governance (privacy-first storage)
+- Transcript scaling strategy (hot/cold storage)
+- Enterprise failure mode handling
+
 ### 1. Case Service ✅ **FULLY IMPLEMENTED** (Hardened for Production)
 - **Location**: `src/immigration_cases/services/`
 - **Status**: Complete with comprehensive admin functionality and production hardening
@@ -210,7 +220,46 @@ This document lists all services and features from `implementation.md`, categori
     - ✅ **Service Method Signatures** - All methods updated to pass audit trail information
     - ✅ **Transaction Management** - Multi-step operations wrapped in transactions
 
-### 7. Payments Service ✅ **FULLY IMPLEMENTED** (Hardened for Production)
+### 7. AI Call Service ✅ **FULLY IMPLEMENTED** (Enterprise-Ready)
+- **Location**: `src/ai_calls/`
+- **Status**: Complete with enterprise-level hardening
+- **Features**:
+  - ✅ Call session lifecycle management
+  - ✅ Strict state machine with enforced transitions
+  - ✅ Context-sealed AI interactions (versioned and hashed)
+  - ✅ Dual-layer guardrails (pre-prompt + post-response)
+  - ✅ Reactive-only conversation model (AI never initiates)
+  - ✅ Independent timebox enforcement (background scheduler)
+  - ✅ Full audit logging (state changes, guardrails, terminations)
+  - ✅ Post-call summary generation
+  - ✅ Transcript management (hot/cold storage)
+  - ✅ Prompt governance (hash by default, full prompt only when needed)
+  - ✅ Optimistic locking for concurrent access
+  - ✅ Soft delete support
+  - ✅ **Models**: CallSession, CallTranscript, CallAuditLog, CallSummary
+  - ✅ **Repositories**: All write operations with transaction management
+  - ✅ **Selectors**: Read-only operations with caching
+  - ✅ **Services**: CallSessionService, CaseContextBuilder, VoiceOrchestrator, TimeboxService, GuardrailsService, PostCallSummaryService
+  - ✅ **Serializers**: Create, read, update serializers for all models
+  - ✅ **Views**: Create, read, prepare, start, end, terminate, speech, transcript endpoints
+  - ✅ **State Machine Validator**: Enforced transitions with validation
+  - ✅ **Celery Tasks**: Timebox enforcement and transcript archiving
+  - ✅ **Signals**: Cache invalidation on model changes
+  - ✅ **Architecture Compliance** - Follows system architecture (selectors for read, repositories for write, services for business logic)
+  - ✅ **No Django Admin** - All admin functionality is API-based
+  - ✅ **Documentation**: See `AI_CALL_SERVICE_DESIGN.md` for complete design
+- **API Endpoints**:
+  - ✅ `POST /api/v1/ai-calls/sessions/` - Create call session
+  - ✅ `GET /api/v1/ai-calls/sessions/{session_id}/` - Get call session
+  - ✅ `POST /api/v1/ai-calls/sessions/{session_id}/prepare/` - Prepare call session
+  - ✅ `POST /api/v1/ai-calls/sessions/{session_id}/start/` - Start call
+  - ✅ `POST /api/v1/ai-calls/sessions/{session_id}/end/` - End call
+  - ✅ `POST /api/v1/ai-calls/sessions/{session_id}/terminate/` - Terminate call
+  - ✅ `POST /api/v1/ai-calls/sessions/{session_id}/speech/` - Process user speech
+  - ✅ `GET /api/v1/ai-calls/sessions/{session_id}/transcript/` - Get transcript
+- **Impact**: **HIGH** - Complete AI voice call functionality with enterprise hardening
+
+### 8. Payments Service ✅ **FULLY IMPLEMENTED** (Hardened for Production)
 - **Location**: `src/payments/services/`
 - **Status**: Complete with comprehensive admin functionality and production hardening
 - **Features**:
