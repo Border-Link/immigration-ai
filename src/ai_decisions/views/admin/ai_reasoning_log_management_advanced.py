@@ -8,7 +8,7 @@ Access restricted to staff/superusers using IsAdminOrStaff permission.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.is_admin_or_staff import IsAdminOrStaff
+from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.bulk_operation import BaseBulkOperationAPI
 from ai_decisions.services.ai_reasoning_log_service import AIReasoningLogService
 from ai_decisions.serializers.ai_reasoning_log.admin import BulkAIReasoningLogOperationSerializer
@@ -23,7 +23,7 @@ class BulkAIReasoningLogOperationAPI(BaseBulkOperationAPI):
     Endpoint: POST /api/v1/ai-decisions/admin/ai-reasoning-logs/bulk-operation/
     Auth: Required (staff/superuser only)
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [AdminPermission]
     
     def get_serializer_class(self):
         """Return the bulk AI reasoning log operation serializer."""
