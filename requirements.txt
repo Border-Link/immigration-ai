@@ -18,7 +18,7 @@ gunicorn # WSGI server for production
 django-guardian  # Object-level permissions
 requests~=2.32.3
 django-encrypted-model-fields # Encrypted fields for sensitive data
-django-filter~=25.1
+django-filter~=25.2
 python-dateutil~=2.9.0
 debugpy # Debugging support for Django
 django-cors-headers
