@@ -72,6 +72,6 @@ django-redis
 sendgrid
 json-logic~=0.6.3  # JSON Logic expression evaluator for rule engine
 tenacity~=9.0.0  # Retry library with exponential backoff
-pybreaker~=1.0.1  # Circuit breaker pattern implementation
+pybreaker~=1.4.1  # Circuit breaker pattern implementation
 google-cloud-speech
 google-cloud-texttospeech
