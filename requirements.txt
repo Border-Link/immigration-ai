@@ -66,7 +66,7 @@ pyotp~=2.9.0
 
 django_celery_results~=2.6.0
 django-qrcode~=0.3
-numpy~=2.4.0
+numpy~=2.4.1
 django-celery-beat~=2.8.1
 django-redis
 sendgrid
