@@ -77,3 +77,44 @@ class DocumentChunkService:
         except Exception as e:
             logger.error(f"Error getting document chunk statistics: {e}")
             return {}
+    
+    @staticmethod
+    def regenerate_embedding(chunk_id: str, model: str = "text-embedding-ada-002") -> bool:
+        """
+        Regenerate embedding for a document chunk.
+        
+        Args:
+            chunk_id: Document chunk ID
+            model: Embedding model to use (default: text-embedding-ada-002)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            chunk = DocumentChunkSelector.get_by_id(chunk_id)
+            if not chunk:
+                logger.error(f"Document chunk {chunk_id} not found for re-embedding")
+                return False
+            
+            # Import embedding service
+            from ai_decisions.services.embedding_service import EmbeddingService
+            
+            # Generate new embedding
+            embedding = EmbeddingService.generate_embedding(chunk.chunk_text, model=model)
+            if not embedding or len(embedding) != 1536:
+                logger.error(f"Failed to generate valid embedding for chunk {chunk_id}")
+                return False
+            
+            # Update chunk with new embedding
+            from data_ingestion.repositories.document_chunk_repository import DocumentChunkRepository
+            DocumentChunkRepository.update_embedding(chunk, embedding)
+            
+            logger.info(f"Successfully regenerated embedding for chunk {chunk_id} using model {model}")
+            return True
+            
+        except DocumentChunk.DoesNotExist:
+            logger.error(f"Document chunk {chunk_id} not found")
+            return False
+        except Exception as e:
+            logger.error(f"Error regenerating embedding for chunk {chunk_id}: {e}", exc_info=True)
+            return False

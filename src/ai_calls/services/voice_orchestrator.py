@@ -14,6 +14,16 @@ from ai_calls.helpers.voice_utils import (
     normalize_audio_for_stt,
     get_audio_metadata
 )
+from ai_calls.helpers.voice_prompts import (
+    get_voice_ai_system_message,
+    build_voice_ai_user_prompt,
+    get_interruption_handling_message,
+    get_error_recovery_message,
+    get_empty_response_handling_message,
+    get_low_confidence_handling_message,
+    get_context_missing_message,
+    get_session_inactive_message
+)
 from external_services.request.speech_client import (
     ExternalSpeechToTextClient,
     SpeechToTextError
@@ -90,12 +100,16 @@ class VoiceOrchestrator:
             confidence = stt_result.get('confidence', 0.0)
             
             if not text or len(text) == 0:
-                return {'error': 'Speech recognition produced empty text. Please try speaking again.'}
+                error_msg = 'Speech recognition produced empty text. Please try speaking again.'
+                logger.warning(f"Empty text from STT for session {session_id}")
+                return {'error': error_msg}
             
-            # Log low confidence but allow it (user can clarify)
+            # Log low confidence and provide helpful message
             if confidence < 0.5:
                 logger.warning(f"Low confidence speech recognition for session {session_id}: {confidence}")
-                # Continue but log for monitoring
+                # Continue but include confidence info in response
+                confidence_message = get_low_confidence_handling_message(confidence)
+                # Note: We continue processing but could include this in response metadata
             
             # Create transcript entry (turn number assigned atomically)
             transcript = CallTranscriptRepository.create_transcript_turn(
@@ -147,10 +161,12 @@ class VoiceOrchestrator:
             return result
         except SpeechToTextError as e:
             logger.error(f"Speech-to-text error: {e}", exc_info=True)
-            return {'error': str(e)}
+            error_msg = get_error_recovery_message('stt_failure', '')
+            return {'error': error_msg, 'error_type': 'stt_error', 'original_error': str(e)}
         except Exception as e:
             logger.error(f"Unexpected error in speech-to-text: {e}", exc_info=True)
-            return {'error': f"Speech-to-text service unavailable: {str(e)}"}
+            error_msg = get_error_recovery_message('stt_failure', '')
+            return {'error': error_msg, 'error_type': 'stt_unexpected_error', 'original_error': str(e)}
 
     @staticmethod
     def generate_ai_response(user_text: str, session_id: str, store_prompt: bool = False) -> Dict[str, Any]:
@@ -188,7 +204,8 @@ class VoiceOrchestrator:
             
             if not call_session.context_bundle:
                 logger.error(f"Call session {session_id} has no context bundle")
-                return {'error': 'Context bundle not found'}
+                error_msg = get_context_missing_message()
+                return {'error': error_msg}
             
             # Pre-prompt guardrails (comprehensive validation)
             is_valid, error_message, action, violation_types = GuardrailsService.validate_user_input_pre_prompt(
@@ -271,8 +288,25 @@ class VoiceOrchestrator:
                 
                 return {'error': llm_result['error']}
             
-            ai_response_text = llm_result.get('content', '')
+            ai_response_text = llm_result.get('content', '').strip()
             ai_model = llm_result.get('model', 'unknown')
+            
+            # Handle empty or invalid responses
+            if not ai_response_text or len(ai_response_text) == 0:
+                logger.warning(f"Empty AI response for session {session_id}")
+                error_msg = get_empty_response_handling_message()
+                
+                # Log this as an error
+                from ai_calls.repositories.call_audit_log_repository import CallAuditLogRepository
+                CallAuditLogRepository.create_audit_log(
+                    call_session=call_session,
+                    event_type='system_error',
+                    description="AI generated empty response",
+                    user_input=user_text,
+                    metadata={'prompt_hash': prompt_hash, 'model': ai_model}
+                )
+                
+                return {'error': error_msg}
             
             # Post-response guardrails (comprehensive validation)
             is_valid, error_message, action, violation_types = GuardrailsService.validate_ai_response_post_response(
@@ -373,29 +407,19 @@ class VoiceOrchestrator:
 
     @staticmethod
     def _build_ai_prompt(user_text: str, context_bundle: Dict) -> str:
-        """Build AI prompt with context bundle and reactive-only instructions."""
-        # Serialize context bundle for prompt
-        context_str = json.dumps(context_bundle, indent=2, default=str)
+        """
+        Build AI prompt with context bundle and reactive-only instructions.
         
-        prompt = f"""You are an AI immigration assistant. Your primary goal is to provide accurate, case-scoped information based *only* on the provided context bundle. You must be reactive, meaning you only answer the user's direct questions and do not proactively offer information or guide the conversation.
-
-Strict Rules:
-- DO NOT provide legal advice, guarantees, or predictions about case outcomes.
-- DO NOT ask follow-up questions or try to lead the user.
-- DO NOT discuss topics outside the 'allowed_topics' in the context bundle.
-- ALWAYS use safety language like "Based on your case information..." or "According to the provided rules..."
-- If a question is outside the allowed topics or seeks legal advice, politely refuse and state why.
-- Keep responses concise and directly address the user's query.
-
----
-Case Context Bundle (read-only, sealed at call start):
-{context_str}
----
-User's Question: "{user_text}"
----
-Your Response (start with safety language, be reactive):
-"""
-        return prompt.strip()
+        Uses comprehensive prompts from helpers to ensure all edge cases are covered.
+        
+        Args:
+            user_text: The user's question or input
+            context_bundle: The case context bundle (read-only, sealed)
+            
+        Returns:
+            Formatted prompt string ready for LLM
+        """
+        return build_voice_ai_user_prompt(user_text, context_bundle)
 
     @staticmethod
     def _call_llm(prompt: str) -> Dict[str, Any]:
@@ -412,12 +436,8 @@ Your Response (start with safety language, be reactive):
             
             llm_client = LLMClient()
             
-            # Build messages for chat completion
-            system_message = (
-                "You are an AI immigration assistant. Provide accurate, case-scoped information "
-                "based only on the provided context. Be reactive - only answer direct questions. "
-                "Never provide legal advice or guarantees."
-            )
+            # Build messages for chat completion using comprehensive prompts
+            system_message = get_voice_ai_system_message()
             
             messages = [
                 {"role": "system", "content": system_message},
@@ -446,13 +466,30 @@ Your Response (start with safety language, be reactive):
                 }
             }
             
-        except (LLMRateLimitError, LLMTimeoutError, LLMServiceUnavailableError,
-                LLMAPIKeyError, LLMInvalidResponseError) as e:
-            logger.error(f"LLM error: {e}", exc_info=True)
-            return {'error': str(e)}
+        except LLMRateLimitError as e:
+            logger.error(f"LLM rate limit error: {e}", exc_info=True)
+            error_msg = get_error_recovery_message('rate_limit', '')
+            return {'error': error_msg, 'error_type': 'rate_limit', 'retry_after': 60}
+        except LLMTimeoutError as e:
+            logger.error(f"LLM timeout error: {e}", exc_info=True)
+            error_msg = get_error_recovery_message('timeout', '')
+            return {'error': error_msg, 'error_type': 'timeout'}
+        except LLMServiceUnavailableError as e:
+            logger.error(f"LLM service unavailable: {e}", exc_info=True)
+            error_msg = get_error_recovery_message('llm_failure', '')
+            return {'error': error_msg, 'error_type': 'service_unavailable'}
+        except LLMAPIKeyError as e:
+            logger.error(f"LLM API key error: {e}", exc_info=True)
+            error_msg = get_error_recovery_message('llm_failure', '')
+            return {'error': error_msg, 'error_type': 'api_key_error'}
+        except LLMInvalidResponseError as e:
+            logger.error(f"LLM invalid response error: {e}", exc_info=True)
+            error_msg = get_error_recovery_message('llm_failure', '')
+            return {'error': error_msg, 'error_type': 'invalid_response'}
         except Exception as e:
             logger.error(f"Unexpected error in LLM call: {e}", exc_info=True)
-            return {'error': f"LLM service unavailable: {str(e)}"}
+            error_msg = get_error_recovery_message('llm_failure', '')
+            return {'error': error_msg, 'error_type': 'unexpected_error'}
 
     @staticmethod
     def _text_to_speech(text: str) -> Dict[str, Any]:
@@ -475,13 +512,85 @@ Your Response (start with safety language, be reactive):
             return result
         except TextToSpeechError as e:
             logger.error(f"Text-to-speech error: {e}", exc_info=True)
-            return {'error': str(e)}
+            error_msg = get_error_recovery_message('tts_failure', '')
+            return {'error': error_msg, 'error_type': 'tts_error', 'original_error': str(e)}
         except Exception as e:
             logger.error(f"Unexpected error in text-to-speech: {e}", exc_info=True)
-            return {'error': f"Text-to-speech service unavailable: {str(e)}"}
+            error_msg = get_error_recovery_message('tts_failure', '')
+            return {'error': error_msg, 'error_type': 'tts_unexpected_error', 'original_error': str(e)}
 
     @staticmethod
-    def handle_interruption(session_id: str):
-        """Handle user interruption during AI response."""
-        # TODO: Implement interruption handling
-        logger.info(f"Interruption handled for session {session_id}")
+    def handle_interruption(session_id: str, current_turn_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Handle user interruption during AI response.
+        
+        When a user interrupts the AI (e.g., by speaking while AI is responding),
+        this method handles the interruption gracefully.
+        
+        Steps:
+        1. Validate session is active
+        2. Log interruption event
+        3. Cancel any ongoing TTS generation (if applicable)
+        4. Prepare for new user input
+        5. Return interruption acknowledgment
+        
+        Args:
+            session_id: Call session ID
+            current_turn_id: Optional current AI turn ID being interrupted
+            
+        Returns:
+            Dict with 'acknowledged', 'message', 'ready_for_input'
+        """
+        try:
+            call_session = CallSessionSelector.get_by_id(session_id)
+            if not call_session:
+                logger.error(f"Call session {session_id} not found for interruption")
+                return {
+                    'acknowledged': False,
+                    'error': 'Call session not found'
+                }
+            
+            if call_session.status != 'in_progress':
+                logger.warning(f"Interruption attempted on non-active session {session_id} (status: {call_session.status})")
+                return {
+                    'acknowledged': False,
+                    'error': get_session_inactive_message(call_session.status)
+                }
+            
+            # Log interruption event
+            from ai_calls.repositories.call_audit_log_repository import CallAuditLogRepository
+            CallAuditLogRepository.create_audit_log(
+                call_session=call_session,
+                event_type='interruption',
+                description=f"User interrupted AI response (turn_id: {current_turn_id})",
+                metadata={
+                    'interrupted_turn_id': current_turn_id,
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            
+            # If there's a current turn, we could mark it as interrupted
+            # (This would require adding an 'interrupted' field to CallTranscript model)
+            # For now, we just log it
+            
+            # Update heartbeat to indicate active interaction
+            from ai_calls.services.call_session_service import CallSessionService
+            CallSessionService.update_heartbeat(session_id)
+            
+            interruption_message = get_interruption_handling_message()
+            
+            logger.info(f"Interruption handled for session {session_id}, turn {current_turn_id}")
+            
+            return {
+                'acknowledged': True,
+                'message': interruption_message,
+                'ready_for_input': True,
+                'interrupted_turn_id': current_turn_id
+            }
+            
+        except Exception as e:
+            logger.error(f"Error handling interruption for session {session_id}: {e}", exc_info=True)
+            return {
+                'acknowledged': False,
+                'error': f"Error handling interruption: {str(e)}"
+            }
