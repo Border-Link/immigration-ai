@@ -11,9 +11,7 @@ import logging
 
 IMIGRATION_BACKEND = "imigration-backend"
 
-env = environ.Env(
-    DEBUG=(bool, True)
-)
+env = environ.Env(DEBUG=(bool, True))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -84,7 +82,6 @@ SITE_ID = 1
 
 APPEND_SLASH = True
 
-
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 # HSTS Configuration - Production: 1 year, Dev: Disabled
@@ -110,19 +107,79 @@ SESSION_COOKIE_NAME = "sessionid"
 FINGERPRINT_COOKIE_NAME = "fingerprint"
 MFA_VERIFIED_COOKIE_NAME = "mfa_verified"
 
-SANDBOX_PUBLIC_KEY=env("SANDBOX_PUBLIC_KEY")
-SANDBOX_SECRET_KEY=env("SANDBOX_SECRET_KEY")
-PRODUCT_MONO_ID=env("PRODUCT_MONO_ID")
-MONO_BASE_URL=env("MONO_BASE_URL")
-MONO_WEBHOOK_SECRET_KEY =env("MONO_WEBHOOK_SECRET_KEY")
-
-#FOREX EXCHANGE RATE
-OPEN_EXCHANGE_RATE_API_KEY=env('OPEN_EXCHANGE_RATE_API_KEY')
-OPEN_EXCHANGE_RATE_BASE_URL=env('OPEN_EXCHANGE_RATE_BASE_URL')
-
 # UK INGESTION API
 UK_GOV_API_BASE_URL = env('UK_GOV_API_BASE_URL')
 
+# AI/LLM Services
+OPENAI_API_KEY = env('OPENAI_API_KEY', default=None)
+AI_CALLS_LLM_MODEL = env('AI_CALLS_LLM_MODEL', default='gpt-4o-mini')
+
+# Speech Services
+SPEECH_TO_TEXT_PROVIDER = env('SPEECH_TO_TEXT_PROVIDER', default='google')
+TEXT_TO_SPEECH_PROVIDER = env('TEXT_TO_SPEECH_PROVIDER', default='google')
+GOOGLE_APPLICATION_CREDENTIALS = env('GOOGLE_APPLICATION_CREDENTIALS', default=None)
+GOOGLE_SPEECH_API_KEY = env('GOOGLE_SPEECH_API_KEY', default=None)
+GOOGLE_TTS_API_KEY = env('GOOGLE_TTS_API_KEY', default=None)
+
+# AWS Services
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default=None)
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default=None)
+AWS_REGION = env('AWS_REGION', default='us-east-1')
+
+# S3 Storage
+USE_S3_STORAGE = env.bool('USE_S3_STORAGE', default=False)
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default=None)
+AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL', default=None)
+
+# AWS Macie (Virus Scanning)
+AWS_MACIE_REGION = env('AWS_MACIE_REGION', default='us-east-1')
+AWS_MACIE_TEMP_BUCKET = env('AWS_MACIE_TEMP_BUCKET', default=None)
+
+# Document Processing - OCR
+OCR_BACKEND = env('OCR_BACKEND', default='tesseract')
+
+# Document Processing - Virus Scanning
+VIRUS_SCAN_BACKEND = env('VIRUS_SCAN_BACKEND', default='none')
+CLAMAV_SOCKET = env('CLAMAV_SOCKET', default='/var/run/clamav/clamd.ctl')
+CLAMAV_SCAN_TIMEOUT = env.int('CLAMAV_SCAN_TIMEOUT', default=30)
+AWS_MACIE_SCAN_TIMEOUT = env.int('AWS_MACIE_SCAN_TIMEOUT', default=60)
+MAX_VIRUS_SCAN_FILE_SIZE = env.int('MAX_VIRUS_SCAN_FILE_SIZE', default=100 * 1024 * 1024)  # 100MB
+VIRUS_SCAN_FAIL_SECURE = env.bool('VIRUS_SCAN_FAIL_SECURE', default=True)
+
+# File Storage
+MEDIA_ROOT = env('MEDIA_ROOT', default=None)
+MEDIA_URL = env('MEDIA_URL', default='/media/')
+
+# Data Ingestion
+DEFAULT_JURISDICTION = env('DEFAULT_JURISDICTION', default='UK')
+USE_STREAMING_FOR_LARGE_DOCS = env.bool('USE_STREAMING_FOR_LARGE_DOCS', default=True)
+STREAMING_THRESHOLD = env.int('STREAMING_THRESHOLD', default=10000)
+REDACT_PII_BEFORE_LLM = env.bool('REDACT_PII_BEFORE_LLM', default=True)
+
+# Payment History
+PAYMENT_HISTORY_RETENTION_YEARS = env.int('PAYMENT_HISTORY_RETENTION_YEARS', default=2)
+
+# Payment Gateways - Stripe
+STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default=None)
+STRIPE_PUBLIC_KEY = env('STRIPE_PUBLIC_KEY', default=None)
+STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default=None)
+
+# Payment Gateways - PayPal
+PAYPAL_CLIENT_ID = env('PAYPAL_CLIENT_ID', default=None)
+PAYPAL_CLIENT_SECRET = env('PAYPAL_CLIENT_SECRET', default=None)
+PAYPAL_MODE = env('PAYPAL_MODE', default='sandbox')
+PAYPAL_WEBHOOK_ID = env('PAYPAL_WEBHOOK_ID', default=None)
+
+# Payment Gateways - Adyen
+ADYEN_API_KEY = env('ADYEN_API_KEY', default=None)
+ADYEN_MERCHANT_ACCOUNT = env('ADYEN_MERCHANT_ACCOUNT', default=None)
+ADYEN_ENVIRONMENT = env('ADYEN_ENVIRONMENT', default='test')
+ADYEN_HMAC_KEY = env('ADYEN_HMAC_KEY', default=None)
+
+# Logging Configuration
+SERVICE_NAME = env('SERVICE_NAME', default='default-service')
+VERSION = env('VERSION', default='1.0.0')
+RELEASE = env('RELEASE', default='latest')
 
 # Application definition
 INSTALLED_APPS = [
@@ -440,7 +497,6 @@ REST_FRAMEWORK = {
 
 
 KNOX_TOKEN_MODEL = "knox.AuthToken"
-
 
 AUTH_USER_MODEL = "users_access.User"
 
