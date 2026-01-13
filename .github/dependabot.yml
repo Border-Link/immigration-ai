@@ -1,44 +1,69 @@
-# Dependabot Configuration
-# Automated dependency scanning and updates
-
 version: 2
+
 updates:
-  # Python dependencies
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
+      timezone: "Europe/London"
+
+    # Prevent PR floods
     open-pull-requests-limit: 10
+
+    # Ownership & visibility
     reviewers:
       - "security-team"
+    assignees:
+      - "security-team"
+
     labels:
       - "dependencies"
       - "python"
+      - "dependabot"
+
     commit-message:
       prefix: "chore"
       include: "scope"
-    # Security updates
+
+    # Allow both direct and transitive updates
     allow:
       - dependency-type: "direct"
       - dependency-type: "indirect"
-    # Ignore major version updates (review manually)
+
+    # Explicitly control risky major updates
     ignore:
       - dependency-name: "django"
         update-types: ["version-update:semver-major"]
       - dependency-name: "djangorestframework"
         update-types: ["version-update:semver-major"]
-    # Group updates
+      - dependency-name: "numpy"
+        update-types: ["version-update:semver-major"]
+
+    # Grouping ONLY applies to non-security updates
     groups:
-      django-updates:
+      framework-updates:
         patterns:
           - "django*"
+          - "djangorestframework*"
         update-types:
           - "minor"
           - "patch"
-      security-updates:
+
+      tooling-updates:
+        patterns:
+          - "pytest*"
+          - "black"
+          - "isort"
+          - "mypy"
+          - "flake8*"
+        update-types:
+          - "minor"
+          - "patch"
+
+      general-python-updates:
         patterns:
           - "*"
         update-types:
-          - "security"
+          - "patch"
