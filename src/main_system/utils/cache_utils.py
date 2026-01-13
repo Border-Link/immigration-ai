@@ -5,7 +5,7 @@ import inspect
 import json
 
 
-def cache_result(timeout=3600, keys=None):
+def cache_result(timeout=3600, keys=None, namespace=None):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -21,10 +21,19 @@ def cache_result(timeout=3600, keys=None):
             user = arguments.get('user')
             user_id = getattr(user, 'id', 'anonymous')
 
+            version = 1
+            if namespace:
+                ns_str = namespace(*args, **kwargs)
+                version = cache.get(ns_str, 1)
+            else:
+                ns_str = ''
+
             cache_payload = {
+                "namespace": ns_str,
                 "class": class_name,
                 "function": func.__name__,
-                "user_id": str(user_id)
+                "user_id": str(user_id),
+                "version": version,
             }
 
             if keys:
@@ -44,6 +53,23 @@ def cache_result(timeout=3600, keys=None):
 
             result = func(*args, **kwargs)
             cache.set(cache_key, result, timeout)
+            return result
+        return wrapper
+    return decorator
+
+
+
+def invalidate_cache(namespace_adapter):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            result = func(*args, **kwargs)
+            key = namespace_adapter(*args, **kwargs)
+
+            try:
+                cache.incr(key)
+            except ValueError:
+                cache.set(key, 2)
             return result
         return wrapper
     return decorator
