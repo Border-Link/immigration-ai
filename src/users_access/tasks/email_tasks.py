@@ -1,5 +1,6 @@
 from celery import shared_task
 import logging
+from django.utils import timezone
 from emails.send import SendEmailService
 from main_system.utils.tasks_base import BaseTaskWithMeta
 from users_access.selectors.user_selector import UserSelector
@@ -305,5 +306,50 @@ def send_rule_change_notification_email_task(self, user_id: str, visa_type_id: s
         
     except Exception as e:
         logger.error(f"Error sending rule change email: {e}")
+        raise self.retry(exc=e, countdown=60, max_retries=3)
+
+
+@shared_task(bind=True, base=BaseTaskWithMeta)
+def send_admin_password_reset_email_task(self, user_id: str, new_password: str, reset_by_email: str):
+    """
+    Send email notification when admin resets a user's password.
+    
+    Args:
+        user_id: UUID of the user whose password was reset
+        new_password: The new password (will be sent to user)
+        reset_by_email: Email of the admin who reset the password
+    """
+    try:
+        user = UserSelector.get_by_id(user_id)
+        if not user:
+            logger.error(f"User {user_id} not found for password reset email")
+            return
+        
+        try:
+            profile = UserProfileSelector.get_by_user(user)
+            first_name = profile.first_name if profile and profile.first_name else user.email.split('@')[0]
+        except Exception:
+            first_name = user.email.split('@')[0]
+        
+        context = {
+            'first_name': first_name,
+            'email': user.email,
+            'new_password': new_password,
+            'reset_by': reset_by_email,
+            'reset_timestamp': timezone.now().isoformat(),
+        }
+        
+        SendEmailService().send_mail(
+            subject='Your Password Has Been Reset by Administrator',
+            template_name='emails/admin_password_reset.html',
+            context=context,
+            recipient_list=[user.email]
+        )
+        
+        logger.info(f"Admin password reset email sent to {user.email}")
+        return {'status': 'success', 'email': user.email}
+        
+    except Exception as e:
+        logger.error(f"Error sending admin password reset email: {e}")
         raise self.retry(exc=e, countdown=60, max_retries=3)
 
