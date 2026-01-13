@@ -154,6 +154,26 @@ if Counter and Histogram:
         buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0)
     )
     
+    # Virus Scanning Metrics
+    virus_scans_total = Counter(
+        'document_handling_virus_scans_total',
+        'Total number of virus scans',
+        ['backend', 'status']  # backend: clamav, aws_macie, none; status: clean, threat_detected, failed, skipped
+    )
+    
+    virus_scan_duration_seconds = Histogram(
+        'document_handling_virus_scan_duration_seconds',
+        'Duration of virus scans in seconds',
+        ['backend'],
+        buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0)
+    )
+    
+    virus_threats_detected_total = Counter(
+        'document_handling_virus_threats_detected_total',
+        'Total number of threats detected',
+        ['backend', 'threat_type']  # threat_type: virus, malware, trojan, etc.
+    )
+    
 else:
     # Dummy metrics
     document_uploads_total = None
@@ -175,6 +195,9 @@ else:
     document_reprocessing_duration_seconds = None
     file_storage_operations_total = None
     file_storage_duration_seconds = None
+    virus_scans_total = None
+    virus_scan_duration_seconds = None
+    virus_threats_detected_total = None
 
 
 def track_document_upload(status: str, document_type: str, duration: float, size_bytes: int = None):
@@ -249,3 +272,23 @@ def track_file_storage_operation(operation: str, storage_type: str, duration: fl
         file_storage_operations_total.labels(operation=operation, storage_type=storage_type).inc()
     if file_storage_duration_seconds:
         file_storage_duration_seconds.labels(operation=operation, storage_type=storage_type).observe(duration)
+
+
+def track_virus_scan(backend: str, status: str, duration: float, threat_detected: bool = False, threat_type: str = None):
+    """
+    Track virus scan metrics.
+    
+    Args:
+        backend: Scanning backend (clamav, aws_macie, none)
+        status: Scan status (clean, threat_detected, failed, skipped)
+        duration: Scan duration in seconds
+        threat_detected: Whether a threat was detected
+        threat_type: Type of threat detected (if any)
+    """
+    if virus_scans_total:
+        virus_scans_total.labels(backend=backend, status=status).inc()
+    if virus_scan_duration_seconds:
+        virus_scan_duration_seconds.labels(backend=backend).observe(duration)
+    if virus_threats_detected_total and threat_detected:
+        threat_type_label = threat_type or 'unknown'
+        virus_threats_detected_total.labels(backend=backend, threat_type=threat_type_label).inc()
