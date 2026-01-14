@@ -124,7 +124,7 @@ services:
     networks:
       - border_link
       - web
-    command: celery -A main_system beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: celery -A main_system beat --loglevel=info --scheduler redbeat.schedulers:RedBeatScheduler
     depends_on:
       redis:
         condition: service_healthy
