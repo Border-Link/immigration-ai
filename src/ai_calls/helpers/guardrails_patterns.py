@@ -252,6 +252,39 @@ VIOLATION_CATEGORIES = {
 }
 
 # ============================================================================
+# AGGREGATED PATTERN COLLECTIONS (for convenience)
+# ============================================================================
+
+# All pre-prompt validation patterns (user input)
+PRE_PROMPT_PATTERNS = (
+    LEGAL_ADVICE_PATTERNS +
+    GUARANTEE_REQUEST_PATTERNS +
+    OTHER_VISA_PATTERNS +
+    FRAUD_PATTERNS +
+    FINANCIAL_GUARANTEE_PATTERNS
+)
+
+# All post-response validation patterns (AI output)
+POST_RESPONSE_PATTERNS = (
+    LEGAL_ADVICE_LANGUAGE_PATTERNS +
+    GUARANTEE_LANGUAGE_PATTERNS +
+    PROACTIVE_PATTERNS +
+    SAFETY_LANGUAGE_PATTERNS +
+    OFF_SCOPE_PATTERNS +
+    AUTHORITY_PATTERNS
+)
+
+# ============================================================================
+# SEVERITY MAPPING
+# ============================================================================
+
+# Map violation types to their severity levels
+SEVERITY_MAP = {
+    category: info['severity']
+    for category, info in VIOLATION_CATEGORIES.items()
+}
+
+# ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
 

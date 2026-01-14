@@ -36,11 +36,11 @@ fresh-build:
 
 up:
 	@echo "🚀 Starting production services..."
-	docker compose up -d
+	docker compose up -d --remove-orphans
 
 down:
 	@echo "🛑 Stopping production services..."
-	docker compose down
+	docker compose down --volumes --remove-orphans
 
 restart:
 	make down
@@ -69,13 +69,13 @@ dev-fresh-build:
 	docker compose -f docker-compose.dev.yml build --no-cache
 
 dev:
-	docker compose -f docker-compose.dev.yml up -d
+	docker compose -f docker-compose.dev.yml up -d --remove-orphans
 
 dev-down:
-	docker compose -f docker-compose.dev.yml down
+	docker compose -f docker-compose.dev.yml down --volumes --remove-orphans
 
 dev-restart:
-	make dev_down
+	make dev-down
 	make dev
 
 dev-logs:

@@ -2,7 +2,7 @@ from django.utils.crypto import get_random_string
 
 from users_access.constants.otp_constants import ALLOWED_OTP_NUMBERS
 from users_access.services.otp_services import OTPService
-from users_access.tasks.otp_tasks import send_otp_email
+from users_access.tasks.otp_tasks import send_otp_email_task
 from main_system.utils.generate_hash import GenerateHash
 
 
@@ -35,7 +35,7 @@ class OTPBaseHandler:
         first_name = None
         if hasattr(user, 'profile') and user.profile:
             first_name = user.profile.first_name
-        send_otp_email.delay(user.email, first_name, otp)
+        send_otp_email_task.delay(user.email, first_name, otp)
 
 
     def generate_and_send_otp(self, user):

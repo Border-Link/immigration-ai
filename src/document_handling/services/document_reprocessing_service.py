@@ -4,7 +4,6 @@ Service for reprocessing documents (OCR, classification, validation).
 import logging
 from typing import Optional
 from document_handling.selectors.case_document_selector import CaseDocumentSelector
-from document_handling.tasks.document_tasks import process_document_task
 from document_handling.services.ocr_service import OCRService
 from document_handling.services.document_classification_service import DocumentClassificationService
 from document_handling.services.document_content_validation_service import DocumentContentValidationService
@@ -253,6 +252,8 @@ class DocumentReprocessingService:
                 return False
             
             # Trigger async full reprocessing
+            # Lazy import to avoid circular dependency
+            from document_handling.tasks.document_tasks import process_document_task
             process_document_task.delay(case_document_id)
             
             logger.info(f"Full reprocessing initiated for document {case_document_id}")

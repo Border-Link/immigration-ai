@@ -42,8 +42,8 @@ logger = logging.getLogger('django')
 # Opens after 5 consecutive failures, resets after 60 seconds
 llm_circuit_breaker = CircuitBreaker(
     fail_max=5,
-    timeout_duration=60,
-    expected_exception=Exception
+    reset_timeout=60,
+    exclude=[]  # Don't exclude any exceptions - all exceptions count as failures
 )
 
 

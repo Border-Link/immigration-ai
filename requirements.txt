@@ -4,6 +4,7 @@ openai
 # Core Django & Database Packages
 django~=5.2
 djangorestframework~=3.16.0
+drf-spectacular  # OpenAPI schema generation
 python-decouple  # For managing environment variables
 pytz  # Timezone support
 psycopg  # PostgreSQL support
@@ -26,9 +27,8 @@ django-cors-headers
 django-extensions # Useful extensions for Django development
 
 # AI & ML Frameworks
-#groq  # Groq API for AI models
-#openai  # OpenAI API support
-#mistralai  # Mistral AI API
+#groq  # Groq API for AI models (uncomment if needed)
+#mistralai  # Mistral AI API (uncomment if needed)
 #langchain  # AI-powered reasoning and retrieval
 #llama-index  # Indexing & search over AI data
 #tantivy  # Fast search engine library
@@ -53,6 +53,9 @@ mypy  # Static type checking
 boto3  # AWS SDK for S3/DigitalOcean Spaces integration
 python-magic  # File type detection for uploads
 
+# Security & Virus Scanning
+python-clamd  # ClamAV virus scanning client
+
 sentry-sdk~=2.48.0
 python-json-logger~=4.0.0
 django-prometheus
@@ -66,12 +69,12 @@ pyotp~=2.9.0
 
 django_celery_results~=2.6.0
 django-qrcode~=0.3
-numpy~=2.4.1
-django-celery-beat~=2.8.1
+numpy~=2.4.0
 django-redis
 sendgrid
 json-logic~=0.6.3  # JSON Logic expression evaluator for rule engine
 tenacity~=9.0.0  # Retry library with exponential backoff
-pybreaker~=1.4.1  # Circuit breaker pattern implementation
+pybreaker~=1.0.1  # Circuit breaker pattern implementation
 google-cloud-speech
 google-cloud-texttospeech
+celery-redbeat  # Redis-based Celery Beat scheduler (kept for potential future use)

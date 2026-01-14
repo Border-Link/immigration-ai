@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="DecisionOverride",
+            name="Case",
             fields=[
                 (
                     "id",
@@ -25,71 +25,33 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "overridden_outcome",
+                    "jurisdiction",
                     models.CharField(
                         choices=[
-                            ("eligible", "Eligible"),
-                            ("not_eligible", "Not Eligible"),
-                            ("requires_review", "Requires Review"),
+                            ("UK", "United Kingdom"),
+                            ("US", "United States"),
+                            ("CA", "Canada"),
+                            ("AU", "Australia"),
                         ],
                         db_index=True,
-                        help_text="The new outcome after override",
-                        max_length=20,
-                    ),
-                ),
-                ("reason", models.TextField(help_text="Reason for the override")),
-                ("created_at", models.DateTimeField(auto_now_add=True, db_index=True)),
-            ],
-            options={
-                "verbose_name_plural": "Decision Overrides",
-                "db_table": "decision_overrides",
-                "ordering": ["-created_at"],
-            },
-        ),
-        migrations.CreateModel(
-            name="Review",
-            fields=[
-                (
-                    "id",
-                    models.UUIDField(
-                        db_index=True,
-                        default=uuid.uuid4,
-                        editable=False,
-                        primary_key=True,
-                        serialize=False,
+                        help_text="Jurisdiction for this immigration case",
+                        max_length=10,
                     ),
                 ),
                 (
                     "status",
                     models.CharField(
                         choices=[
-                            ("pending", "Pending"),
-                            ("in_progress", "In Progress"),
-                            ("completed", "Completed"),
-                            ("cancelled", "Cancelled"),
+                            ("draft", "Draft"),
+                            ("evaluated", "Evaluated"),
+                            ("awaiting_review", "Awaiting Review"),
+                            ("reviewed", "Reviewed"),
+                            ("closed", "Closed"),
                         ],
                         db_index=True,
-                        default="pending",
-                        help_text="Current status of the review",
+                        default="draft",
+                        help_text="Current status of the case",
                         max_length=20,
-                    ),
-                ),
-                (
-                    "assigned_at",
-                    models.DateTimeField(
-                        blank=True,
-                        db_index=True,
-                        help_text="When the review was assigned",
-                        null=True,
-                    ),
-                ),
-                (
-                    "completed_at",
-                    models.DateTimeField(
-                        blank=True,
-                        db_index=True,
-                        help_text="When the review was completed",
-                        null=True,
                     ),
                 ),
                 (
@@ -100,17 +62,31 @@ class Migration(migrations.Migration):
                         help_text="Version number for optimistic locking",
                     ),
                 ),
+                (
+                    "is_deleted",
+                    models.BooleanField(
+                        db_index=True,
+                        default=False,
+                        help_text="Whether this case is soft deleted",
+                    ),
+                ),
+                (
+                    "deleted_at",
+                    models.DateTimeField(
+                        blank=True, help_text="When this case was deleted", null=True
+                    ),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True, db_index=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                "verbose_name_plural": "Reviews",
-                "db_table": "reviews",
+                "verbose_name_plural": "Cases",
+                "db_table": "cases",
                 "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name="ReviewNote",
+            name="CaseFact",
             fields=[
                 (
                     "id",
@@ -122,25 +98,44 @@ class Migration(migrations.Migration):
                         serialize=False,
                     ),
                 ),
-                ("note", models.TextField(help_text="The note content")),
                 (
-                    "is_internal",
-                    models.BooleanField(
+                    "fact_key",
+                    models.CharField(
                         db_index=True,
-                        default=False,
-                        help_text="Whether this note is internal (not visible to user)",
+                        help_text="Key for the fact (e.g., 'salary', 'age', 'nationality')",
+                        max_length=255,
+                    ),
+                ),
+                (
+                    "fact_value",
+                    models.JSONField(
+                        help_text="Value of the fact (can be string, number, boolean, etc.)"
+                    ),
+                ),
+                (
+                    "source",
+                    models.CharField(
+                        choices=[
+                            ("user", "User Provided"),
+                            ("ai", "AI Derived"),
+                            ("reviewer", "Reviewer Corrected"),
+                        ],
+                        db_index=True,
+                        default="user",
+                        help_text="Source of the fact",
+                        max_length=20,
                     ),
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True, db_index=True)),
             ],
             options={
-                "verbose_name_plural": "Review Notes",
-                "db_table": "review_notes",
+                "verbose_name_plural": "Case Facts",
+                "db_table": "case_facts",
                 "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name="ReviewStatusHistory",
+            name="CaseStatusHistory",
             fields=[
                 (
                     "id",
@@ -184,8 +179,8 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True, db_index=True)),
             ],
             options={
-                "verbose_name_plural": "Review Status History",
-                "db_table": "review_status_history",
+                "verbose_name_plural": "Case Status History",
+                "db_table": "case_status_history",
                 "ordering": ["-created_at"],
             },
         ),
