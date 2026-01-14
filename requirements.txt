@@ -3,7 +3,7 @@ pytesseract
 openai
 # Core Django & Database Packages
 django~=5.2
-djangorestframework~=3.16.0
+djangorestframework~=3.16.1
 drf-spectacular  # OpenAPI schema generation
 python-decouple  # For managing environment variables
 pytz  # Timezone support
