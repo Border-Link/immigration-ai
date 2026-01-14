@@ -5,20 +5,23 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
+# Status choices for CallSession
+STATUS_CHOICES = [
+    ('created', 'Created'),
+    ('ready', 'Ready'),
+    ('in_progress', 'In Progress'),
+    ('completed', 'Completed'),
+    ('expired', 'Expired'),
+    ('terminated', 'Terminated'),
+]
+
 
 class CallSession(models.Model):
     """
     Represents a single AI call session for an immigration case.
     State: CREATED → READY → IN_PROGRESS → COMPLETED → EXPIRED
     """
-    STATUS_CHOICES = [
-        ('created', 'Created'),
-        ('ready', 'Ready'),
-        ('in_progress', 'In Progress'),
-        ('completed', 'Completed'),
-        ('expired', 'Expired'),
-        ('terminated', 'Terminated'),
-    ]
+    STATUS_CHOICES = STATUS_CHOICES
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     
@@ -103,7 +106,7 @@ class CallSession(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='call_session',
+        related_name='session_with_summary',  # Reverse accessor name to avoid clash with CallSummary.call_session
         help_text="Post-call summary (generated after call ends)"
     )
     

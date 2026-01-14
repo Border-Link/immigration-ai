@@ -11,7 +11,7 @@ OTP_SUBJECT = "Your OTP Code!"
 
 
 @shared_task(bind=True, base=BaseTaskWithMeta)
-def send_otp_email(self, email, first_name, otp):
+def send_otp_email_task(self, email, first_name, otp):
     try:
         logger.info(f"Sending OTP email to {email}")
 

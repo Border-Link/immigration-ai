@@ -2,26 +2,31 @@ import uuid
 from django.db import models
 from django.conf import settings
 
+# Status choices for Case
+STATUS_CHOICES = [
+    ('draft', 'Draft'),
+    ('evaluated', 'Evaluated'),
+    ('awaiting_review', 'Awaiting Review'),
+    ('reviewed', 'Reviewed'),
+    ('closed', 'Closed'),
+]
+
+# Jurisdiction choices for Case
+JURISDICTION_CHOICES = [
+    ('UK', 'United Kingdom'),
+    ('US', 'United States'),
+    ('CA', 'Canada'),
+    ('AU', 'Australia'),
+]
+
 
 class Case(models.Model):
     """
     Core entity representing one immigration journey.
     Status workflow: draft → evaluated → awaiting_review → reviewed → closed
     """
-    STATUS_CHOICES = [
-        ('draft', 'Draft'),
-        ('evaluated', 'Evaluated'),
-        ('awaiting_review', 'Awaiting Review'),
-        ('reviewed', 'Reviewed'),
-        ('closed', 'Closed'),
-    ]
-
-    JURISDICTION_CHOICES = [
-        ('UK', 'United Kingdom'),
-        ('US', 'United States'),
-        ('CA', 'Canada'),
-        ('AU', 'Australia'),
-    ]
+    STATUS_CHOICES = STATUS_CHOICES
+    JURISDICTION_CHOICES = JURISDICTION_CHOICES
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     

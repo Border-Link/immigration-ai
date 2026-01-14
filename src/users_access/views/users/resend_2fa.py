@@ -5,7 +5,7 @@ from rest_framework.permissions import AllowAny
 from main_system.base.guest_api import GuestAPI
 from main_system.throttles.otp import OTPThrottle
 from users_access.services.otp_services import OTPService
-from users_access.tasks.otp_tasks import send_otp_email
+from users_access.tasks.otp_tasks import send_otp_email_task
 
 class ResendTwoFactorTokenAPIView(GuestAPI):
     throttle_classes = [OTPThrottle]
@@ -28,7 +28,7 @@ class ResendTwoFactorTokenAPIView(GuestAPI):
         if hasattr(login_otp.user, 'profile') and login_otp.user.profile:
             first_name = login_otp.user.profile.first_name
 
-        send_otp_email.delay(login_otp.user.email, first_name, otp)
+        send_otp_email_task.delay(login_otp.user.email, first_name, otp)
         return self.api_response(
             message="OTP resent successfully",
             data={"email": login_otp.user.email},

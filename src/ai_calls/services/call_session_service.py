@@ -15,6 +15,9 @@ logger = logging.getLogger('django')
 class CallSessionService:
     """Service for CallSession business logic."""
 
+    def namespace(self, user_id):
+        return f"call_sessions:user:{user_id}"
+
     @staticmethod
     def create_call_session(case_id: str, user_id: str, parent_session_id: Optional[str] = None) -> Optional[CallSession]:
         """

@@ -8,7 +8,6 @@ from typing import Optional
 from payments.models.payment import Payment
 from payments.selectors.payment_selector import PaymentSelector
 from users_access.services.notification_service import NotificationService
-from payments.tasks.payment_tasks import send_payment_notification_task
 
 logger = logging.getLogger('django')
 
@@ -85,6 +84,8 @@ class PaymentNotificationService:
             )
             
             # Send email notification (async via Celery)
+            # Lazy import to avoid circular dependency
+            from payments.tasks.payment_tasks import send_payment_notification_task
             send_payment_notification_task.delay(
                 payment_id=str(payment.id),
                 notification_type=notification_type,

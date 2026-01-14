@@ -62,7 +62,7 @@ class ResponseParser:
                             break
         
         # Last resort: try regex
-        json_match = re.search('\{[^{}]*(?:\{[^{}]*}[^{}]*)*}', llm_response, re.DOTALL)
+        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*}[^{}]*)*}', llm_response, re.DOTALL)
         if json_match:
             try:
                 return json.loads(json_match.group(0))
