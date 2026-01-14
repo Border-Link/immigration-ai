@@ -5,9 +5,10 @@ Business logic layer for payment operations.
 All business logic must live here - no direct ORM access.
 """
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 from decimal import Decimal
 from django.db.models import QuerySet
+from django.core.exceptions import ObjectDoesNotExist
 from payments.models.payment import Payment
 from payments.repositories.payment_repository import PaymentRepository
 from payments.selectors.payment_selector import PaymentSelector
@@ -125,7 +126,7 @@ class PaymentService:
         """
         case = CaseSelector.get_by_id(case_id)
         if not case:
-            return Payment.objects.none()
+            return PaymentSelector.get_none()
         return PaymentSelector.get_by_case(case)
 
     @staticmethod
@@ -170,7 +171,7 @@ class PaymentService:
         """
         try:
             return PaymentSelector.get_by_id(payment_id)
-        except Payment.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Payment {payment_id} not found")
             return None
         except Exception as e:
@@ -231,7 +232,6 @@ class PaymentService:
                     logger.info(f"Payment {updated_payment.id} completed for case {updated_payment.case.id}, cache invalidated")
                 
                 # Update status gauge
-                from payments.selectors.payment_selector import PaymentSelector
                 status_counts = PaymentSelector.get_statistics()
                 for status_item in status_counts.get('status_breakdown', []):
                     update_payments_by_status(status_item['status'], status_item['count'])
@@ -324,7 +324,7 @@ class PaymentService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return True
-        except Payment.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Payment {payment_id} not found")
             return False
         except Exception as e:
@@ -345,7 +345,7 @@ class PaymentService:
         """
         try:
             # Get payment including deleted ones
-            payment = Payment.objects.get(id=payment_id, is_deleted=True)
+            payment = PaymentSelector.get_deleted_by_id(payment_id)
             
             restored_payment = PaymentRepository.restore_payment(payment, restored_by=restored_by)
             
@@ -370,7 +370,7 @@ class PaymentService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return restored_payment
-        except Payment.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Payment {payment_id} not found or not deleted")
             return None
         except Exception as e:
