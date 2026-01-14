@@ -84,17 +84,6 @@ def process_document_task(self, document_id: str):
             document_id=document_id,
             status='processing'
         )
-            if processing_job:
-                ProcessingJobService.update_status(str(processing_job.id), 'failed')
-                ProcessingHistoryService.create_history_entry(
-                    case_document_id=document_id,
-                    processing_job_id=str(processing_job.id),
-                    action='job_failed',
-                    status='failure',
-                    error_type='DocumentNotFound',
-                    error_message='Document not found'
-                )
-            return {'success': False, 'error': 'Document not found'}
         
         # Step 1: OCR Processing
         logger.info(f"Step 1: Running OCR for document {document_id}")
