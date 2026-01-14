@@ -56,7 +56,7 @@ python-magic  # File type detection for uploads
 # Security & Virus Scanning
 python-clamd  # ClamAV virus scanning client
 
-sentry-sdk~=2.48.0
+sentry-sdk~=2.49.0
 python-json-logger~=4.0.0
 django-prometheus
 
