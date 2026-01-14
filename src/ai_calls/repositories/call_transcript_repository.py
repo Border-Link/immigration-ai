@@ -1,6 +1,5 @@
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import Max
-from django.core.exceptions import IntegrityError
 from ai_calls.models.call_transcript import CallTranscript
 import logging
 
