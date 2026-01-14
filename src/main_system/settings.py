@@ -212,7 +212,7 @@ INSTALLED_APPS = [
 
 
 INSTALLED_APPS += [
-    "django_celery_beat", # for periodic tasks
+    # "django_celery_beat", # Removed - using Redbeat (Redis-based scheduler) instead
     "django_celery_results",
     "django_extensions", # for development utilities
     "django_prometheus", # for monitoring
@@ -257,17 +257,28 @@ CELERY_CACHE_BACKEND = 'django-cache'
 DJANGO_CELERY_RESULTS_TASK_ID_MAX_LENGTH = 255
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300  # 5 minutes
+CELERY_BEAT_MAX_LOOP_INTERVAL = 60  # 1 minute
+
+# Redbeat (Redis-based Celery Beat scheduler) Configuration
+# Redbeat stores periodic task schedules in Redis instead of database
+CELERY_BEAT_SCHEDULER = 'redbeat.schedulers:RedBeatScheduler'
+CELERY_REDBEAT_REDIS_URL = env("CELERY_BROKER_URL")  # Use same Redis as broker
+CELERY_REDBEAT_KEY_PREFIX = 'redbeat:'  # Prefix for Redis keys storing schedules
+CELERY_REDBEAT_LOCK_TIMEOUT = 30  # Lock timeout in seconds
 
 # Celery Beat Schedule (imported from celery_beat_schedule.py)
+# This schedule will be loaded into Redbeat on startup
 from main_system.utils.celery_beat_schedule import CELERY_BEAT_SCHEDULE
 CELERY_BEAT_SCHEDULE = CELERY_BEAT_SCHEDULE
 
 
-
+CACHE_PREFIX = "imigration_backend"
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": env("REDIS_URL", default="redis://redis:6379/0"),
+        "KEY_PREFIX": CACHE_PREFIX,
+        "VERSION": 1,
         "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
 }
@@ -284,7 +295,7 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'json': {
-            '()': 'main_system.logging_config.CustomJsonFormatter',
+            '()': 'main_system.utils.logging_config.CustomJsonFormatter',
             'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(pathname)s:%(lineno)d %(funcName)s %(message)s'
         }
     },
@@ -541,5 +552,5 @@ else:
 ENFORCE_2FA_PATHS = [
 ]
 
-import logging.config
-logging.config.dictConfig(LOGGING)
+# Django automatically configures logging from LOGGING setting
+# No need to call logging.config.dictConfig(LOGGING) here as it causes circular import issues
