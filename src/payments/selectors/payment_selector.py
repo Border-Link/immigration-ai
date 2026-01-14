@@ -59,6 +59,20 @@ class PaymentSelector:
         ).filter(is_deleted=False).get(id=payment_id)
 
     @staticmethod
+    def get_deleted_by_id(payment_id) -> Payment:
+        """Get deleted payment by ID (for restore operations)."""
+        return Payment.objects.select_related(
+            'case',
+            'case__user',
+            'case__user__profile'
+        ).filter(is_deleted=True).get(id=payment_id)
+
+    @staticmethod
+    def get_none() -> QuerySet:
+        """Get empty queryset."""
+        return Payment.objects.none()
+
+    @staticmethod
     def get_by_filters(
         case_id: str = None,
         status: str = None,
