@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger('django')
 
-def _countries_cache_namespace(*args, **kwargs) -> str:
+def namespace(*args, **kwargs) -> str:
     """
     Single namespace for all Country-related cached reads.
     Any write operation must bump this namespace to avoid stale reads.
@@ -17,7 +17,7 @@ def _countries_cache_namespace(*args, **kwargs) -> str:
 class CountryService:
 
     @staticmethod
-    @invalidate_cache(_countries_cache_namespace)
+    @invalidate_cache(namespace, predicate=lambda country: country is not None)
     def create_country(code: str, name: str, has_states: bool = False, 
                        is_jurisdiction: bool = False):
         """Create a new country."""
@@ -31,7 +31,7 @@ class CountryService:
             return None
 
     @staticmethod
-    @cache_result(timeout=3600, keys=[], namespace=_countries_cache_namespace)  # 1 hour - countries rarely change
+    @cache_result(timeout=3600, keys=[], namespace=namespace)  # 1 hour - countries rarely change
     def get_all():
         """Get all active countries."""
         try:
@@ -41,7 +41,7 @@ class CountryService:
             return CountrySelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['code'], namespace=_countries_cache_namespace)  # 1 hour - cache country by code
+    @cache_result(timeout=3600, keys=['code'], namespace=namespace)  # 1 hour - cache country by code
     def get_by_code(code: str):
         """Get country by code."""
         try:
@@ -51,7 +51,7 @@ class CountryService:
             return None
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['country_id'], namespace=_countries_cache_namespace)  # 1 hour - cache country by ID
+    @cache_result(timeout=3600, keys=['country_id'], namespace=namespace)  # 1 hour - cache country by ID
     def get_by_id(country_id):
         """Get country by ID."""
         try:
@@ -61,7 +61,7 @@ class CountryService:
             return None
 
     @staticmethod
-    @cache_result(timeout=3600, keys=[], namespace=_countries_cache_namespace)  # 1 hour - jurisdictions rarely change
+    @cache_result(timeout=3600, keys=[], namespace=namespace)  # 1 hour - jurisdictions rarely change
     def get_jurisdictions():
         """Get all immigration jurisdictions."""
         try:
@@ -71,7 +71,7 @@ class CountryService:
             return CountrySelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=[], namespace=_countries_cache_namespace)  # 1 hour - countries with states rarely change
+    @cache_result(timeout=3600, keys=[], namespace=namespace)  # 1 hour - countries with states rarely change
     def get_with_states():
         """Get countries with states/provinces."""
         try:
@@ -81,7 +81,7 @@ class CountryService:
             return CountrySelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=1800, keys=['name'], namespace=_countries_cache_namespace)  # 30 minutes - cache search results
+    @cache_result(timeout=1800, keys=['name'], namespace=namespace)  # 30 minutes - cache search results
     def search_by_name(name: str):
         """Search countries by name."""
         try:
@@ -91,7 +91,7 @@ class CountryService:
             return CountrySelector.get_none()
 
     @staticmethod
-    @invalidate_cache(_countries_cache_namespace)
+    @invalidate_cache(namespace, predicate=lambda country: country is not None)
     def update_country(country, **fields):
         """Update country."""
         try:
@@ -101,7 +101,7 @@ class CountryService:
             return None
 
     @staticmethod
-    @invalidate_cache(_countries_cache_namespace)
+    @invalidate_cache(namespace, predicate=lambda country: country is not None)
     def set_jurisdiction(country, is_jurisdiction: bool):
         """Mark country as jurisdiction."""
         try:
@@ -111,7 +111,7 @@ class CountryService:
             return None
 
     @staticmethod
-    @invalidate_cache(_countries_cache_namespace)
+    @invalidate_cache(namespace, predicate=bool)
     def delete_country(country):
         """Delete a country."""
         try:
@@ -131,7 +131,7 @@ class CountryService:
             return False
 
     @staticmethod
-    @invalidate_cache(_countries_cache_namespace)
+    @invalidate_cache(namespace, predicate=lambda country: country is not None)
     def activate_country_by_id(country_id: str, is_active: bool):
         """Activate or deactivate a country by ID."""
         try:
@@ -144,7 +144,7 @@ class CountryService:
             return None
 
     @staticmethod
-    @invalidate_cache(_countries_cache_namespace)
+    @invalidate_cache(namespace, predicate=lambda country: country is not None)
     def set_jurisdiction_by_id(country_id: str, is_jurisdiction: bool):
         """Set jurisdiction status for a country by ID."""
         try:
