@@ -31,3 +31,6 @@ shell:
 
 show_urls:
 	python manage.py show_urls
+
+test:
+	pytest -vv
