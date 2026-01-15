@@ -18,6 +18,7 @@ class DataSourceAdminListQuerySerializer(BaseAdminListQuerySerializer):
 
     def to_internal_value(self, data):
         """Parse string dates to datetime objects and boolean values."""
+        data = data.copy()
         # Parse boolean strings before calling super
         if 'is_active' in data and data.get('is_active') is not None:
             if isinstance(data['is_active'], str):
