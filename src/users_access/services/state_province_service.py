@@ -1,5 +1,6 @@
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from uuid import UUID
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from users_access.models.state_province import StateProvince
 from users_access.repositories.state_province_repository import StateProvinceRepository
 from users_access.selectors.state_province_selector import StateProvinceSelector
@@ -8,10 +9,18 @@ import logging
 
 logger = logging.getLogger('django')
 
+def _states_cache_namespace(*args, **kwargs) -> str:
+    """
+    Single namespace for all StateProvince-related cached reads.
+    Any write operation must bump this namespace to avoid stale reads.
+    """
+    return "states_provinces"
+
 
 class StateProvinceService:
 
     @staticmethod
+    @invalidate_cache(_states_cache_namespace)
     def create_state_province(country_id, code: str, name: str, 
                              has_nomination_program: bool = False):
         """Create a new state/province."""
@@ -33,17 +42,31 @@ class StateProvinceService:
             return None
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['country_code'])  # 1 hour - states rarely change
-    def get_by_country(country_code: str):
-        """Get all states/provinces for a country by code."""
+    @cache_result(timeout=3600, keys=['country_id_or_code'], namespace=_states_cache_namespace)  # 1 hour - states rarely change
+    def get_by_country(country_id_or_code: str):
+        """
+        Get all states/provinces for a country.
+
+        Tests call this with a country UUID; other callers may pass the country code.
+        """
         try:
+            # If UUID, convert to country code
+            try:
+                UUID(str(country_id_or_code))
+                country = CountrySelector.get_by_id(country_id_or_code)
+                if not country:
+                    return StateProvinceSelector.get_none()
+                country_code = country.code
+            except Exception:
+                country_code = country_id_or_code
+
             return StateProvinceSelector.get_by_country_code(country_code)
         except Exception as e:
-            logger.error(f"Error fetching states for country {country_code}: {e}")
+            logger.error(f"Error fetching states for country {country_id_or_code}: {e}")
             return StateProvinceSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['country_id'])  # 1 hour - cache by country ID
+    @cache_result(timeout=3600, keys=['country_id'], namespace=_states_cache_namespace)  # 1 hour - cache by country ID
     def get_by_country_id(country_id):
         """Get all states/provinces for a country by ID."""
         try:
@@ -54,7 +77,7 @@ class StateProvinceService:
             return StateProvinceSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['country_code', 'state_code'])  # 1 hour - cache by codes
+    @cache_result(timeout=3600, keys=['country_code', 'state_code'], namespace=_states_cache_namespace)  # 1 hour - cache by codes
     def get_by_code(country_code: str, state_code: str):
         """Get specific state/province by codes."""
         try:
@@ -64,7 +87,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['state_id'])  # 1 hour - cache state by ID
+    @cache_result(timeout=3600, keys=['state_id'], namespace=_states_cache_namespace)  # 1 hour - cache state by ID
     def get_by_id(state_id):
         """Get state/province by ID."""
         try:
@@ -74,7 +97,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['country_id'])  # 1 hour - nomination programs rarely change
+    @cache_result(timeout=3600, keys=['country_id'], namespace=_states_cache_namespace)  # 1 hour - nomination programs rarely change
     def get_nomination_programs(country_id: Optional[str] = None):
         """Get states/provinces with nomination programs."""
         try:
@@ -87,6 +110,7 @@ class StateProvinceService:
             return StateProvinceSelector.get_none()
 
     @staticmethod
+    @invalidate_cache(_states_cache_namespace)
     def update_state_province(state, **fields):
         """Update state/province."""
         try:
@@ -96,6 +120,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
+    @invalidate_cache(_states_cache_namespace)
     def set_nomination_program(state, has_nomination_program: bool):
         """Set nomination program status."""
         try:
@@ -105,6 +130,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
+    @invalidate_cache(_states_cache_namespace)
     def delete_state_province(state):
         """Delete a state/province."""
         try:
@@ -124,6 +150,7 @@ class StateProvinceService:
             return False
 
     @staticmethod
+    @invalidate_cache(_states_cache_namespace)
     def activate_state_province_by_id(state_id: str, is_active: bool):
         """Activate or deactivate a state/province by ID."""
         try:
