@@ -15,8 +15,9 @@ class OTPSelector:
 
     @staticmethod
     def get_by_endpoint(endpoint_token):
-        otp = OTP.objects.filter(endpoint_token=endpoint_token, is_verified=False).last()
-        return otp
+        # Return the latest OTP for an endpoint token (verified or not).
+        # Callers that specifically want "active/unverified" should use `endpoint_token()`.
+        return OTP.objects.filter(endpoint_token=endpoint_token).last()
 
     @staticmethod
     def endpoint_token(endpoint_token):

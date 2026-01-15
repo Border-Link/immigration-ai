@@ -51,7 +51,20 @@ class UserAdminListSerializer(serializers.ModelSerializer):
             'updated_at',
             'profile',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'email',
+            'role',
+            'is_active',
+            'is_verified',
+            'is_staff',
+            'is_superuser',
+            'login_count',
+            'last_assigned_at',
+            'created_at',
+            'updated_at',
+            'profile',
+        )
     
     def get_profile(self, obj):
         """Get profile information if exists."""
@@ -88,7 +101,20 @@ class UserAdminDetailSerializer(serializers.ModelSerializer):
             'updated_at',
             'profile',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'email',
+            'role',
+            'is_active',
+            'is_verified',
+            'is_staff',
+            'is_superuser',
+            'login_count',
+            'last_assigned_at',
+            'created_at',
+            'updated_at',
+            'profile',
+        )
     
     def get_profile(self, obj):
         """Get full profile information."""

@@ -8,8 +8,8 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
-    first_name = serializers.CharField(required=True, max_length=255)
-    last_name = serializers.CharField(required=True, max_length=255)
+    first_name = serializers.CharField(required=True, max_length=255, allow_blank=False)
+    last_name = serializers.CharField(required=True, max_length=255, allow_blank=False)
 
     class Meta:
         model = User

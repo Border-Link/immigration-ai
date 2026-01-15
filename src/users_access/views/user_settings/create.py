@@ -27,6 +27,13 @@ class UserSettingsToggleAPI(AuthAPI):
             request.user, {setting_name: value}
         )
 
+        if not updated_settings:
+            return self.api_response(
+                message="Invalid setting value",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
         return self.api_response(
             message=f"{setting_name} updated successfully.",
             data={
@@ -49,5 +56,5 @@ class Enable2FAAPIView(AuthAPI):
             data={
                 "qr_code": qr_base64
             },
-            status=status.HTTP_200_OK
+            status_code=status.HTTP_200_OK
         )

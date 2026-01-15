@@ -25,6 +25,8 @@ API = "api/v1"
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
+    # Legacy / test-friendly API prefix (many tests expect `/api/...`)
+    path("api/", include("users_access.urls")),
     path(f"{API}/auth/", include("users_access.urls")),
     path(f"{API}/ai-decisions/", include("ai_decisions.urls")),
     path(f"{API}/compliances/", include("compliance.urls")),

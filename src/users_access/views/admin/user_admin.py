@@ -80,6 +80,62 @@ class UserAdminDetailAPI(BaseAdminDetailAPI):
         """Return the detail serializer."""
         return UserAdminDetailSerializer
 
+    def patch(self, request, id):
+        """
+        Compatibility: tests PATCH `/api/admin/users/<id>/` (not `/update/`).
+        """
+        entity = UserService.get_by_id(str(id))
+        if not entity:
+            return self.api_response(
+                message="User not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = UserAdminUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        update_fields = {k: v for k, v in serializer.validated_data.items() if v is not None}
+        updated = UserService.update_user(entity, **update_fields)
+
+        if not updated:
+            return self.api_response(
+                message="Failed to update User.",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        return self.api_response(
+            message="User updated successfully.",
+            data=UserAdminDetailSerializer(updated).data,
+            status_code=status.HTTP_200_OK
+        )
+
+    def delete(self, request, id):
+        """
+        Compatibility: tests DELETE `/api/admin/users/<id>/` (not `/delete/`).
+        """
+        entity = UserService.get_by_id(str(id))
+        if not entity:
+            return self.api_response(
+                message="User not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
+        deleted = UserService.delete_user(str(entity.id))
+        if deleted:
+            return self.api_response(
+                message="User deactivated successfully.",
+                data=None,
+                status_code=status.HTTP_200_OK
+            )
+
+        return self.api_response(
+            message="Failed to delete User.",
+            data=None,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 
 class UserAdminUpdateAPI(BaseAdminUpdateAPI):
     """

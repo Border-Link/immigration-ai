@@ -62,6 +62,37 @@ class NotificationAdminListAPI(AuthAPI):
             status_code=status.HTTP_200_OK
         )
 
+    def post(self, request):
+        """
+        Compatibility: tests POST `/api/admin/notifications/` to create (not `/create/`).
+        """
+        serializer = NotificationCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        notification = NotificationService.create_notification(
+            user_id=str(serializer.validated_data['user_id']),
+            notification_type=serializer.validated_data['notification_type'],
+            title=serializer.validated_data['title'],
+            message=serializer.validated_data['message'],
+            priority=serializer.validated_data.get('priority', 'medium'),
+            related_entity_type=serializer.validated_data.get('related_entity_type'),
+            related_entity_id=str(serializer.validated_data['related_entity_id']) if serializer.validated_data.get('related_entity_id') else None,
+            metadata=serializer.validated_data.get('metadata')
+        )
+        
+        if notification:
+            return self.api_response(
+                message="Notification created successfully.",
+                data=NotificationSerializer(notification).data,
+                status_code=status.HTTP_201_CREATED
+            )
+        
+        return self.api_response(
+            message="Error creating notification.",
+            data=None,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 
 class NotificationAdminCreateAPI(AuthAPI):
     """

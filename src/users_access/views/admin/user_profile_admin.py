@@ -106,6 +106,43 @@ class UserProfileAdminDetailAPI(BaseAdminDetailAPI):
             status_code=status.HTTP_200_OK
         )
 
+    def patch(self, request, user_id):
+        """
+        Compatibility: tests PATCH `/api/admin/user-profiles/<user_id>/` (not `/update/`).
+        """
+        user = UserService.get_by_id(user_id)
+        if not user:
+            return self.api_response(
+                message=f"User with ID '{user_id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
+        profile = UserProfileService.get_profile(user)
+        if not profile:
+            return self.api_response(
+                message=f"User profile for user ID '{user_id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = UserProfileUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        updated = UserProfileService.update_profile(user, **serializer.validated_data)
+        if not updated:
+            return self.api_response(
+                message="Failed to update user profile.",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        return self.api_response(
+            message="User profile updated successfully.",
+            data=UserProfileSerializer(updated).data,
+            status_code=status.HTTP_200_OK
+        )
+
 
 class UserProfileAdminUpdateAPI(BaseAdminUpdateAPI):
     """

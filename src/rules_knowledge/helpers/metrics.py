@@ -16,22 +16,44 @@ except ImportError:
     Gauge = None
 
 
+
+def _safe_create_metric(metric_class, name, *args, **kwargs):
+    """
+    Safely create a metric, returning None if it already exists.
+    This prevents duplicate registration errors during module reloads.
+    """
+    if not metric_class:
+        return None
+    
+    try:
+        return metric_class(name, *args, **kwargs)
+    except ValueError:
+        # Metric already exists in registry, return None to use dummy
+        # The existing metric will still work for tracking
+        return None
+
+
 # Rule Engine Metrics
 if Counter and Histogram:
-    rule_engine_evaluations_total = Counter(
+    rule_engine_evaluations_total = _safe_create_metric(
+        Counter,
         'rules_knowledge_rule_engine_evaluations_total',
         'Total number of rule engine evaluations',
-        ['visa_type', 'outcome']  # Labels for filtering
-    )
+        ['visa_type', 'outcome']
     
-    rule_engine_evaluation_duration_seconds = Histogram(
+    )
+
+    
+    rule_engine_evaluation_duration_seconds = _safe_create_metric(
+        Histogram,
         'rules_knowledge_rule_engine_evaluation_duration_seconds',
         'Duration of rule engine evaluations in seconds',
         ['visa_type'],
         buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0)  # Buckets for latency distribution
     )
     
-    rule_engine_requirements_evaluated = Histogram(
+    rule_engine_requirements_evaluated = _safe_create_metric(
+        Histogram,
         'rules_knowledge_rule_engine_requirements_evaluated',
         'Number of requirements evaluated per rule engine call',
         ['visa_type'],
@@ -39,13 +61,17 @@ if Counter and Histogram:
     )
     
     # Rule Publishing Metrics
-    rule_publishing_operations_total = Counter(
+    rule_publishing_operations_total = _safe_create_metric(
+        Counter,
         'rules_knowledge_rule_publishing_operations_total',
         'Total number of rule publishing operations',
-        ['operation', 'status']  # operation: publish, unpublish, create; status: success, failure
-    )
+        ['operation', 'status']
     
-    rule_publishing_duration_seconds = Histogram(
+    )
+
+    
+    rule_publishing_duration_seconds = _safe_create_metric(
+        Histogram,
         'rules_knowledge_rule_publishing_duration_seconds',
         'Duration of rule publishing operations in seconds',
         ['operation'],
@@ -53,20 +79,23 @@ if Counter and Histogram:
     )
     
     # Cache Metrics
-    cache_operations_total = Counter(
+    cache_operations_total = _safe_create_metric(
+        Counter,
         'rules_knowledge_cache_operations_total',
         'Total number of cache operations',
         ['operation', 'result']  # operation: get, set, delete; result: hit, miss, error
     )
     
     # API Endpoint Metrics (will be tracked via middleware or decorator)
-    api_requests_total = Counter(
+    api_requests_total = _safe_create_metric(
+        Counter,
         'rules_knowledge_api_requests_total',
         'Total number of API requests',
         ['endpoint', 'method', 'status_code']
     )
-    
-    api_request_duration_seconds = Histogram(
+
+    api_request_duration_seconds = _safe_create_metric(
+        Histogram,
         'rules_knowledge_api_request_duration_seconds',
         'Duration of API requests in seconds',
         ['endpoint', 'method'],
@@ -74,11 +103,13 @@ if Counter and Histogram:
     )
     
     # Version Conflict Metrics
-    version_conflicts_total = Counter(
+    version_conflicts_total = _safe_create_metric(
+        Counter,
         'rules_knowledge_version_conflicts_total',
         'Total number of version conflicts detected (optimistic locking)',
         ['operation']  # operation: update, publish
     )
+    
 else:
     # Dummy metrics if prometheus_client not available
     rule_engine_evaluations_total = None

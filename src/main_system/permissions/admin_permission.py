@@ -7,6 +7,7 @@ According to ROLE_TO_IMPLEMENT.md:
 - Staff: Limited admin tasks (e.g., audit logs, rule validation tasks)
 - Super Admin: Full admin console access
 """
+from rest_framework.exceptions import NotAuthenticated
 from .base_permissions import BaseModulePermission
 from .role_checker import RoleChecker
 
@@ -21,6 +22,10 @@ class AdminPermission(BaseModulePermission):
     def has_permission(self, request, view):
         """Module-level permission check."""
         user = request.user
+
+        # If the request isn't authenticated, this should be a 401 (not a 403).
+        if not user or not getattr(user, "is_authenticated", False):
+            raise NotAuthenticated()
         
         # Only staff and superadmin can access admin console
         return RoleChecker.is_staff(user)

@@ -12,6 +12,7 @@ from main_system.utils.totp import TOTPAuthenticator
 from users_access.services.otp_services import OTPService
 from main_system.cookies.manager import CookieManager
 from users_access.serializers.users.login import TwoFactorVerifySerializer
+from users_access.services.user_device_session_service import UserDeviceSessionService
 
 logger = logging.getLogger('django')
 
@@ -97,7 +98,6 @@ class TwoFactorVerificationAPIView(KnoxLoginView):
         }
 
         # Ensure previous device session for same fingerprint is removed
-        from users_access.services.user_device_session_service import UserDeviceSessionService
         UserDeviceSessionService.delete_by_fingerprint(user, fingerprint_hash)
 
         return UserDeviceSessionService.create_device_session(

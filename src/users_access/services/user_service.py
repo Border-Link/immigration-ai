@@ -1,6 +1,6 @@
 from typing import Optional
 from django.contrib.auth import authenticate
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from users_access.repositories.user_repository import UserRepository
 from users_access.repositories.user_profile_repository import UserProfileRepository
 from users_access.selectors.user_selector import UserSelector
@@ -9,28 +9,38 @@ import logging
 
 logger = logging.getLogger('django')
 
+def _users_cache_namespace(*args, **kwargs) -> str:
+    """
+    Single namespace for all User-related cached reads.
+    Any write operation must bump this namespace to avoid stale reads.
+    """
+    return "users"
+
 
 class UserService:
 
     @staticmethod
+    @invalidate_cache(_users_cache_namespace)
     def create_user(email, password, first_name=None, last_name=None):
+        """
+        Create a new user with profile.
+        first_name and last_name are saved to UserProfile (not User table).
+        Profile is auto-created by signal (post_save), then updated with names.
+        """
         try:
             user = UserRepository.create_user(email, password)
-            if user and (first_name or last_name):
-                # Profile is auto-created by signal, but we update it with names
-                from users_access.selectors.user_profile_selector import UserProfileSelector
-                try:
-                    profile = UserProfileSelector.get_by_user(user)
-                    UserProfileRepository.update_names(profile, first_name, last_name)
-                except Exception:
-                    # If profile doesn't exist yet, create it
-                    UserProfileRepository.create_profile(user, first_name, last_name)
+            if user:
+                # Profile is auto-created by signal (post_save), but we need to update it with names
+                # Use UserProfileService to ensure profile exists and update names
+                from users_access.services.user_profile_service import UserProfileService
+                UserProfileService.update_names(user, first_name, last_name)
             return user
         except Exception as e:
             logger.error(f"Error creating user {email}: {e}")
             return None
 
     @staticmethod
+    @invalidate_cache(_users_cache_namespace)
     def create_superuser(email, password, first_name=None, last_name=None):
         try:
             user = UserRepository.create_superuser(email, password)
@@ -47,6 +57,7 @@ class UserService:
             return None
 
     @staticmethod
+    @invalidate_cache(_users_cache_namespace)
     def update_user(user, **fields):
         try:
             return UserRepository.update_user(user, **fields)
@@ -109,7 +120,7 @@ class UserService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - user list changes frequently
+    @cache_result(timeout=300, keys=[], namespace=_users_cache_namespace)  # 5 minutes - user list changes frequently
     def get_all():
         try:
             return UserSelector.get_all()
@@ -118,7 +129,7 @@ class UserService:
             return []
 
     @staticmethod
-    @cache_result(timeout=300, keys=['email'])  # 5 minutes - cache email existence checks
+    @cache_result(timeout=300, keys=['email'], namespace=_users_cache_namespace)  # 5 minutes - cache email existence checks
     def email_exists(email):
         try:
             return UserSelector.email_exists(email)
@@ -143,7 +154,7 @@ class UserService:
             return None, "Invalid credentials entered."
 
     @staticmethod
-    @cache_result(timeout=600, keys=['email'])  # 10 minutes - cache user lookups by email
+    @cache_result(timeout=600, keys=['email'], namespace=_users_cache_namespace)  # 10 minutes - cache user lookups by email
     def get_by_email(email):
         try:
             return UserSelector.get_by_email(email)
@@ -152,7 +163,7 @@ class UserService:
             return None
 
     @staticmethod
-    @cache_result(timeout=600, keys=['user_id'])  # 10 minutes - cache user lookups by ID
+    @cache_result(timeout=600, keys=['user_id'], namespace=_users_cache_namespace)  # 10 minutes - cache user lookups by ID
     def get_by_id(user_id):
         """Get user by ID."""
         try:
@@ -162,6 +173,7 @@ class UserService:
             return None
 
     @staticmethod
+    @invalidate_cache(_users_cache_namespace)
     def update_user_last_assigned_at(user):
         """Update last assigned time for reviewer assignment tracking."""
         try:
@@ -171,6 +183,7 @@ class UserService:
             return None
 
     @staticmethod
+    @invalidate_cache(_users_cache_namespace)
     def delete_user(user_id: str) -> bool:
         """Delete a user (soft delete by deactivating)."""
         try:
@@ -212,6 +225,7 @@ class UserService:
             return UserSelector.get_none()
 
     @staticmethod
+    @invalidate_cache(_users_cache_namespace)
     def activate_user_by_id(user_id: str):
         """Activate a user by ID."""
         try:
@@ -225,6 +239,7 @@ class UserService:
             return None
 
     @staticmethod
+    @invalidate_cache(_users_cache_namespace)
     def deactivate_user_by_id(user_id: str):
         """Deactivate a user by ID."""
         try:

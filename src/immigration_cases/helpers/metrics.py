@@ -19,27 +19,54 @@ except ImportError:
     Gauge = None
 
 
+
+def _safe_create_metric(metric_class, name, *args, **kwargs):
+    """
+    Safely create a metric, returning None if it already exists.
+    This prevents duplicate registration errors during module reloads.
+    """
+    if not metric_class:
+        return None
+    
+    try:
+        return metric_class(name, *args, **kwargs)
+    except ValueError:
+        # Metric already exists in registry, return None to use dummy
+        # The existing metric will still work for tracking
+        return None
+
+
 # Case Management Metrics
 if Counter and Histogram:
-    case_creations_total = Counter(
+    case_creations_total = _safe_create_metric(
+        Counter,
         'immigration_cases_case_creations_total',
         'Total number of case creations',
-        ['jurisdiction', 'status']  # status: draft, etc.
-    )
+        ['jurisdiction', 'status']
     
-    case_updates_total = Counter(
+    )
+
+    
+    case_updates_total = _safe_create_metric(
+        Counter,
         'immigration_cases_case_updates_total',
         'Total number of case updates',
-        ['operation']  # operation: status_change, fact_update, general_update
-    )
+        ['operation']
     
-    case_status_transitions_total = Counter(
+    )
+
+    
+    case_status_transitions_total = _safe_create_metric(
+        Counter,
         'immigration_cases_case_status_transitions_total',
         'Total number of case status transitions',
-        ['from_status', 'to_status']  # e.g., draft -> evaluated
-    )
+        ['from_status', 'to_status']
     
-    case_status_transition_duration_seconds = Histogram(
+    )
+
+    
+    case_status_transition_duration_seconds = _safe_create_metric(
+        Histogram,
         'immigration_cases_case_status_transition_duration_seconds',
         'Duration of case status transitions in seconds',
         ['to_status'],
@@ -47,19 +74,24 @@ if Counter and Histogram:
     )
     
     # Case Facts Metrics
-    case_facts_added_total = Counter(
+    case_facts_added_total = _safe_create_metric(
+        Counter,
         'immigration_cases_case_facts_added_total',
         'Total number of case facts added',
-        ['fact_type']  # fact_type: age, salary, nationality, etc.
-    )
+        ['fact_type']
     
-    case_facts_updated_total = Counter(
+    )
+
+    
+    case_facts_updated_total = _safe_create_metric(
+        Counter,
         'immigration_cases_case_facts_updated_total',
         'Total number of case facts updated',
         ['fact_type']
     )
-    
-    case_facts_per_case = Histogram(
+
+    case_facts_per_case = _safe_create_metric(
+        Histogram,
         'immigration_cases_case_facts_per_case',
         'Number of facts per case',
         [],
@@ -67,28 +99,31 @@ if Counter and Histogram:
     )
     
     # Version Conflict Metrics
-    case_version_conflicts_total = Counter(
+    case_version_conflicts_total = _safe_create_metric(
+        Counter,
         'immigration_cases_case_version_conflicts_total',
         'Total number of version conflicts (optimistic locking)',
         ['operation']  # operation: update, status_change
     )
     
     # Status History Metrics
-    case_status_history_entries_total = Counter(
+    case_status_history_entries_total = _safe_create_metric(
+        Counter,
         'immigration_cases_case_status_history_entries_total',
         'Total number of status history entries created',
         ['to_status']
     )
-    
-    # Case Lifecycle Metrics
-    case_lifecycle_duration_days = Histogram(
+
+    case_lifecycle_duration_days = _safe_create_metric(
+        Histogram,
         'immigration_cases_case_lifecycle_duration_days',
         'Duration of case lifecycle in days',
         ['final_status'],  # final_status: closed, abandoned, etc.
         buckets=(1, 7, 30, 90, 180, 365, 730)
     )
-    
-    cases_by_status = Gauge(
+
+    cases_by_status = _safe_create_metric(
+        Gauge,
         'immigration_cases_cases_by_status',
         'Current number of cases by status',
         ['status', 'jurisdiction']

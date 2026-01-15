@@ -18,28 +18,48 @@ except ImportError:
     Gauge = None
 
 
+def _safe_create_metric(metric_class, name, *args, **kwargs):
+    """
+    Safely create a metric, returning None if it already exists.
+    This prevents duplicate registration errors during module reloads.
+    """
+    if not metric_class:
+        return None
+    
+    try:
+        return metric_class(name, *args, **kwargs)
+    except ValueError:
+        # Metric already exists in registry, return None to use dummy
+        # The existing metric will still work for tracking
+        return None
+
+
 # Audit Log Metrics
 if Counter and Histogram:
-    audit_log_entries_created_total = Counter(
+    audit_log_entries_created_total = _safe_create_metric(
+        Counter,
         'compliance_audit_log_entries_created_total',
         'Total number of audit log entries created',
         ['level', 'logger_name']  # level: INFO, WARNING, ERROR; logger_name: module name
     )
     
-    audit_log_creation_duration_seconds = Histogram(
+    audit_log_creation_duration_seconds = _safe_create_metric(
+        Histogram,
         'compliance_audit_log_creation_duration_seconds',
         'Duration of audit log entry creation in seconds',
         [],
         buckets=(0.001, 0.005, 0.01, 0.05, 0.1, 0.5)
     )
     
-    audit_log_queries_total = Counter(
+    audit_log_queries_total = _safe_create_metric(
+        Counter,
         'compliance_audit_log_queries_total',
         'Total number of audit log queries',
         ['query_type']  # query_type: by_user, by_module, by_date_range, etc.
     )
     
-    audit_log_query_duration_seconds = Histogram(
+    audit_log_query_duration_seconds = _safe_create_metric(
+        Histogram,
         'compliance_audit_log_query_duration_seconds',
         'Duration of audit log queries in seconds',
         ['query_type'],
@@ -47,39 +67,45 @@ if Counter and Histogram:
     )
     
     # Audit Log Storage Metrics
-    audit_log_entries_by_level = Gauge(
+    audit_log_entries_by_level = _safe_create_metric(
+        Gauge,
         'compliance_audit_log_entries_by_level',
         'Current number of audit log entries by level',
         ['level']
     )
     
-    audit_log_entries_by_module = Gauge(
+    audit_log_entries_by_module = _safe_create_metric(
+        Gauge,
         'compliance_audit_log_entries_by_module',
         'Current number of audit log entries by module',
         ['logger_name']
     )
     
     # Data Retention Metrics
-    audit_log_retention_operations_total = Counter(
+    audit_log_retention_operations_total = _safe_create_metric(
+        Counter,
         'compliance_audit_log_retention_operations_total',
         'Total number of audit log retention operations',
         ['operation', 'status']  # operation: archive, delete; status: success, failure
     )
     
-    audit_log_retention_duration_seconds = Histogram(
+    audit_log_retention_duration_seconds = _safe_create_metric(
+        Histogram,
         'compliance_audit_log_retention_duration_seconds',
         'Duration of audit log retention operations in seconds',
         ['operation'],
         buckets=(1.0, 5.0, 10.0, 30.0, 60.0, 300.0)
     )
     
-    audit_log_entries_archived_total = Counter(
+    audit_log_entries_archived_total = _safe_create_metric(
+        Counter,
         'compliance_audit_log_entries_archived_total',
         'Total number of audit log entries archived',
         []
     )
     
-    audit_log_entries_deleted_total = Counter(
+    audit_log_entries_deleted_total = _safe_create_metric(
+        Counter,
         'compliance_audit_log_entries_deleted_total',
         'Total number of audit log entries deleted',
         []

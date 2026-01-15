@@ -4,6 +4,7 @@ from main_system.base.guest_api import GuestAPI
 from users_access.models.user_device_session import UserDeviceSession
 from users_access.serializers.users.login import UserLoginSerializer
 from users_access.helpers.otp_base import OTPBaseHandler
+from users_access.services.user_device_session_service import UserDeviceSessionService
 from knox.models import AuthToken
 
 logger = logging.getLogger('django')
@@ -17,7 +18,6 @@ class UserLoginAPIView(GuestAPI):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data.get('user')
 
-        from users_access.services.user_device_session_service import UserDeviceSessionService
         UserDeviceSessionService.revoke_all_for_user(user=user)
         AuthToken.objects.filter(user=user).delete()
 

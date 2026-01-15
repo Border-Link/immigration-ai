@@ -17,7 +17,9 @@ services:
   postgres:
     env_file:
       - .env
-    image: postgres:16.4-alpine
+    # pgvector is required by `data_ingestion.0001_enable_pgvector_extension`
+    # and any models using VectorField.
+    image: pgvector/pgvector:pg16
     container_name: ${APP_NAME}_db
     restart: unless-stopped
     environment:
@@ -30,8 +32,11 @@ services:
       - border_link
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      # Mark DB healthy only if Postgres is ready AND pgvector is installed in the server image.
+      # We check availability (pg_available_extensions) to avoid deadlocking on app migrations.
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE} && psql -U ${DB_USERNAME} -d ${DB_DATABASE} -tAc \"SELECT 1 FROM pg_available_extensions WHERE name='vector'\" | grep -q 1"]
       interval: 10s
       timeout: 5s
       retries: 5

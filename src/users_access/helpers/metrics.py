@@ -20,21 +20,40 @@ except ImportError:
     Gauge = None
 
 
+def _safe_create_metric(metric_class, name, *args, **kwargs):
+    """
+    Safely create a metric, returning None if it already exists.
+    This prevents duplicate registration errors during module reloads.
+    """
+    if not metric_class:
+        return None
+    
+    try:
+        return metric_class(name, *args, **kwargs)
+    except ValueError:
+        # Metric already exists in registry, return None to use dummy
+        # The existing metric will still work for tracking
+        return None
+
+
 # User Management Metrics
 if Counter and Histogram:
-    user_registrations_total = Counter(
+    user_registrations_total = _safe_create_metric(
+        Counter,
         'users_access_user_registrations_total',
         'Total number of user registrations',
         ['status']  # status: success, failure, email_exists
     )
     
-    user_authentications_total = Counter(
+    user_authentications_total = _safe_create_metric(
+        Counter,
         'users_access_user_authentications_total',
         'Total number of user authentications',
         ['status', 'method']  # status: success, failure; method: password, otp, token
     )
     
-    authentication_duration_seconds = Histogram(
+    authentication_duration_seconds = _safe_create_metric(
+        Histogram,
         'users_access_authentication_duration_seconds',
         'Duration of authentication operations in seconds',
         ['method'],
@@ -42,19 +61,22 @@ if Counter and Histogram:
     )
     
     # OTP Metrics
-    otp_generations_total = Counter(
+    otp_generations_total = _safe_create_metric(
+        Counter,
         'users_access_otp_generations_total',
         'Total number of OTP generations',
         ['purpose']  # purpose: login, registration, password_reset, 2fa
     )
     
-    otp_verifications_total = Counter(
+    otp_verifications_total = _safe_create_metric(
+        Counter,
         'users_access_otp_verifications_total',
         'Total number of OTP verifications',
         ['status']  # status: success, failure, expired
     )
     
-    otp_verification_duration_seconds = Histogram(
+    otp_verification_duration_seconds = _safe_create_metric(
+        Histogram,
         'users_access_otp_verification_duration_seconds',
         'Duration of OTP verification in seconds',
         [],
@@ -62,19 +84,22 @@ if Counter and Histogram:
     )
     
     # Password Reset Metrics
-    password_reset_requests_total = Counter(
+    password_reset_requests_total = _safe_create_metric(
+        Counter,
         'users_access_password_reset_requests_total',
         'Total number of password reset requests',
         ['status']  # status: success, failure, user_not_found
     )
     
-    password_resets_total = Counter(
+    password_resets_total = _safe_create_metric(
+        Counter,
         'users_access_password_resets_total',
         'Total number of password resets completed',
         ['status']  # status: success, failure, token_invalid
     )
     
-    password_reset_duration_seconds = Histogram(
+    password_reset_duration_seconds = _safe_create_metric(
+        Histogram,
         'users_access_password_reset_duration_seconds',
         'Duration of password reset operations in seconds',
         [],
@@ -82,26 +107,30 @@ if Counter and Histogram:
     )
     
     # User Profile Metrics
-    user_profile_updates_total = Counter(
+    user_profile_updates_total = _safe_create_metric(
+        Counter,
         'users_access_user_profile_updates_total',
         'Total number of user profile updates',
         ['update_type']  # update_type: name, avatar, settings, etc.
     )
     
     # Device Session Metrics
-    device_sessions_created_total = Counter(
+    device_sessions_created_total = _safe_create_metric(
+        Counter,
         'users_access_device_sessions_created_total',
         'Total number of device sessions created',
         ['device_type']  # device_type: web, mobile, tablet
     )
     
-    device_sessions_active = Gauge(
+    device_sessions_active = _safe_create_metric(
+        Gauge,
         'users_access_device_sessions_active',
         'Current number of active device sessions',
         ['device_type']
     )
     
-    device_session_duration_seconds = Histogram(
+    device_session_duration_seconds = _safe_create_metric(
+        Histogram,
         'users_access_device_session_duration_seconds',
         'Duration of device sessions in seconds',
         ['device_type'],
@@ -109,26 +138,30 @@ if Counter and Histogram:
     )
     
     # User Account Metrics
-    user_accounts_by_status = Gauge(
+    user_accounts_by_status = _safe_create_metric(
+        Gauge,
         'users_access_user_accounts_by_status',
         'Current number of user accounts by status',
         ['status']  # status: active, inactive, suspended, deleted
     )
     
-    user_accounts_by_role = Gauge(
+    user_accounts_by_role = _safe_create_metric(
+        Gauge,
         'users_access_user_accounts_by_role',
         'Current number of user accounts by role',
         ['role']  # role: user, reviewer, admin
     )
     
     # Security Metrics
-    failed_login_attempts_total = Counter(
+    failed_login_attempts_total = _safe_create_metric(
+        Counter,
         'users_access_failed_login_attempts_total',
         'Total number of failed login attempts',
         ['reason']  # reason: invalid_password, user_not_found, account_locked
     )
     
-    account_lockouts_total = Counter(
+    account_lockouts_total = _safe_create_metric(
+        Counter,
         'users_access_account_lockouts_total',
         'Total number of account lockouts',
         ['reason']  # reason: too_many_failed_attempts, suspicious_activity
