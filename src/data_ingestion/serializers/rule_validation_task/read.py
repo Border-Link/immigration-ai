@@ -33,9 +33,25 @@ class RuleValidationTaskSerializer(serializers.ModelSerializer):
     
     def get_reviewer_name(self, obj):
         """Get reviewer full name."""
-        if obj.assigned_to and hasattr(obj.assigned_to, 'profile'):
-            return obj.assigned_to.profile.full_name if obj.assigned_to.profile else ""
-        return ""
+        if not obj.assigned_to:
+            return ""
+
+        profile = getattr(obj.assigned_to, "profile", None)
+        if profile:
+            first = (getattr(profile, "first_name", None) or "").strip()
+            last = (getattr(profile, "last_name", None) or "").strip()
+            name = f"{first} {last}".strip()
+            if name:
+                return name
+
+        # Fallbacks: AUTH_USER_MODEL may implement get_full_name()
+        get_full_name = getattr(obj.assigned_to, "get_full_name", None)
+        if callable(get_full_name):
+            name = (get_full_name() or "").strip()
+            if name:
+                return name
+
+        return (getattr(obj.assigned_to, "email", "") or "").strip()
 
 
 class RuleValidationTaskListSerializer(serializers.ModelSerializer):

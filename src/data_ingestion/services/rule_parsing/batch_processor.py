@@ -10,6 +10,7 @@ from data_ingestion.models.document_version import DocumentVersion
 from data_ingestion.helpers.parallel_processor import ParallelProcessor
 from data_ingestion.selectors.document_version_selector import DocumentVersionSelector
 from data_ingestion.selectors.parsed_rule_selector import ParsedRuleSelector
+from django.conf import settings
 
 logger = logging.getLogger('django')
 
@@ -46,7 +47,8 @@ class BatchProcessor:
         
         total = len(document_versions)
         
-        logger.info(f"Starting batch parsing for {total} document versions (parallel={use_parallel}, workers={max_concurrent})")
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(f"Starting batch parsing for {total} document versions (parallel={use_parallel}, workers={max_concurrent})")
         
         if use_parallel and total > 1:
             # Use parallel processing
@@ -57,7 +59,8 @@ class BatchProcessor:
                     result['document_version_id'] = str(doc_version.id)
                     return result
                 except Exception as e:
-                    logger.error(f"Error processing document version {doc_version.id}: {e}", exc_info=True)
+                    if getattr(settings, "APP_ENV", None) != "test":
+                        logger.error(f"Error processing document version {doc_version.id}: {e}", exc_info=True)
                     return {
                         'document_version_id': str(doc_version.id),
                         'success': False,
@@ -84,7 +87,8 @@ class BatchProcessor:
             results = []
             for idx, doc_version in enumerate(document_versions, 1):
                 try:
-                    logger.info(f"Processing document {idx}/{total}: {doc_version.id}")
+                    if getattr(settings, "APP_ENV", None) != "test":
+                        logger.info(f"Processing document {idx}/{total}: {doc_version.id}")
                     
                     result = RuleParsingService.parse_document_version(doc_version)
                     result['document_version_id'] = str(doc_version.id)
@@ -92,11 +96,13 @@ class BatchProcessor:
                     results.append(result)
                     
                     if not result.get('success') and not continue_on_error:
-                        logger.error(f"Stopping batch processing due to error in document {doc_version.id}")
+                        if getattr(settings, "APP_ENV", None) != "test":
+                            logger.error(f"Stopping batch processing due to error in document {doc_version.id}")
                         break
                         
                 except Exception as e:
-                    logger.error(f"Error processing document version {doc_version.id}: {e}", exc_info=True)
+                    if getattr(settings, "APP_ENV", None) != "test":
+                        logger.error(f"Error processing document version {doc_version.id}: {e}", exc_info=True)
                     results.append({
                         'document_version_id': str(doc_version.id),
                         'index': idx,
@@ -133,10 +139,11 @@ class BatchProcessor:
             'parallel_processing': use_parallel
         }
         
-        logger.info(
-            f"Batch parsing completed: {successful} successful, {failed} failed, "
-            f"{skipped} skipped out of {total} total"
-        )
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(
+                f"Batch parsing completed: {successful} successful, {failed} failed, "
+                f"{skipped} skipped out of {total} total"
+            )
         
         return {
             'total': total,
@@ -172,7 +179,8 @@ class BatchProcessor:
                 doc_version = DocumentVersionSelector.get_by_id(doc_id)
                 document_versions.append(doc_version)
             except Exception as e:
-                logger.error(f"Error fetching document version {doc_id}: {e}")
+                if getattr(settings, "APP_ENV", None) != "test":
+                    logger.error(f"Error fetching document version {doc_id}: {e}")
                 if not continue_on_error:
                     return {
                         'total': len(document_version_ids),
@@ -223,7 +231,8 @@ class BatchProcessor:
                 if limit and len(pending_versions) >= limit:
                     break
         
-        logger.info(f"Found {len(pending_versions)} pending document versions to parse")
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(f"Found {len(pending_versions)} pending document versions to parse")
         
         return BatchProcessor.parse_document_versions_batch(
             document_versions=pending_versions,

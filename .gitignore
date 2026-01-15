@@ -8,6 +8,7 @@ redis_data/
 pgadmin4.txt
 encoded_env.txt
 server-template.json
+error.txt
 
 # created by virtualenv automatically
 # Byte-compiled / optimized / DLL files

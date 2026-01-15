@@ -106,7 +106,6 @@ class DocumentChunkService:
                 return False
             
             # Update chunk with new embedding
-            from data_ingestion.repositories.document_chunk_repository import DocumentChunkRepository
             DocumentChunkRepository.update_embedding(chunk, embedding)
             
             logger.info(f"Successfully regenerated embedding for chunk {chunk_id} using model {model}")

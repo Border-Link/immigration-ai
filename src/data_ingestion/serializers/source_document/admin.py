@@ -15,6 +15,7 @@ class SourceDocumentAdminListQuerySerializer(BaseAdminListQuerySerializer):
 
     def to_internal_value(self, data):
         """Parse string dates to datetime objects and other types."""
+        data = data.copy()
         # Parse boolean and integer strings before calling super
         if 'has_error' in data and data.get('has_error') is not None:
             if isinstance(data['has_error'], str):

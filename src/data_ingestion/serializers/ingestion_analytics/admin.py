@@ -27,6 +27,7 @@ class ParsingCostAnalyticsQuerySerializer(serializers.Serializer):
 
     def to_internal_value(self, data):
         """Parse string dates to datetime objects."""
+        data = data.copy()
         if 'date_from' in data and data['date_from']:
             if isinstance(data['date_from'], str):
                 parsed = parse_datetime(data['date_from'])
