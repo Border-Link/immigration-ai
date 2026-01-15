@@ -11,9 +11,11 @@ class PasswordUpdateSerializer(serializers.Serializer):
         user = self.context["request"].user
         if not check_password(value, user.password):
             raise serializers.ValidationError("Invalid old password")
+        return value
 
 
     def validate_password(self, password):
-        email = self.instance.email
+        email = getattr(self.context.get("request"), "user", None)
+        email = getattr(email, "email", "") or ""
         return PasswordValidation(password, email).validate()
 
