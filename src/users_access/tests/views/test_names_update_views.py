@@ -8,6 +8,9 @@ from rest_framework import status
 from users_access.services.user_profile_service import UserProfileService
 
 
+API_PREFIX = "/api/v1/auth"
+
+
 @pytest.mark.django_db
 class TestUserNamesUpdateAPI:
     """Tests for UserNamesUpdateAPI."""
@@ -20,7 +23,7 @@ class TestUserNamesUpdateAPI:
     @pytest.fixture
     def url(self):
         """Fixture for names update URL."""
-        return "/api/users/names/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/names/"
 
     def test_update_names_success(self, client, url, test_user):
         """Test successful names update."""

@@ -9,6 +9,8 @@ from unittest.mock import patch
 from users_access.services.user_device_session_service import UserDeviceSessionService
 
 
+API_PREFIX = "/api/v1/auth"
+
 @pytest.mark.django_db
 class TestLogoutViewAPI:
     """Tests for LogoutViewAPI."""
@@ -21,7 +23,7 @@ class TestLogoutViewAPI:
     @pytest.fixture
     def url(self):
         """Fixture for logout URL."""
-        return "/api/users/logout/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/logout/"
 
     @patch('users_access.views.users.logout.UserDeviceSessionService')
     @patch('users_access.views.users.logout.AuthToken')
@@ -50,7 +52,7 @@ class TestLogoutAllViewAPI:
     @pytest.fixture
     def url(self):
         """Fixture for logout all URL."""
-        return "/api/users/logout-all/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/logout-all/"
 
     @patch('users_access.views.users.logout.UserDeviceSessionService')
     @patch('users_access.views.users.logout.AuthToken')

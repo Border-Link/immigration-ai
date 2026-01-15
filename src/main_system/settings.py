@@ -385,6 +385,9 @@ MIDDLEWARE = [
     # 5. Security headers middleware (add security headers)
     "main_system.middlewares.security_headers.SecurityHeadersMiddleware",
 
+    # 5.1 Performance profiling (no-op unless PERF_PROFILE_REQUESTS=True)
+    "main_system.middlewares.performance_profiler.PerformanceProfilerMiddleware",
+
     # 6. Django final middleware
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 
@@ -552,5 +555,4 @@ else:
 ENFORCE_2FA_PATHS = [
 ]
 
-# Django automatically configures logging from LOGGING setting
-# No need to call logging.config.dictConfig(LOGGING) here as it causes circular import issues
+

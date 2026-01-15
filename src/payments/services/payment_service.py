@@ -23,19 +23,24 @@ from payments.helpers.metrics import (
     update_payments_by_status
 )
 from immigration_cases.selectors.case_selector import CaseSelector
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
+
+def namespace(*args, **kwargs) -> str:
+    return "payments"
 
 
 class PaymentService:
     """Service for Payment business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda p: p is not None)
     def create_payment(
-        case_id: str,
         amount: Decimal,
+        case_id: str = None,
+        user_id: str = None,
         currency: str = Payment.DEFAULT_CURRENCY,
         status: str = 'pending',
         payment_provider: str = None,
@@ -46,7 +51,8 @@ class PaymentService:
         Create a new payment.
         
         Args:
-            case_id: UUID of the case
+            case_id: UUID of the case (optional; required for case-attached payments)
+            user_id: UUID of the user (optional; used for pre-case payments)
             amount: Payment amount
             currency: Currency code (default: USD)
             status: Payment status (default: pending)
@@ -58,24 +64,49 @@ class PaymentService:
             Created Payment instance or None on error
         """
         try:
-            case = CaseSelector.get_by_id(case_id)
-            if not case:
-                logger.error(f"Case {case_id} not found for payment creation")
+            if bool(case_id) == bool(user_id):
+                logger.error("Payment creation requires exactly one of case_id or user_id.")
                 return None
+
+            case = None
+            user = None
+            if case_id:
+                case = CaseSelector.get_by_id(case_id)
+                if not case:
+                    logger.error(f"Case {case_id} not found for payment creation")
+                    return None
+                user = case.user
+            else:
+                from users_access.selectors.user_selector import UserSelector
+
+                user = UserSelector.get_by_id(user_id)
+                if not user:
+                    logger.error(f"User {user_id} not found for payment creation")
+                    return None
             
             # Validate currency
             if currency not in [code for code, _ in Payment.SUPPORTED_CURRENCIES]:
                 logger.warning(f"Unsupported currency {currency}, defaulting to {Payment.DEFAULT_CURRENCY}")
                 currency = Payment.DEFAULT_CURRENCY
             
-            payment = PaymentRepository.create_payment(
-                case=case,
-                amount=amount,
-                currency=currency,
-                status=status,
-                payment_provider=payment_provider,
-                provider_transaction_id=provider_transaction_id
-            )
+            if case:
+                payment = PaymentRepository.create_payment(
+                    case=case,
+                    amount=amount,
+                    currency=currency,
+                    status=status,
+                    payment_provider=payment_provider,
+                    provider_transaction_id=provider_transaction_id
+                )
+            else:
+                payment = PaymentRepository.create_user_payment(
+                    user=user,
+                    amount=amount,
+                    currency=currency,
+                    status=status,
+                    payment_provider=payment_provider,
+                    provider_transaction_id=provider_transaction_id
+                )
             
             # Track metrics
             track_payment_creation(currency, payment_provider or 'unknown', float(amount))
@@ -91,10 +122,11 @@ class PaymentService:
             
             # Audit logging
             try:
+                subject = f"case {case_id}" if case_id else f"user {user_id}"
                 AuditLogService.create_audit_log(
                     level='INFO',
                     logger_name='payments',
-                    message=f"Payment created: {payment.id} for case {case_id}, amount {amount} {currency}",
+                    message=f"Payment created: {payment.id} for {subject}, amount {amount} {currency}",
                     func_name='create_payment',
                     pathname=__file__
                 )
@@ -107,13 +139,13 @@ class PaymentService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - payment list changes frequently
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")  # 5 minutes - payment list changes frequently
     def get_all() -> QuerySet:
         """Get all payments."""
         return PaymentSelector.get_all()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['case_id'])  # 5 minutes - cache payments by case
+    @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache payments by case
     def get_by_case(case_id: str) -> QuerySet:
         """
         Get payments by case.
@@ -130,7 +162,7 @@ class PaymentService:
         return PaymentSelector.get_by_case(case)
 
     @staticmethod
-    @cache_result(timeout=300, keys=['status'])  # 5 minutes - cache payments by status
+    @cache_result(timeout=300, keys=['status'], namespace=namespace, user_scope="global")  # 5 minutes - cache payments by status
     def get_by_status(status: str) -> QuerySet:
         """
         Get payments by status.
@@ -144,7 +176,7 @@ class PaymentService:
         return PaymentSelector.get_by_status(status)
 
     @staticmethod
-    @cache_result(timeout=600, keys=['transaction_id'])  # 10 minutes - cache by transaction ID
+    @cache_result(timeout=600, keys=['transaction_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache by transaction ID
     def get_by_provider_transaction_id(transaction_id: str) -> Optional[Payment]:
         """
         Get payment by provider transaction ID.
@@ -158,7 +190,7 @@ class PaymentService:
         return PaymentSelector.get_by_provider_transaction_id(transaction_id)
 
     @staticmethod
-    @cache_result(timeout=600, keys=['payment_id'])  # 10 minutes - cache payment by ID
+    @cache_result(timeout=600, keys=['payment_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache payment by ID
     def get_by_id(payment_id: str) -> Optional[Payment]:
         """
         Get payment by ID.
@@ -179,6 +211,7 @@ class PaymentService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda p: p is not None)
     def update_payment(
         payment_id: str,
         version: int = None,
@@ -227,9 +260,13 @@ class PaymentService:
                     
                     # Invalidate payment cache when payment is completed
                     # This ensures case operations can immediately use the completed payment
-                    from payments.helpers.payment_validator import PaymentValidator
-                    PaymentValidator.invalidate_payment_cache(str(updated_payment.case.id))
-                    logger.info(f"Payment {updated_payment.id} completed for case {updated_payment.case.id}, cache invalidated")
+                    if updated_payment.case_id:
+                        from payments.helpers.payment_validator import PaymentValidator
+
+                        PaymentValidator.invalidate_payment_cache(str(updated_payment.case_id))
+                        logger.info(
+                            f"Payment {updated_payment.id} completed for case {updated_payment.case_id}, cache invalidated"
+                        )
                 
                 # Update status gauge
                 status_counts = PaymentSelector.get_statistics()
@@ -286,6 +323,7 @@ class PaymentService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_payment(payment_id: str, changed_by=None, reason: str = None, hard_delete: bool = False) -> bool:
         """
         Delete a payment (soft delete by default, hard delete if hard_delete=True).
@@ -332,6 +370,7 @@ class PaymentService:
             return False
     
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda p: p is not None)
     def restore_payment(payment_id: str, restored_by=None) -> Optional[Payment]:
         """
         Restore a soft-deleted payment.
@@ -410,6 +449,7 @@ class PaymentService:
         )
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics() -> dict:
         """
         Get payment statistics for admin analytics.

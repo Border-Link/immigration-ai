@@ -1,6 +1,7 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.case_permission import CasePermission
+from main_system.permissions.role_checker import RoleChecker
 from immigration_cases.services.case_service import CaseService
 from immigration_cases.serializers.case.read import (
     CaseListQuerySerializer,
@@ -26,10 +27,17 @@ class CaseListAPI(AuthAPI):
         page = validated_params.get('page', 1)
         page_size = validated_params.get('page_size', 20)
 
-        if user_id:
-            cases = CaseService.get_by_user(str(user_id))
+        # Security: Non-staff users can only list their own cases.
+        if not RoleChecker.is_staff(request.user):
+            if user_id and str(user_id) != str(request.user.id):
+                return self.api_response(
+                    message="You do not have permission to list cases for another user.",
+                    data=None,
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+            cases = CaseService.get_by_user(str(request.user.id))
         else:
-            cases = CaseService.get_all()
+            cases = CaseService.get_by_user(str(user_id)) if user_id else CaseService.get_all()
 
         # Apply additional filters if needed
         if status_filter:
@@ -62,6 +70,9 @@ class CaseDetailAPI(AuthAPI):
                 data=None,
                 status_code=status.HTTP_404_NOT_FOUND
             )
+
+        # Enforce object-level permissions (ownership/role-based access).
+        self.check_object_permissions(request, case)
 
         return self.api_response(
             message="Case retrieved successfully.",

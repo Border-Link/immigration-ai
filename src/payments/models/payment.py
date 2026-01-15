@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.conf import settings
 from immigration_cases.models.case import Case
 
 
@@ -45,12 +46,22 @@ class Payment(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='payments',
+        db_index=True,
+        help_text="The user this payment belongs to (required for pre-case payments)",
+    )
+
     case = models.ForeignKey(
         Case,
         on_delete=models.CASCADE,
         related_name='payments',
         db_index=True,
-        help_text="The case this payment belongs to"
+        null=True,
+        blank=True,
+        help_text="The case this payment belongs to (nullable for pre-case payments)"
     )
     
     amount = models.DecimalField(

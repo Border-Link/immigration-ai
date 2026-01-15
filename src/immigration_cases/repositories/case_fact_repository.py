@@ -30,12 +30,6 @@ class CaseFactRepository:
             )
             fact.full_clean()
             fact.save()
-            
-            # Invalidate cache
-            from django.core.cache import cache
-            cache.delete(f"case_facts:case:{case.id}")
-            cache.delete("case_facts:all")
-            
             return fact
 
     @staticmethod

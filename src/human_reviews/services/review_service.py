@@ -2,7 +2,7 @@ import logging
 import time
 from typing import Optional
 from django.utils import timezone
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from human_reviews.models.review import Review
 from human_reviews.repositories.review_repository import ReviewRepository
 from human_reviews.selectors.review_selector import ReviewSelector
@@ -19,11 +19,15 @@ from human_reviews.helpers.metrics import (
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "reviews"
+
 
 class ReviewService:
     """Service for Review business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda r: r is not None)
     def create_review(case_id: str, reviewer_id: str = None, auto_assign: bool = True,
                      assignment_strategy: str = 'round_robin'):
         """
@@ -99,7 +103,7 @@ class ReviewService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - review list changes frequently
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")  # 5 minutes - review list changes frequently
     def get_all():
         """Get all reviews."""
         try:
@@ -109,7 +113,7 @@ class ReviewService:
             return Review.objects.none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['case_id'])  # 5 minutes - cache reviews by case
+    @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache reviews by case
     def get_by_case(case_id: str):
         """Get reviews by case."""
         try:
@@ -120,7 +124,7 @@ class ReviewService:
             return Review.objects.none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['status'])  # 5 minutes - cache reviews by status
+    @cache_result(timeout=300, keys=['status'], namespace=namespace, user_scope="global")  # 5 minutes - cache reviews by status
     def get_by_status(status: str):
         """Get reviews by status."""
         try:
@@ -130,7 +134,7 @@ class ReviewService:
             return Review.objects.none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['reviewer_id'])  # 5 minutes - cache reviews by reviewer
+    @cache_result(timeout=300, keys=['reviewer_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache reviews by reviewer
     def get_by_reviewer(reviewer_id: str):
         """Get reviews by reviewer."""
         try:
@@ -141,7 +145,7 @@ class ReviewService:
             return Review.objects.none()
 
     @staticmethod
-    @cache_result(timeout=180, keys=['reviewer_id'])  # 3 minutes - pending reviews change frequently
+    @cache_result(timeout=180, keys=['reviewer_id'], namespace=namespace, user_scope="global")  # 3 minutes - pending reviews change frequently
     def get_pending_by_reviewer(reviewer_id: str):
         """Get pending/in_progress reviews by reviewer."""
         try:
@@ -152,7 +156,7 @@ class ReviewService:
             return Review.objects.none()
 
     @staticmethod
-    @cache_result(timeout=180, keys=[])  # 3 minutes - pending reviews change frequently
+    @cache_result(timeout=180, keys=[], namespace=namespace, user_scope="global")  # 3 minutes - pending reviews change frequently
     def get_pending():
         """Get all pending reviews (not assigned)."""
         try:
@@ -162,7 +166,7 @@ class ReviewService:
             return Review.objects.none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['review_id'])  # 10 minutes - cache review by ID
+    @cache_result(timeout=600, keys=['review_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache review by ID
     def get_by_id(review_id: str) -> Optional[Review]:
         """Get review by ID."""
         try:
@@ -175,6 +179,7 @@ class ReviewService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda r: r is not None)
     def assign_reviewer(review_id: str, reviewer_id: str = None, assignment_strategy: str = 'round_robin', assigned_by_id: str = None) -> Optional[Review]:
         """
         Assign a reviewer to a review.
@@ -355,6 +360,7 @@ class ReviewService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda r: r is not None)
     def update_review(review_id: str, updated_by_id: str = None, reason: str = None, version: int = None, **fields) -> Optional[Review]:
         """
         Update review fields.
@@ -411,6 +417,7 @@ class ReviewService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_review(review_id: str, deleted_by_id: str = None) -> bool:
         """
         Delete a review.
@@ -751,6 +758,7 @@ class ReviewService:
             return None
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """
         Get comprehensive statistics for human reviews.

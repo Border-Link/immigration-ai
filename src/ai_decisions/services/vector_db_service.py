@@ -16,8 +16,13 @@ from typing import List, Dict, Optional
 from pgvector.django import CosineDistance
 from data_ingestion.models.document_chunk import DocumentChunk
 from data_ingestion.models.document_version import DocumentVersion
+from main_system.utils.cache_utils import bump_namespace
 
 logger = logging.getLogger('django')
+
+def namespace(*args, **kwargs) -> str:
+    # Keep in sync with `data_ingestion.services.document_chunk_service.namespace`.
+    return "document_chunks"
 
 
 class PgVectorService:
@@ -73,6 +78,7 @@ class PgVectorService:
             logger.info(
                 f"Stored {len(chunk_objects)} chunks for document version {document_version.id}"
             )
+            bump_namespace(namespace())
             return chunk_objects
             
         except Exception as e:
@@ -187,6 +193,7 @@ class PgVectorService:
         logger.info(
             f"Deleted {count} chunks for document version {document_version.id}"
         )
+        bump_namespace(namespace())
         return count
 
     @staticmethod

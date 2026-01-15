@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from rules_knowledge.models.visa_type import VisaType
 from rules_knowledge.repositories.visa_type_repository import VisaTypeRepository
 from rules_knowledge.selectors.visa_type_selector import VisaTypeSelector
@@ -8,11 +8,15 @@ from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "visa_types"
+
 
 class VisaTypeService:
     """Service for VisaType business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda vt: vt is not None)
     def create_visa_type(jurisdiction: str, code: str, name: str, description: str = None, is_active: bool = True):
         """Create a new visa type."""
         try:
@@ -44,7 +48,7 @@ class VisaTypeService:
             return None
 
     @staticmethod
-    @cache_result(timeout=1800, keys=[])  # 30 minutes - rarely changes
+    @cache_result(timeout=1800, keys=[], namespace=namespace, user_scope="global")  # 30 minutes - rarely changes
     def get_all():
         """Get all visa types."""
         try:
@@ -54,7 +58,7 @@ class VisaTypeService:
             return VisaType.objects.none()
 
     @staticmethod
-    @cache_result(timeout=1800, keys=[])  # 30 minutes - rarely changes
+    @cache_result(timeout=1800, keys=[], namespace=namespace, user_scope="global")  # 30 minutes - rarely changes
     def get_active():
         """Get all active visa types."""
         try:
@@ -64,7 +68,7 @@ class VisaTypeService:
             return VisaType.objects.none()
 
     @staticmethod
-    @cache_result(timeout=1800, keys=['jurisdiction'])  # 30 minutes - cache by jurisdiction
+    @cache_result(timeout=1800, keys=['jurisdiction'], namespace=namespace, user_scope="global")  # 30 minutes - cache by jurisdiction
     def get_by_jurisdiction(jurisdiction: str):
         """Get visa types by jurisdiction."""
         try:
@@ -74,7 +78,7 @@ class VisaTypeService:
             return VisaType.objects.none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['type_id'])  # 1 hour - cache by ID
+    @cache_result(timeout=3600, keys=['type_id'], namespace=namespace, user_scope="global")  # 1 hour - cache by ID
     def get_by_id(type_id: str) -> Optional[VisaType]:
         """Get visa type by ID."""
         try:
@@ -87,6 +91,7 @@ class VisaTypeService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda vt: vt is not None)
     def update_visa_type(type_id: str, **fields) -> Optional[VisaType]:
         """Update visa type."""
         try:
@@ -115,6 +120,7 @@ class VisaTypeService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_visa_type(type_id: str) -> bool:
         """Delete visa type."""
         try:
@@ -157,6 +163,7 @@ class VisaTypeService:
             return VisaType.objects.none()
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda vt: vt is not None)
     def activate_visa_type(visa_type, is_active: bool) -> Optional[VisaType]:
         """Activate or deactivate a visa type."""
         try:

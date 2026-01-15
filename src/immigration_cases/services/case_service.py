@@ -1,7 +1,7 @@
 import logging
 import time
 from typing import Optional, Tuple
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from immigration_cases.models.case import Case
 from immigration_cases.repositories.case_repository import CaseRepository
 from immigration_cases.selectors.case_selector import CaseSelector
@@ -11,41 +11,57 @@ from immigration_cases.helpers.metrics import (
     track_case_creation,
     track_case_update,
     track_case_status_transition,
-    track_case_version_conflict
+    track_case_version_conflict,
+    track_case_status_history,
 )
 
 logger = logging.getLogger('django')
+
+
+def namespace(*args, **kwargs) -> str:
+    """
+    Single namespace for Case-related cached reads.
+    Any write operation must bump this namespace to avoid stale reads.
+    """
+    return "cases"
 
 
 class CaseService:
     """Service for Case business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda case: case is not None)
     def create_case(user_id: str, jurisdiction: str, status: str = 'draft') -> Optional[Case]:
         """
         Create a new case.
-        
-        Note: Payment validation is not enforced at case creation to allow the flow:
-        1. Create case (draft status)
-        2. Create payment for case
-        3. Payment must be completed before case can be used for operations
-        
-        If you want to require payment BEFORE case creation, uncomment the validation below.
+
+        Payment is required BEFORE case creation:
+        - user must have a completed payment not yet attached to any case
+        - on successful creation, the payment is attached to the created case
         """
         try:
             from payments.helpers.payment_validator import PaymentValidator
+            from payments.selectors.payment_selector import PaymentSelector
+            from payments.services.payment_service import PaymentService
             
-            # Option 1: Allow case creation, payment required before operations (current)
-            # This allows: Create case → Create payment → Complete payment → Use case
-            
-            # Option 2: Require payment before case creation (uncomment to enable)
-            # can_create, error = PaymentValidator.can_create_case_for_user(user_id)
-            # if not can_create:
-            #     logger.warning(f"Case creation blocked for user {user_id}: {error}")
-            #     return None
+            can_create, error = PaymentValidator.can_create_case_for_user(user_id)
+            if not can_create:
+                logger.warning(f"Case creation blocked for user {user_id}: {error}")
+                return None
             
             user = UserSelector.get_by_id(user_id)
             case = CaseRepository.create_case(user, jurisdiction, status)
+
+            # Attach the most recent unassigned completed payment to this case
+            unassigned = PaymentSelector.get_unassigned_completed_by_user(user)
+            payment = unassigned.first()
+            if payment:
+                PaymentService.update_payment(
+                    payment_id=str(payment.id),
+                    changed_by=user,
+                    reason="Attached payment to newly created case",
+                    case=case,
+                )
             
             # Track metrics
             track_case_creation(jurisdiction=jurisdiction, status=status)
@@ -68,7 +84,7 @@ class CaseService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - case list changes frequently
+    @cache_result(timeout=300, keys=[], namespace=namespace)  # 5 minutes - case list changes frequently
     def get_all():
         """Get all cases."""
         try:
@@ -78,7 +94,7 @@ class CaseService:
             return Case.objects.none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['user_id'])  # 5 minutes - cache cases by user
+    @cache_result(timeout=300, keys=['user_id'], namespace=namespace)  # 5 minutes - cache cases by user
     def get_by_user(user_id: str):
         """Get cases by user."""
         try:
@@ -89,7 +105,7 @@ class CaseService:
             return Case.objects.none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['case_id'])  # 10 minutes - cache case by ID (already cached in selector, but service layer adds value)
+    @cache_result(timeout=600, keys=['case_id'], namespace=namespace)  # 10 minutes - cache case by ID
     def get_by_id(case_id: str) -> Optional[Case]:
         """Get case by ID."""
         try:
@@ -105,6 +121,7 @@ class CaseService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda result: bool(result and result[0] is not None and result[1] is None))
     def update_case(case_id: str, updated_by_id: str = None, reason: str = None, version: int = None, **fields) -> Tuple[Optional[Case], Optional[str], Optional[int]]:
         """
         Update case fields with optimistic locking and status history tracking.
@@ -215,6 +232,7 @@ class CaseService:
             return None, f"Error updating case: {str(e)}", 500
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_case(case_id: str, deleted_by_id: str = None, hard_delete: bool = False) -> bool:
         """
         Delete a case (soft delete by default, hard delete if hard_delete=True).
@@ -270,6 +288,7 @@ class CaseService:
             return False
     
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda case: case is not None)
     def restore_case(case_id: str, restored_by_id: str = None) -> Optional[Case]:
         """
         Restore a soft-deleted case.

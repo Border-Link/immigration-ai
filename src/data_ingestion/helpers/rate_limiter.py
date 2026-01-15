@@ -8,8 +8,8 @@ import time
 import logging
 from typing import Optional
 from threading import Lock
-from django.core.cache import cache
 from django.conf import settings
+from main_system.utils.cache_utils import cache_get, cache_set
 
 logger = logging.getLogger('django')
 
@@ -63,7 +63,7 @@ class TokenBucketRateLimiter:
         cache_key = self._get_cache_key(bucket_type)
         # Start "full" on first use to avoid initial artificial throttling.
         default_tokens = float(self.requests_per_minute) if bucket_type == "requests" else float(self.tokens_per_minute)
-        data = cache.get(cache_key, {'tokens': default_tokens, 'last_refill': time.time()})
+        data = cache_get(cache_key, {'tokens': default_tokens, 'last_refill': time.time()})
         return data.get('tokens', 0.0), data.get('last_refill', time.time())
     
     def _refill_tokens(self, bucket_type: str, max_tokens: float) -> float:
@@ -82,7 +82,7 @@ class TokenBucketRateLimiter:
         
         # Get current state
         # Start "full" on first use to avoid initial artificial throttling.
-        data = cache.get(cache_key, {'tokens': max_tokens, 'last_refill': current_time})
+        data = cache_get(cache_key, {'tokens': max_tokens, 'last_refill': current_time})
         tokens = data.get('tokens', 0.0)
         last_refill = data.get('last_refill', current_time)
         
@@ -95,7 +95,7 @@ class TokenBucketRateLimiter:
         new_tokens = min(tokens + tokens_to_add, max_tokens)
         
         # Update cache
-        cache.set(
+        cache_set(
             cache_key,
             {'tokens': new_tokens, 'last_refill': current_time},
             timeout=120  # 2 minutes cache timeout
@@ -123,7 +123,7 @@ class TokenBucketRateLimiter:
                 # Consume tokens
                 new_tokens = current_tokens - tokens_needed
                 cache_key = self._get_cache_key(bucket_type)
-                cache.set(
+                cache_set(
                     cache_key,
                     {'tokens': new_tokens, 'last_refill': time.time()},
                     timeout=120
@@ -191,13 +191,13 @@ class TokenBucketRateLimiter:
             # Adjust token bucket based on actual usage
             # This handles cases where estimated != actual
             cache_key = self._get_cache_key('tokens')
-            data = cache.get(cache_key, {'tokens': 0.0, 'last_refill': time.time()})
+            data = cache_get(cache_key, {'tokens': 0.0, 'last_refill': time.time()})
             current_tokens = data.get('tokens', 0.0)
             
             # If we used more than estimated, we may have gone negative
             # This is okay, it will refill naturally
             # We just update the last_refill to now to prevent double-counting
-            cache.set(
+            cache_set(
                 cache_key,
                 {'tokens': current_tokens, 'last_refill': time.time()},
                 timeout=120

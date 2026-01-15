@@ -1,4 +1,3 @@
-from django.core.cache import cache
 from django.utils import timezone
 from immigration_cases.models.case import Case
 
@@ -9,38 +8,18 @@ class CaseSelector:
     @staticmethod
     def get_all(use_cache: bool = False):
         """Get all cases, excluding soft-deleted ones."""
-        if use_cache:
-            cache_key = "cases:all"
-            cached = cache.get(cache_key)
-            if cached:
-                return cached
-        
         queryset = Case.objects.select_related('user', 'user__profile').filter(
             is_deleted=False
         ).order_by('-created_at')
-        
-        if use_cache:
-            cache.set(cache_key, queryset, timeout=300)  # 5 minutes
-        
         return queryset
 
     @staticmethod
     def get_by_user(user, use_cache: bool = True):
         """Get cases by user, excluding soft-deleted ones."""
-        if use_cache:
-            cache_key = f"cases:user:{user.id}"
-            cached = cache.get(cache_key)
-            if cached:
-                return cached
-        
         queryset = Case.objects.select_related('user', 'user__profile').filter(
             user=user,
             is_deleted=False
         ).order_by('-created_at')
-        
-        if use_cache:
-            cache.set(cache_key, queryset, timeout=600)  # 10 minutes
-        
         return queryset
 
     @staticmethod
@@ -62,19 +41,9 @@ class CaseSelector:
     @staticmethod
     def get_by_id(case_id, use_cache: bool = True):
         """Get case by ID, excluding soft-deleted ones."""
-        if use_cache:
-            cache_key = f"case:{case_id}"
-            cached = cache.get(cache_key)
-            if cached:
-                return cached
-        
         case = Case.objects.select_related('user', 'user__profile').filter(
             is_deleted=False
         ).get(id=case_id)
-        
-        if use_cache:
-            cache.set(cache_key, case, timeout=3600)  # 1 hour cache
-        
         return case
 
     @staticmethod

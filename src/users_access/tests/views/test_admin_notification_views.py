@@ -8,6 +8,8 @@ from rest_framework import status
 from users_access.services.notification_service import NotificationService
 
 
+API_PREFIX = "/api/v1/auth"
+
 @pytest.mark.django_db
 class TestNotificationAdminListAPI:
     """Tests for NotificationAdminListAPI."""
@@ -20,7 +22,7 @@ class TestNotificationAdminListAPI:
     @pytest.fixture
     def url(self):
         """Fixture for admin notifications list URL."""
-        return "/api/admin/notifications/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/admin/notifications/"
 
     def test_list_notifications_as_admin(self, client, url, admin_user, notification_service, test_user):
         """Test listing notifications as admin."""
@@ -59,7 +61,7 @@ class TestNotificationAdminCreateAPI:
     @pytest.fixture
     def url(self):
         """Fixture for admin create notification URL."""
-        return "/api/admin/notifications/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/admin/notifications/"
 
     def test_create_notification(self, client, url, admin_user, test_user):
         """Test creating notification as admin."""
@@ -86,7 +88,7 @@ class TestNotificationAdminBulkCreateAPI:
     @pytest.fixture
     def url(self):
         """Fixture for bulk create URL."""
-        return "/api/admin/notifications/bulk/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/admin/notifications/bulk/"
 
     def test_bulk_create_notifications(self, client, url, admin_user, user_service):
         """Test bulk creating notifications."""

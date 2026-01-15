@@ -79,12 +79,6 @@ class CaseRepository:
             case.full_clean()
             case.save()
             
-            # Invalidate cache
-            from django.core.cache import cache
-            cache.delete(f"case:{case.id}")
-            cache.delete(f"cases:user:{case.user.id}")
-            cache.delete("cases:all")
-            
             # Create status history entry if status changed
             if status_changed:
                 CaseStatusHistoryRepository.create_status_history(
@@ -107,34 +101,26 @@ class CaseRepository:
     @staticmethod
     def soft_delete_case(case: Case, deleted_by=None):
         """Soft delete a case."""
-        from django.core.cache import cache
-        
         with transaction.atomic():
-            case.is_deleted = True
-            case.deleted_at = timezone.now()
-            # Increment version
-            Case.objects.filter(id=case.id).update(version=F('version') + 1)
+            # IMPORTANT: avoid refresh_from_db() before persisting is_deleted/deleted_at,
+            # otherwise those in-memory changes get overwritten.
+            Case.objects.filter(id=case.id).update(
+                is_deleted=True,
+                deleted_at=timezone.now(),
+                version=F('version') + 1,
+            )
             case.refresh_from_db()
-            case.full_clean()
-            case.save()
-            
-            # Invalidate cache
-            cache.delete(f"case:{case.id}")
-            cache.delete(f"cases:user:{case.user.id}")
-            cache.delete("cases:all")
-            
             return case
     
     @staticmethod
     def restore_case(case: Case, restored_by=None):
         """Restore a soft-deleted case."""
         with transaction.atomic():
-            case.is_deleted = False
-            case.deleted_at = None
-            # Increment version
-            Case.objects.filter(id=case.id).update(version=F('version') + 1)
+            Case.objects.filter(id=case.id).update(
+                is_deleted=False,
+                deleted_at=None,
+                version=F('version') + 1,
+            )
             case.refresh_from_db()
-            case.full_clean()
-            case.save()
             return case
 

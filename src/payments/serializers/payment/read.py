@@ -5,14 +5,24 @@ from payments.models.payment import Payment
 class PaymentSerializer(serializers.ModelSerializer):
     """Serializer for Payment model."""
     
-    case_id = serializers.UUIDField(source='case.id', read_only=True)
-    case_user_email = serializers.EmailField(source='case.user.email', read_only=True)
+    case_id = serializers.SerializerMethodField()
+    case_user_email = serializers.SerializerMethodField()
+    user_email = serializers.EmailField(source='user.email', read_only=True)
     version = serializers.IntegerField(read_only=True)
+
+    def get_case_id(self, obj):
+        return str(obj.case_id) if obj.case_id else None
+
+    def get_case_user_email(self, obj):
+        if obj.case_id and obj.case and getattr(obj.case, "user", None):
+            return obj.case.user.email
+        return None
     
     class Meta:
         model = Payment
         fields = [
             'id',
+            'user_email',
             'case_id',
             'case_user_email',
             'amount',
@@ -30,7 +40,10 @@ class PaymentSerializer(serializers.ModelSerializer):
 class PaymentListSerializer(serializers.ModelSerializer):
     """Simplified serializer for listing payments."""
     
-    case_id = serializers.UUIDField(source='case.id', read_only=True)
+    case_id = serializers.SerializerMethodField()
+
+    def get_case_id(self, obj):
+        return str(obj.case_id) if obj.case_id else None
     
     class Meta:
         model = Payment

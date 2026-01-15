@@ -8,6 +8,9 @@ from rest_framework import status
 from users_access.services.state_province_service import StateProvinceService
 
 
+API_PREFIX = "/api/v1/auth"
+
+
 @pytest.mark.django_db
 class TestStateProvinceCreateAPI:
     """Tests for StateProvinceCreateAPI."""
@@ -20,7 +23,7 @@ class TestStateProvinceCreateAPI:
     @pytest.fixture
     def url(self):
         """Fixture for state create URL."""
-        return "/api/states/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/states/"
 
     def test_create_state_as_admin(self, client, url, admin_user, test_country):
         """Test creating state as admin."""
@@ -61,14 +64,14 @@ class TestStateProvinceReadAPI:
             name="New York"
         )
         client.force_authenticate(user=test_user)
-        url = f"/api/states/country/{test_country.id}/"
+        url = f"{API_PREFIX}/states/country/{test_country.id}/"
         response = client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
     def test_get_state_detail(self, client, test_user, test_state_province):
         """Test getting state detail."""
         client.force_authenticate(user=test_user)
-        url = f"/api/states/{test_state_province.id}/"
+        url = f"{API_PREFIX}/states/{test_state_province.id}/"
         response = client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
@@ -76,7 +79,7 @@ class TestStateProvinceReadAPI:
         """Test getting non-existent state."""
         from uuid import uuid4
         client.force_authenticate(user=test_user)
-        url = f"/api/states/{uuid4()}/"
+        url = f"{API_PREFIX}/states/{uuid4()}/"
         response = client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -93,7 +96,7 @@ class TestStateProvinceUpdateAPI:
     def test_update_state_as_admin(self, client, admin_user, test_state_province):
         """Test updating state as admin."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/states/{test_state_province.id}/update/"
+        url = f"{API_PREFIX}/states/{test_state_province.id}/update/"
         data = {"name": "Updated State Name"}
         response = client.patch(url, data, format='json')
         assert response.status_code == status.HTTP_200_OK
@@ -101,7 +104,7 @@ class TestStateProvinceUpdateAPI:
     def test_update_state_requires_admin(self, client, test_user, test_state_province):
         """Test updating state requires admin permission."""
         client.force_authenticate(user=test_user)
-        url = f"/api/states/{test_state_province.id}/update/"
+        url = f"{API_PREFIX}/states/{test_state_province.id}/update/"
         data = {"name": "Updated State Name"}
         response = client.patch(url, data, format='json')
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -110,7 +113,7 @@ class TestStateProvinceUpdateAPI:
         """Test updating non-existent state."""
         from uuid import uuid4
         client.force_authenticate(user=admin_user)
-        url = f"/api/states/{uuid4()}/update/"
+        url = f"{API_PREFIX}/states/{uuid4()}/update/"
         data = {"name": "Updated State Name"}
         response = client.patch(url, data, format='json')
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -118,7 +121,7 @@ class TestStateProvinceUpdateAPI:
     def test_update_state_invalid_data(self, client, admin_user, test_state_province):
         """Test updating state with invalid data."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/states/{test_state_province.id}/update/"
+        url = f"{API_PREFIX}/states/{test_state_province.id}/update/"
         data = {"code": ""}  # Invalid empty code
         response = client.patch(url, data, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -141,14 +144,14 @@ class TestStateProvinceDeleteAPI:
             name="New York"
         )
         client.force_authenticate(user=admin_user)
-        url = f"/api/states/{state.id}/delete/"
+        url = f"{API_PREFIX}/states/{state.id}/delete/"
         response = client.delete(url)
         assert response.status_code == status.HTTP_200_OK
 
     def test_delete_state_requires_admin(self, client, test_user, test_state_province):
         """Test deleting state requires admin permission."""
         client.force_authenticate(user=test_user)
-        url = f"/api/states/{test_state_province.id}/delete/"
+        url = f"{API_PREFIX}/states/{test_state_province.id}/delete/"
         response = client.delete(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -156,6 +159,6 @@ class TestStateProvinceDeleteAPI:
         """Test deleting non-existent state."""
         from uuid import uuid4
         client.force_authenticate(user=admin_user)
-        url = f"/api/states/{uuid4()}/delete/"
+        url = f"{API_PREFIX}/states/{uuid4()}/delete/"
         response = client.delete(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

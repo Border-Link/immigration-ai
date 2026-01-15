@@ -1,18 +1,21 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from data_ingestion.models.document_version import DocumentVersion
 from data_ingestion.selectors.document_version_selector import DocumentVersionSelector
 from data_ingestion.repositories.document_version_repository import DocumentVersionRepository
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "document_versions"
+
 
 class DocumentVersionService:
     """Service for DocumentVersion business logic."""
 
     @staticmethod
-    @cache_result(timeout=600, keys=[])  # 10 minutes - document versions change when ingested
+    @cache_result(timeout=600, keys=[], namespace=namespace, user_scope="global")  # 10 minutes - document versions change when ingested
     def get_all():
         """Get all document versions."""
         try:
@@ -22,7 +25,7 @@ class DocumentVersionService:
             return DocumentVersionSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['source_document_id'])  # 10 minutes - cache versions by source document
+    @cache_result(timeout=600, keys=['source_document_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache versions by source document
     def get_by_source_document(source_document_id: str):
         """Get document versions by source document ID."""
         try:
@@ -36,7 +39,7 @@ class DocumentVersionService:
             return DocumentVersionSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['version_id'])  # 1 hour - cache version by ID
+    @cache_result(timeout=3600, keys=['version_id'], namespace=namespace, user_scope="global")  # 1 hour - cache version by ID
     def get_by_id(version_id: str) -> Optional[DocumentVersion]:
         """Get document version by ID."""
         try:
@@ -49,7 +52,7 @@ class DocumentVersionService:
             return None
 
     @staticmethod
-    @cache_result(timeout=1800, keys=['source_document_id'])  # 30 minutes - latest version changes when new version ingested
+    @cache_result(timeout=1800, keys=['source_document_id'], namespace=namespace, user_scope="global")  # 30 minutes - latest version changes when new version ingested
     def get_latest_by_source_document(source_document_id: str) -> Optional[DocumentVersion]:
         """Get latest document version for a source document."""
         try:
@@ -63,6 +66,7 @@ class DocumentVersionService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_document_version(version_id: str) -> bool:
         """Delete a document version."""
         try:
@@ -99,6 +103,7 @@ class DocumentVersionService:
             return DocumentVersionSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get document version statistics."""
         try:

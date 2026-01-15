@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from immigration_cases.models.case_fact import CaseFact
 from immigration_cases.repositories.case_fact_repository import CaseFactRepository
 from immigration_cases.selectors.case_fact_selector import CaseFactSelector
@@ -9,11 +9,15 @@ from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "case_facts"
+
 
 class CaseFactService:
     """Service for CaseFact business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda fact: fact is not None)
     def create_case_fact(case_id: str, fact_key: str, fact_value, source: str = 'user') -> Optional[CaseFact]:
         """
         Create a new case fact.
@@ -44,7 +48,7 @@ class CaseFactService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - facts list changes frequently
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")  # 5 minutes - facts list changes frequently
     def get_all():
         """Get all case facts."""
         try:
@@ -54,7 +58,7 @@ class CaseFactService:
             return CaseFact.objects.none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['case_id'])  # 5 minutes - cache facts by case
+    @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache facts by case
     def get_by_case(case_id: str):
         """Get facts by case."""
         try:
@@ -65,7 +69,7 @@ class CaseFactService:
             return CaseFact.objects.none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['fact_id'])  # 10 minutes - cache fact by ID
+    @cache_result(timeout=600, keys=['fact_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache fact by ID
     def get_by_id(fact_id: str) -> Optional[CaseFact]:
         """Get case fact by ID."""
         try:
@@ -78,6 +82,7 @@ class CaseFactService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda fact: fact is not None)
     def update_case_fact(fact_id: str, **fields) -> Optional[CaseFact]:
         """
         Update case fact fields.
@@ -105,6 +110,7 @@ class CaseFactService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_case_fact(fact_id: str) -> bool:
         """
         Delete a case fact.

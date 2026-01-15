@@ -11,6 +11,16 @@ class CaseUpdateAPI(AuthAPI):
     permission_classes = [CasePermission]
 
     def patch(self, request, id):
+        # Fetch entity first to enforce object-level permissions
+        case = CaseService.get_by_id(id)
+        if not case:
+            return self.api_response(
+                message=f"Case with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        self.check_object_permissions(request, case)
+
         serializer = CaseUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -50,12 +60,32 @@ class CaseDeleteAPI(AuthAPI):
     permission_classes = [CasePermission]
 
     def delete(self, request, id):
-        success = CaseService.delete_case(id)
-        if not success:
+        # Fetch entity first to enforce object-level permissions
+        case = CaseService.get_by_id(id)
+        if not case:
             return self.api_response(
                 message=f"Case with ID '{id}' not found.",
                 data=None,
-                status_code=status.HTTP_404_NOT_FOUND
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        self.check_object_permissions(request, case)
+
+        # Return correct error semantics for payment-gated operations
+        from payments.helpers.payment_validator import PaymentValidator
+        is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="case deletion")
+        if not is_valid:
+            return self.api_response(
+                message=error,
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        success = CaseService.delete_case(id, deleted_by_id=str(request.user.id) if request.user else None)
+        if not success:
+            return self.api_response(
+                message="Failed to delete case.",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
 
         return self.api_response(

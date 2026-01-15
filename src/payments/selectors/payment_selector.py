@@ -17,15 +17,30 @@ class PaymentSelector:
     def get_all() -> QuerySet:
         """Get all non-deleted payments."""
         return Payment.objects.select_related(
+            'user',
+            'user__profile',
             'case',
             'case__user',
             'case__user__profile'
         ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
+    def get_by_user(user) -> QuerySet:
+        """Get non-deleted payments by user."""
+        return Payment.objects.select_related(
+            'user',
+            'user__profile',
+            'case',
+            'case__user',
+            'case__user__profile'
+        ).filter(user=user, is_deleted=False).order_by('-created_at')
+
+    @staticmethod
     def get_by_case(case: Case) -> QuerySet:
         """Get non-deleted payments by case."""
         return Payment.objects.select_related(
+            'user',
+            'user__profile',
             'case',
             'case__user',
             'case__user__profile'
@@ -35,6 +50,8 @@ class PaymentSelector:
     def get_by_status(status: str) -> QuerySet:
         """Get non-deleted payments by status."""
         return Payment.objects.select_related(
+            'user',
+            'user__profile',
             'case',
             'case__user',
             'case__user__profile'
@@ -44,6 +61,8 @@ class PaymentSelector:
     def get_by_provider_transaction_id(transaction_id: str) -> Payment:
         """Get non-deleted payment by provider transaction ID."""
         return Payment.objects.select_related(
+            'user',
+            'user__profile',
             'case',
             'case__user',
             'case__user__profile'
@@ -53,6 +72,8 @@ class PaymentSelector:
     def get_by_id(payment_id) -> Payment:
         """Get non-deleted payment by ID."""
         return Payment.objects.select_related(
+            'user',
+            'user__profile',
             'case',
             'case__user',
             'case__user__profile'
@@ -62,10 +83,33 @@ class PaymentSelector:
     def get_deleted_by_id(payment_id) -> Payment:
         """Get deleted payment by ID (for restore operations)."""
         return Payment.objects.select_related(
+            'user',
+            'user__profile',
             'case',
             'case__user',
             'case__user__profile'
         ).filter(is_deleted=True).get(id=payment_id)
+
+    @staticmethod
+    def get_unassigned_completed_by_user(user) -> QuerySet:
+        """
+        Get completed payments for a user that are not yet attached to a case.
+
+        This supports the "pay before case creation" flow:
+        - Create payment (user)
+        - Complete payment
+        - Create case -> attach payment to case
+        """
+        return Payment.objects.select_related(
+            'user',
+            'user__profile',
+            'case'
+        ).filter(
+            user=user,
+            case__isnull=True,
+            status='completed',
+            is_deleted=False
+        ).order_by('-created_at')
 
     @staticmethod
     def get_none() -> QuerySet:

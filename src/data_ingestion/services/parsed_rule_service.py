@@ -1,18 +1,21 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from data_ingestion.models.parsed_rule import ParsedRule
 from data_ingestion.repositories.parsed_rule_repository import ParsedRuleRepository
 from data_ingestion.selectors.parsed_rule_selector import ParsedRuleSelector
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "parsed_rules"
+
 
 class ParsedRuleService:
     """Service for ParsedRule business logic."""
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - parsed rules change when new ones are parsed
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")  # 5 minutes - parsed rules change when new ones are parsed
     def get_all():
         """Get all parsed rules."""
         try:
@@ -22,7 +25,7 @@ class ParsedRuleService:
             return ParsedRuleSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['status'])  # 5 minutes - cache by status
+    @cache_result(timeout=300, keys=['status'], namespace=namespace, user_scope="global")  # 5 minutes - cache by status
     def get_by_status(status: str):
         """Get parsed rules by status."""
         try:
@@ -32,7 +35,7 @@ class ParsedRuleService:
             return ParsedRuleSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['visa_code'])  # 5 minutes - cache by visa code
+    @cache_result(timeout=300, keys=['visa_code'], namespace=namespace, user_scope="global")  # 5 minutes - cache by visa code
     def get_by_visa_code(visa_code: str):
         """Get parsed rules by visa code."""
         try:
@@ -42,7 +45,7 @@ class ParsedRuleService:
             return ParsedRuleSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=180, keys=[])  # 3 minutes - pending rules change frequently
+    @cache_result(timeout=180, keys=[], namespace=namespace, user_scope="global")  # 3 minutes - pending rules change frequently
     def get_pending():
         """Get all pending parsed rules."""
         try:
@@ -52,7 +55,7 @@ class ParsedRuleService:
             return ParsedRuleSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['rule_id'])  # 10 minutes - cache rule by ID
+    @cache_result(timeout=600, keys=['rule_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache rule by ID
     def get_by_id(rule_id: str) -> Optional[ParsedRule]:
         """Get parsed rule by ID."""
         try:
@@ -65,6 +68,7 @@ class ParsedRuleService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda pr: pr is not None)
     def update_status(rule_id: str, status: str) -> Optional[ParsedRule]:
         """Update parsed rule status."""
         try:
@@ -78,6 +82,7 @@ class ParsedRuleService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda pr: pr is not None)
     def update_parsed_rule(rule_id: str, **fields) -> Optional[ParsedRule]:
         """Update parsed rule fields."""
         try:
@@ -91,6 +96,7 @@ class ParsedRuleService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_parsed_rule(rule_id: str) -> bool:
         """Delete a parsed rule."""
         try:
@@ -124,6 +130,7 @@ class ParsedRuleService:
             return ParsedRuleSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get parsed rule statistics."""
         try:

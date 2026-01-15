@@ -8,6 +8,9 @@ from rest_framework import status
 from users_access.services.notification_service import NotificationService
 
 
+API_PREFIX = "/api/v1/auth"
+
+
 @pytest.mark.django_db
 class TestNotificationListAPI:
     """Tests for NotificationListAPI."""
@@ -20,7 +23,7 @@ class TestNotificationListAPI:
     @pytest.fixture
     def url(self):
         """Fixture for notification list URL."""
-        return "/api/notifications/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/notifications/"
 
     def test_list_notifications(self, client, url, test_user, notification_service):
         """Test listing notifications."""
@@ -70,7 +73,7 @@ class TestNotificationDetailAPI:
             message="Test message"
         )
         client.force_authenticate(user=test_user)
-        url = f"/api/notifications/{notification.id}/"
+        url = f"{API_PREFIX}/notifications/{notification.id}/"
         response = client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
@@ -78,7 +81,7 @@ class TestNotificationDetailAPI:
         """Test getting non-existent notification."""
         from uuid import uuid4
         client.force_authenticate(user=test_user)
-        url = f"/api/notifications/{uuid4()}/"
+        url = f"{API_PREFIX}/notifications/{uuid4()}/"
         response = client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -95,7 +98,7 @@ class TestNotificationMarkReadAPI:
     @pytest.fixture
     def url(self):
         """Fixture for mark read URL."""
-        return "/api/notifications/mark-read/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/notifications/mark-read/"
 
     def test_mark_notification_read(self, client, url, test_user, notification_service):
         """Test marking notification as read."""
@@ -146,7 +149,7 @@ class TestNotificationUnreadCountAPI:
     @pytest.fixture
     def url(self):
         """Fixture for unread count URL."""
-        return "/api/notifications/unread-count/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/notifications/unread-count/"
 
     def test_get_unread_count(self, client, url, test_user, notification_service):
         """Test getting unread count."""

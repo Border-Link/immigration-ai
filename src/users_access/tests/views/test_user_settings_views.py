@@ -9,6 +9,9 @@ from unittest.mock import patch, MagicMock
 from users_access.services.user_setting_service import UserSettingsService
 
 
+API_PREFIX = "/api/v1/auth"
+
+
 @pytest.mark.django_db
 class TestUserSettingsListAPIView:
     """Tests for UserSettingsListAPIView."""
@@ -21,7 +24,7 @@ class TestUserSettingsListAPIView:
     @pytest.fixture
     def url(self):
         """Fixture for settings URL."""
-        return "/api/users/settings/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/settings/"
 
     def test_get_settings(self, client, url, test_user, user_settings_service):
         """Test getting settings."""
@@ -48,7 +51,7 @@ class TestEnable2FAAPIView:
     @pytest.fixture
     def url(self):
         """Fixture for enable 2FA URL."""
-        return "/api/users/settings/enable-2fa/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/settings/enable-2fa/"
 
     @patch('users_access.views.user_settings.create.QRCodeGenerator')
     def test_enable_2fa(self, mock_qr_generator, client, url, test_user):
@@ -72,13 +75,13 @@ class TestUserSettingsToggleAPI:
     @pytest.fixture
     def url(self):
         """Fixture for enable 2FA URL (used by enable-2fa tests in this class)."""
-        return "/api/users/settings/enable-2fa/"
+        return f"{API_PREFIX}/users/settings/enable-2fa/"
 
     def test_toggle_setting(self, client, test_user, user_settings_service):
         """Test toggling a setting."""
         user_settings_service.create_user_setting(test_user)
         client.force_authenticate(user=test_user)
-        url = "/api/users/settings/dark_mode/"
+        url = f"{API_PREFIX}/users/settings/dark_mode/"
         data = {
             "value": True
         }
@@ -88,7 +91,7 @@ class TestUserSettingsToggleAPI:
     def test_toggle_invalid_setting(self, client, test_user):
         """Test toggling invalid setting."""
         client.force_authenticate(user=test_user)
-        url = "/api/users/settings/invalid_setting/"
+        url = f"{API_PREFIX}/users/settings/invalid_setting/"
         data = {
             "value": True
         }
@@ -99,7 +102,7 @@ class TestUserSettingsToggleAPI:
         """Test toggling setting with invalid value."""
         user_settings_service.create_user_setting(test_user)
         client.force_authenticate(user=test_user)
-        url = "/api/users/settings/dark_mode/"
+        url = f"{API_PREFIX}/users/settings/dark_mode/"
         data = {
             "value": "not_a_boolean"  # Invalid value type
         }

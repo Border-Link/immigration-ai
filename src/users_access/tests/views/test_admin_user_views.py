@@ -8,6 +8,9 @@ from rest_framework import status
 from users_access.services.user_service import UserService
 
 
+API_PREFIX = "/api/v1/auth"
+
+
 @pytest.mark.django_db
 class TestUserAdminListAPI:
     """Tests for UserAdminListAPI."""
@@ -20,7 +23,7 @@ class TestUserAdminListAPI:
     @pytest.fixture
     def url(self):
         """Fixture for admin users list URL."""
-        return "/api/admin/users/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/admin/users/"
 
     def test_list_users_as_admin(self, client, url, admin_user, user_service):
         """Test listing users as admin."""
@@ -56,7 +59,7 @@ class TestUserAdminDetailAPI:
     def test_get_user_detail(self, client, admin_user, test_user):
         """Test getting user detail."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/"
         response = client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
@@ -64,7 +67,7 @@ class TestUserAdminDetailAPI:
         """Test getting non-existent user."""
         from uuid import uuid4
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{uuid4()}/"
+        url = f"{API_PREFIX}/admin/users/{uuid4()}/"
         response = client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -81,7 +84,7 @@ class TestUserAdminUpdateAPI:
     def test_update_user(self, client, admin_user, test_user):
         """Test updating user."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/"
         data = {
             "role": "reviewer"
         }
@@ -101,7 +104,7 @@ class TestUserAdminDeleteAPI:
     def test_delete_user(self, client, admin_user, test_user):
         """Test deleting user (soft delete)."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/"
         response = client.delete(url)
         assert response.status_code == status.HTTP_200_OK
 
@@ -118,7 +121,7 @@ class TestUserAdminActivateAPI:
     def test_activate_user(self, client, admin_user, test_user):
         """Test activating user."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/activate/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/activate/"
         data = {
             "is_active": True
         }
@@ -138,7 +141,7 @@ class TestUserStatisticsAPI:
     @pytest.fixture
     def url(self):
         """Fixture for statistics URL."""
-        return "/api/admin/users/statistics/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/admin/users/statistics/"
 
     def test_get_statistics(self, client, url, admin_user, user_service):
         """Test getting user statistics."""
@@ -161,7 +164,7 @@ class TestUserActivityAPI:
     def test_get_user_activity(self, client, admin_user, test_user):
         """Test getting user activity."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/activity/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/activity/"
         response = client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert "email" in response.data["data"]
@@ -179,7 +182,7 @@ class TestUserSuspendAPI:
     def test_suspend_user(self, client, admin_user, test_user):
         """Test suspending user."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/suspend/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/suspend/"
         data = {
             "reason": "Test suspension"
         }
@@ -189,7 +192,7 @@ class TestUserSuspendAPI:
     def test_suspend_self(self, client, admin_user):
         """Test cannot suspend self."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{admin_user.id}/suspend/"
+        url = f"{API_PREFIX}/admin/users/{admin_user.id}/suspend/"
         data = {
             "reason": "Test"
         }
@@ -210,7 +213,7 @@ class TestUserUnsuspendAPI:
         """Test unsuspending user."""
         user_service.update_user(test_user, is_active=False)
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/unsuspend/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/unsuspend/"
         response = client.post(url, {}, format='json')
         assert response.status_code == status.HTTP_200_OK
 
@@ -227,7 +230,7 @@ class TestBulkUserOperationAPI:
     @pytest.fixture
     def url(self):
         """Fixture for bulk operation URL."""
-        return "/api/admin/users/bulk-operation/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/admin/users/bulk-operation/"
 
     def test_bulk_activate(self, client, url, admin_user, user_service):
         """Test bulk activate users."""
@@ -266,7 +269,7 @@ class TestAdminPasswordResetAPI:
     def test_reset_password_as_superuser(self, client, admin_user, test_user):
         """Test resetting password as superuser."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/reset-password/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/reset-password/"
         data = {
             "new_password": "NewPass123!@#"
         }
@@ -276,7 +279,7 @@ class TestAdminPasswordResetAPI:
     def test_reset_password_requires_superuser(self, client, test_user, reviewer_user):
         """Test resetting password requires superuser."""
         client.force_authenticate(user=reviewer_user)
-        url = f"/api/admin/users/{test_user.id}/reset-password/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/reset-password/"
         data = {
             "new_password": "NewPass123!@#"
         }
@@ -296,12 +299,12 @@ class TestUserRoleManagementAPI:
     @pytest.fixture
     def url(self):
         """Fixture for bulk operation URL (used by bulk operation tests in this class)."""
-        return "/api/admin/users/bulk-operation/"
+        return f"{API_PREFIX}/admin/users/bulk-operation/"
 
     def test_update_role(self, client, admin_user, test_user):
         """Test updating user role."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/role/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/role/"
         data = {
             "role": "reviewer"
         }
@@ -311,7 +314,7 @@ class TestUserRoleManagementAPI:
     def test_update_role_requires_superuser(self, client, reviewer_user, test_user):
         """Test updating role requires superuser."""
         client.force_authenticate(user=reviewer_user)
-        url = f"/api/admin/users/{test_user.id}/role/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/role/"
         data = {
             "role": "reviewer"
         }
@@ -333,7 +336,7 @@ class TestUserRoleManagementAPI:
     def test_update_role_invalid_role(self, client, admin_user, test_user):
         """Test updating role with invalid role value."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/role/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/role/"
         data = {
             "role": "invalid_role"  # Invalid role
         }
@@ -343,7 +346,7 @@ class TestUserRoleManagementAPI:
     def test_reset_password_weak_password(self, client, admin_user, test_user):
         """Test password reset with weak password."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/reset-password/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/reset-password/"
         data = {
             "new_password": "123"  # Weak password
         }
@@ -353,7 +356,7 @@ class TestUserRoleManagementAPI:
     def test_suspend_user_invalid_dates(self, client, admin_user, test_user):
         """Test suspending user with invalid dates."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/users/{test_user.id}/suspend/"
+        url = f"{API_PREFIX}/admin/users/{test_user.id}/suspend/"
         data = {
             "reason": "Test suspension",
             "suspended_until": "2020-01-01"  # Past date (invalid)

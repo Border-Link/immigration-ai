@@ -84,6 +84,10 @@ class BaseAdminListQuerySerializer(DateRangeMixin, PaginationMixin, serializers.
     
     def to_internal_value(self, data):
         """Parse date strings to datetime objects."""
+        # DRF passes `request.query_params` (a QueryDict) for GETs; it is immutable.
+        # Make a mutable copy before attempting to normalize values.
+        if hasattr(data, "copy"):
+            data = data.copy()
         self.parse_datetime_string(data, 'date_from')
         self.parse_datetime_string(data, 'date_to')
         return super().to_internal_value(data)

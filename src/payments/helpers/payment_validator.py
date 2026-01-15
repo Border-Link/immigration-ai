@@ -6,16 +6,38 @@ Production-ready with caching, logging, and comprehensive validation.
 """
 import logging
 from typing import Tuple, Optional
-from django.core.cache import cache
 from payments.models.payment import Payment
 from payments.selectors.payment_selector import PaymentSelector
 from immigration_cases.models.case import Case
+from main_system.utils.cache_utils import (
+    bump_namespace,
+    cache_get,
+    cache_set,
+    get_namespace_version,
+    make_cache_key,
+)
 
 logger = logging.getLogger('django')
 
 
 class PaymentValidator:
     """Validator for payment requirements."""
+
+    @staticmethod
+    def _case_payment_validation_namespace(case_id: str) -> str:
+        return f"payment_validation:completed_payment:case:{case_id}"
+
+    @staticmethod
+    def _case_payment_validation_cache_key(case_id: str) -> str:
+        ns = PaymentValidator._case_payment_validation_namespace(case_id)
+        return make_cache_key(
+            namespace=ns,
+            namespace_version=get_namespace_version(ns),
+            func_qualname="payments.payment_validator.has_completed_payment_for_case",
+            user_scope="global",
+            user_id="global",
+            key_material={"case_id": str(case_id)},
+        )
     
     @staticmethod
     def has_completed_payment_for_case(case: Case, use_cache: bool = True) -> Tuple[bool, Optional[Payment]]:
@@ -36,8 +58,8 @@ class PaymentValidator:
         
         # Check cache first
         if use_cache:
-            cache_key = f"payment:completed:case:{case.id}"
-            cached_result = cache.get(cache_key)
+            cache_key = PaymentValidator._case_payment_validation_cache_key(str(case.id))
+            cached_result = cache_get(cache_key)
             if cached_result is not None:
                 # Cache stores (has_payment, payment_id) or None
                 if cached_result:
@@ -47,8 +69,8 @@ class PaymentValidator:
                             payment = Payment.objects.get(id=payment_id, status='completed', is_deleted=False)
                             return True, payment
                         except Payment.DoesNotExist:
-                            # Cache invalid, refresh
-                            cache.delete(cache_key)
+                            # Cache invalid, bump namespace to invalidate this case's cached result.
+                            bump_namespace(PaymentValidator._case_payment_validation_namespace(str(case.id)))
                     else:
                         return False, None
         
@@ -58,11 +80,11 @@ class PaymentValidator:
         
         # Cache result
         if use_cache:
-            cache_key = f"payment:completed:case:{case.id}"
+            cache_key = PaymentValidator._case_payment_validation_cache_key(str(case.id))
             if completed_payment:
-                cache.set(cache_key, (True, str(completed_payment.id)), timeout=300)  # 5 minutes
+                cache_set(cache_key, (True, str(completed_payment.id)), timeout=300)  # 5 minutes
             else:
-                cache.set(cache_key, (False, None), timeout=60)  # 1 minute for negative cache
+                cache_set(cache_key, (False, None), timeout=60)  # 1 minute for negative cache
         
         if completed_payment:
             return True, completed_payment
@@ -98,6 +120,25 @@ class PaymentValidator:
             if has_payment:
                 return True, payment
         
+        return False, None
+
+    @staticmethod
+    def has_unassigned_completed_payment_for_user(user_id: str) -> Tuple[bool, Optional[Payment]]:
+        """
+        Check if user has a completed payment not yet attached to a case.
+
+        This supports the "payment required before case creation" flow.
+        """
+        from users_access.selectors.user_selector import UserSelector
+
+        user = UserSelector.get_by_id(user_id)
+        if not user:
+            return False, None
+
+        unassigned = PaymentSelector.get_unassigned_completed_by_user(user)
+        payment = unassigned.first()
+        if payment:
+            return True, payment
         return False, None
     
     @staticmethod
@@ -155,15 +196,15 @@ class PaymentValidator:
         Returns:
             Tuple of (can_create, error_message)
         """
-        # Option 1: Allow case creation, require payment before operations
-        # This allows creating case first, then payment
+        # Require payment before case creation:
+        # user must have a completed payment which is not yet attached to a case.
+        has_payment, _payment = PaymentValidator.has_unassigned_completed_payment_for_user(user_id)
+        if not has_payment:
+            return (
+                False,
+                "You must have a completed payment before creating a case. Please complete your payment first.",
+            )
         return True, None
-        
-        # Option 2: Require payment before case creation (uncomment to enable)
-        # has_payment, payment = PaymentValidator.has_completed_payment_for_user(user_id)
-        # if not has_payment:
-        #     return False, "You must have a completed payment before creating a case."
-        # return True, None
     
     @staticmethod
     def ensure_one_payment_per_case(case: Case) -> Tuple[bool, Optional[str]]:
@@ -178,8 +219,9 @@ class PaymentValidator:
         Returns:
             Tuple of (is_valid, error_message)
         """
+        # For pre-case payments, case can be None (handled elsewhere).
         if not case:
-            return False, "Invalid case provided for payment validation."
+            return True, None
         
         payments = PaymentSelector.get_by_case(case)
         
@@ -215,6 +257,5 @@ class PaymentValidator:
         Args:
             case_id: UUID of the case
         """
-        cache_key = f"payment:completed:case:{case_id}"
-        cache.delete(cache_key)
+        bump_namespace(PaymentValidator._case_payment_validation_namespace(str(case_id)))
         logger.debug(f"Invalidated payment cache for case {case_id}")

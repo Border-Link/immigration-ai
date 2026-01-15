@@ -72,12 +72,6 @@ class VisaRuleVersionRepository:
             )
             rule_version.full_clean()
             rule_version.save()
-            
-            # Clear cache for this visa type
-            from django.core.cache import cache
-            cache_key = f"current_rule_version:{visa_type.id}"
-            cache.delete(cache_key)
-            
             return rule_version
 
     @staticmethod
@@ -154,13 +148,6 @@ class VisaRuleVersionRepository:
             
             # Reload to get the updated version number
             rule_version.refresh_from_db()
-            
-            # Clear cache if published status or effective dates changed
-            if 'is_published' in fields or 'effective_from' in fields or 'effective_to' in fields:
-                from django.core.cache import cache
-                cache_key = f"current_rule_version:{rule_version.visa_type.id}"
-                cache.delete(cache_key)
-            
             return rule_version
 
     @staticmethod
@@ -179,8 +166,6 @@ class VisaRuleVersionRepository:
         Raises:
             ValidationError: If version conflict detected
         """
-        from django.core.cache import cache
-        
         with transaction.atomic():
             # Optimistic locking: Check version if expected_version provided
             if expected_version is not None:
@@ -207,11 +192,6 @@ class VisaRuleVersionRepository:
             
             # Reload to get the updated version number
             rule_version.refresh_from_db()
-            
-            # Clear cache
-            cache_key = f"current_rule_version:{rule_version.visa_type.id}"
-            cache.delete(cache_key)
-            
             return rule_version
 
     @staticmethod
@@ -223,8 +203,6 @@ class VisaRuleVersionRepository:
             rule_version: VisaRuleVersion instance
             check_references: If True, check for references before deleting
         """
-        from django.core.cache import cache
-        
         with transaction.atomic():
             # Check for references if enabled
             if check_references:
@@ -241,8 +219,3 @@ class VisaRuleVersionRepository:
             rule_version.is_deleted = True
             rule_version.deleted_at = timezone.now()
             rule_version.save()
-            
-            # Clear cache
-            cache_key = f"current_rule_version:{rule_version.visa_type.id}"
-            cache.delete(cache_key)
-

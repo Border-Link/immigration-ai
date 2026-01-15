@@ -9,6 +9,9 @@ from unittest.mock import MagicMock, patch
 from users_access.services.user_profile_service import UserProfileService
 
 
+API_PREFIX = "/api/v1/auth"
+
+
 @pytest.mark.django_db
 class TestUserAvatarAPI:
     """Tests for UserAvatarAPI."""
@@ -21,7 +24,7 @@ class TestUserAvatarAPI:
     @pytest.fixture
     def url(self):
         """Fixture for avatar URL."""
-        return "/api/users/avatar/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/avatar/"
 
     @patch('users_access.serializers.users.add_avatar.img_processor')
     def test_update_avatar_success(self, mock_img_processor, client, url, test_user):
