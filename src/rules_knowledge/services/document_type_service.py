@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from rules_knowledge.models.document_type import DocumentType
 from rules_knowledge.repositories.document_type_repository import DocumentTypeRepository
 from rules_knowledge.selectors.document_type_selector import DocumentTypeSelector
@@ -8,11 +8,15 @@ from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "document_types"
+
 
 class DocumentTypeService:
     """Service for DocumentType business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda dt: dt is not None)
     def create_document_type(code: str, name: str, description: str = None, is_active: bool = True):
         """Create a new document type."""
         try:
@@ -44,7 +48,7 @@ class DocumentTypeService:
             return None
 
     @staticmethod
-    @cache_result(timeout=1800, keys=[])  # 30 minutes - rarely changes
+    @cache_result(timeout=1800, keys=[], namespace=namespace, user_scope="global")  # 30 minutes - rarely changes
     def get_all():
         """Get all document types."""
         try:
@@ -54,7 +58,7 @@ class DocumentTypeService:
             return DocumentType.objects.none()
 
     @staticmethod
-    @cache_result(timeout=1800, keys=[])  # 30 minutes - rarely changes
+    @cache_result(timeout=1800, keys=[], namespace=namespace, user_scope="global")  # 30 minutes - rarely changes
     def get_active():
         """Get all active document types."""
         try:
@@ -64,7 +68,7 @@ class DocumentTypeService:
             return DocumentType.objects.none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['code'])  # 1 hour - cache by code
+    @cache_result(timeout=3600, keys=['code'], namespace=namespace, user_scope="global")  # 1 hour - cache by code
     def get_by_code(code: str) -> Optional[DocumentType]:
         """Get document type by code."""
         try:
@@ -77,7 +81,7 @@ class DocumentTypeService:
             return None
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['type_id'])  # 1 hour - cache by ID
+    @cache_result(timeout=3600, keys=['type_id'], namespace=namespace, user_scope="global")  # 1 hour - cache by ID
     def get_by_id(type_id: str) -> Optional[DocumentType]:
         """Get document type by ID."""
         try:
@@ -90,6 +94,7 @@ class DocumentTypeService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda dt: dt is not None)
     def update_document_type(type_id: str, **fields) -> Optional[DocumentType]:
         """Update document type."""
         try:
@@ -118,6 +123,7 @@ class DocumentTypeService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_document_type(type_id: str) -> bool:
         """Delete document type."""
         try:
@@ -159,6 +165,7 @@ class DocumentTypeService:
             return DocumentType.objects.none()
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda dt: dt is not None)
     def activate_document_type(document_type, is_active: bool) -> Optional[DocumentType]:
         """Activate or deactivate a document type."""
         try:
