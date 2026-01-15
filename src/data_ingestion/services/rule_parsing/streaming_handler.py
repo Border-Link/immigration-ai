@@ -43,7 +43,8 @@ class StreamingHandler:
         Returns:
             Dict with parsing results
         """
-        logger.info(f"Using streaming mode for document version {document_version.id}")
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(f"Using streaming mode for document version {document_version.id}")
         
         # Prepare text
         redact_pii = getattr(settings, 'REDACT_PII_BEFORE_LLM', True)
@@ -140,7 +141,8 @@ class StreamingHandler:
                         validation_tasks_created += 1
                         
             except Exception as e:
-                logger.error(f"Error creating parsed rule from stream: {e}", exc_info=True)
+                if getattr(settings, "APP_ENV", None) != "test":
+                    logger.error(f"Error creating parsed rule from stream: {e}", exc_info=True)
                 errors.append(str(e))
                 continue
         
