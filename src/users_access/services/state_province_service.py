@@ -9,7 +9,7 @@ import logging
 
 logger = logging.getLogger('django')
 
-def _states_cache_namespace(*args, **kwargs) -> str:
+def namespace(*args, **kwargs) -> str:
     """
     Single namespace for all StateProvince-related cached reads.
     Any write operation must bump this namespace to avoid stale reads.
@@ -20,7 +20,7 @@ def _states_cache_namespace(*args, **kwargs) -> str:
 class StateProvinceService:
 
     @staticmethod
-    @invalidate_cache(_states_cache_namespace)
+    @invalidate_cache(namespace)
     def create_state_province(country_id, code: str, name: str, 
                              has_nomination_program: bool = False):
         """Create a new state/province."""
@@ -42,7 +42,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['country_id_or_code'], namespace=_states_cache_namespace)  # 1 hour - states rarely change
+    @cache_result(timeout=3600, keys=['country_id_or_code'], namespace=namespace)  # 1 hour - states rarely change
     def get_by_country(country_id_or_code: str):
         """
         Get all states/provinces for a country.
@@ -66,7 +66,7 @@ class StateProvinceService:
             return StateProvinceSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['country_id'], namespace=_states_cache_namespace)  # 1 hour - cache by country ID
+    @cache_result(timeout=3600, keys=['country_id'], namespace=namespace)  # 1 hour - cache by country ID
     def get_by_country_id(country_id):
         """Get all states/provinces for a country by ID."""
         try:
@@ -77,7 +77,7 @@ class StateProvinceService:
             return StateProvinceSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['country_code', 'state_code'], namespace=_states_cache_namespace)  # 1 hour - cache by codes
+    @cache_result(timeout=3600, keys=['country_code', 'state_code'], namespace=namespace)  # 1 hour - cache by codes
     def get_by_code(country_code: str, state_code: str):
         """Get specific state/province by codes."""
         try:
@@ -87,7 +87,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['state_id'], namespace=_states_cache_namespace)  # 1 hour - cache state by ID
+    @cache_result(timeout=3600, keys=['state_id'], namespace=namespace)  # 1 hour - cache state by ID
     def get_by_id(state_id):
         """Get state/province by ID."""
         try:
@@ -97,7 +97,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['country_id'], namespace=_states_cache_namespace)  # 1 hour - nomination programs rarely change
+    @cache_result(timeout=3600, keys=['country_id'], namespace=namespace)  # 1 hour - nomination programs rarely change
     def get_nomination_programs(country_id: Optional[str] = None):
         """Get states/provinces with nomination programs."""
         try:
@@ -110,7 +110,7 @@ class StateProvinceService:
             return StateProvinceSelector.get_none()
 
     @staticmethod
-    @invalidate_cache(_states_cache_namespace)
+    @invalidate_cache(namespace)
     def update_state_province(state, **fields):
         """Update state/province."""
         try:
@@ -120,7 +120,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
-    @invalidate_cache(_states_cache_namespace)
+    @invalidate_cache(namespace)
     def set_nomination_program(state, has_nomination_program: bool):
         """Set nomination program status."""
         try:
@@ -130,7 +130,7 @@ class StateProvinceService:
             return None
 
     @staticmethod
-    @invalidate_cache(_states_cache_namespace)
+    @invalidate_cache(namespace)
     def delete_state_province(state):
         """Delete a state/province."""
         try:
@@ -150,7 +150,7 @@ class StateProvinceService:
             return False
 
     @staticmethod
-    @invalidate_cache(_states_cache_namespace)
+    @invalidate_cache(namespace)
     def activate_state_province_by_id(state_id: str, is_active: bool):
         """Activate or deactivate a state/province by ID."""
         try:
