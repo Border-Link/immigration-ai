@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from users_access.models.notification import Notification
 from users_access.repositories.notification_repository import NotificationRepository
 from users_access.selectors.notification_selector import NotificationSelector
@@ -69,8 +70,13 @@ class NotificationService:
     @staticmethod
     def mark_all_as_read(user_id: str) -> bool:
         """Mark all notifications for a user as read."""
+        # Idempotent behavior: unknown user => no-op success.
         try:
             user = UserSelector.get_by_id(user_id)
+        except ObjectDoesNotExist:
+            return True
+
+        try:
             NotificationRepository.mark_all_as_read(user)
             return True
         except Exception as e:

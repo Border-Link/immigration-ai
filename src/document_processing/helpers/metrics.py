@@ -19,21 +19,41 @@ except ImportError:
     Gauge = None
 
 
+
+def _safe_create_metric(metric_class, name, *args, **kwargs):
+    """
+    Safely create a metric, returning None if it already exists.
+    This prevents duplicate registration errors during module reloads.
+    """
+    if not metric_class:
+        return None
+    
+    try:
+        return metric_class(name, *args, **kwargs)
+    except ValueError:
+        # Metric already exists in registry, return None to use dummy
+        # The existing metric will still work for tracking
+        return None
+
+
 # Processing Job Metrics
 if Counter and Histogram:
-    processing_jobs_created_total = Counter(
+    processing_jobs_created_total = _safe_create_metric(
+        Counter,
         'document_processing_processing_jobs_created_total',
         'Total number of processing jobs created',
         ['processing_type', 'priority']  # processing_type: ocr, validation, etc.; priority: 1-10
     )
     
-    processing_jobs_completed_total = Counter(
+    processing_jobs_completed_total = _safe_create_metric(
+        Counter,
         'document_processing_processing_jobs_completed_total',
         'Total number of processing jobs completed',
         ['processing_type', 'status']  # status: success, failure
     )
     
-    processing_job_duration_seconds = Histogram(
+    processing_job_duration_seconds = _safe_create_metric(
+        Histogram,
         'document_processing_processing_job_duration_seconds',
         'Duration of processing job execution in seconds',
         ['processing_type', 'status'],
@@ -41,13 +61,15 @@ if Counter and Histogram:
     )
     
     # Processing Job Retry Metrics
-    processing_job_retries_total = Counter(
+    processing_job_retries_total = _safe_create_metric(
+        Counter,
         'document_processing_processing_job_retries_total',
         'Total number of processing job retries',
         ['processing_type', 'retry_reason']  # retry_reason: failure, timeout, error
     )
     
-    processing_job_retry_duration_seconds = Histogram(
+    processing_job_retry_duration_seconds = _safe_create_metric(
+        Histogram,
         'document_processing_processing_job_retry_duration_seconds',
         'Duration of processing job retry operations in seconds',
         [],
@@ -55,27 +77,31 @@ if Counter and Histogram:
     )
     
     # Processing Job Timeout Metrics
-    processing_job_timeouts_total = Counter(
+    processing_job_timeouts_total = _safe_create_metric(
+        Counter,
         'document_processing_processing_job_timeouts_total',
         'Total number of processing job timeouts',
         ['processing_type']
     )
     
     # Processing Job Queue Metrics
-    processing_jobs_by_status = Gauge(
+    processing_jobs_by_status = _safe_create_metric(
+        Gauge,
         'document_processing_processing_jobs_by_status',
         'Current number of processing jobs by status',
         ['status', 'processing_type']  # status: pending, processing, completed, failed
     )
     
-    processing_jobs_by_priority = Gauge(
+    processing_jobs_by_priority = _safe_create_metric(
+        Gauge,
         'document_processing_processing_jobs_by_priority',
         'Current number of processing jobs by priority',
         ['priority']
     )
     
     # Processing History Metrics
-    processing_history_entries_total = Counter(
+    processing_history_entries_total = _safe_create_metric(
+        Counter,
         'document_processing_processing_history_entries_total',
         'Total number of processing history entries created',
         ['status']  # status: success, failure

@@ -36,14 +36,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class UserProfileUpdateSerializer(serializers.Serializer):
-    """Comprehensive serializer for updating all user profile fields."""
+    """Comprehensive serializer for updating user profile fields (excluding avatar - handled separately)."""
     first_name = serializers.CharField(required=False, max_length=255, allow_blank=True, allow_null=True)
     last_name = serializers.CharField(required=False, max_length=255, allow_blank=True, allow_null=True)
     date_of_birth = serializers.DateField(required=False, allow_null=True)
     country_code = serializers.CharField(required=False, max_length=2, allow_blank=True, allow_null=True)
     state_code = serializers.CharField(required=False, max_length=10, allow_blank=True, allow_null=True)
     consent_given = serializers.BooleanField(required=False, allow_null=True)
-    avatar = serializers.ImageField(required=False, allow_null=True)
 
     def validate_first_name(self, value):
         if value:
@@ -72,15 +71,6 @@ class UserProfileUpdateSerializer(serializers.Serializer):
     def validate_state_code(self, value):
         if value:
             value = value.strip().upper()
-        return value
-
-    def validate_avatar(self, value):
-        if value:
-            from main_system.utils import image_processor as img_processor
-            target_size_kb = 500
-            image_quality = 85
-            image_format = "webp"
-            return img_processor.ImageProcessor(value, target_size_kb, image_quality, image_format).process()
         return value
 
     def validate(self, attrs):

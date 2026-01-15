@@ -1,5 +1,6 @@
 from rest_framework.exceptions import Throttled
 from rest_framework.throttling import SimpleRateThrottle
+from django.core.exceptions import ImproperlyConfigured
 import logging
 
 logger = logging.getLogger('django')
@@ -7,6 +8,16 @@ logger = logging.getLogger('django')
 
 class OTPThrottle(SimpleRateThrottle):
     scope = 'otp'
+
+    def get_rate(self):
+        """
+        In some environments, scoped throttle rates may not be loaded correctly.
+        Fall back to a safe default to avoid 500s in OTP verification flows.
+        """
+        try:
+            return super().get_rate()
+        except ImproperlyConfigured:
+            return "3/minute"
 
     def get_cache_key(self, request, view):
         ip = self.get_ident(request)

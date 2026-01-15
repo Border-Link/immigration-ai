@@ -2,6 +2,7 @@ import logging
 from knox.views import LogoutAllView as KnoxLogoutAllView
 from knox.models import AuthToken
 from main_system.cookies.manager import CookieManager
+from users_access.services.user_device_session_service import UserDeviceSessionService
 
 logger = logging.getLogger('django')
 
@@ -11,7 +12,6 @@ class BaseLogoutMixin:
 
     def _revoke_tokens(self, request):
         try:
-            from users_access.services.user_device_session_service import UserDeviceSessionService
             UserDeviceSessionService.revoke_all_for_user(user=request.user)
             AuthToken.objects.filter(user=request.user).delete()
         except Exception as e:

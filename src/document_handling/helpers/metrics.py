@@ -20,22 +20,41 @@ except ImportError:
     Gauge = None
 
 
+def _safe_create_metric(metric_class, name, *args, **kwargs):
+    """
+    Safely create a metric, returning None if it already exists.
+    This prevents duplicate registration errors during module reloads.
+    """
+    if not metric_class:
+        return None
+    
+    try:
+        return metric_class(name, *args, **kwargs)
+    except ValueError:
+        # Metric already exists in registry, return None to use dummy
+        # The existing metric will still work for tracking
+        return None
+
+
 # Document Upload Metrics
 if Counter and Histogram:
-    document_uploads_total = Counter(
+    document_uploads_total = _safe_create_metric(
+        Counter,
         'document_handling_document_uploads_total',
         'Total number of document uploads',
         ['status', 'document_type']  # status: success, failure; document_type: passport, visa, etc.
     )
     
-    document_upload_duration_seconds = Histogram(
+    document_upload_duration_seconds = _safe_create_metric(
+        Histogram,
         'document_handling_document_upload_duration_seconds',
         'Duration of document upload operations in seconds',
         ['document_type'],
         buckets=(0.5, 1.0, 2.0, 5.0, 10.0, 30.0)
     )
     
-    document_upload_size_bytes = Histogram(
+    document_upload_size_bytes = _safe_create_metric(
+        Histogram,
         'document_handling_document_upload_size_bytes',
         'Size of uploaded documents in bytes',
         ['document_type'],
@@ -43,27 +62,33 @@ if Counter and Histogram:
     )
     
     # OCR Metrics
-    ocr_operations_total = Counter(
+    ocr_operations_total = _safe_create_metric(
+        Counter,
         'document_handling_ocr_operations_total',
         'Total number of OCR operations',
-        ['backend', 'status']  # backend: tesseract, aws_textract, google_vision; status: success, failure
-    )
+        ['backend', 'status']
     
-    ocr_duration_seconds = Histogram(
+    )
+
+    
+    ocr_duration_seconds = _safe_create_metric(
+        Histogram,
         'document_handling_ocr_duration_seconds',
         'Duration of OCR operations in seconds',
         ['backend'],
         buckets=(1.0, 5.0, 10.0, 30.0, 60.0, 120.0)
     )
-    
-    ocr_confidence_score = Histogram(
+
+    ocr_confidence_score = _safe_create_metric(
+        Histogram,
         'document_handling_ocr_confidence_score',
         'OCR confidence scores',
         ['backend'],
         buckets=(0.0, 0.5, 0.7, 0.8, 0.9, 0.95, 1.0)
     )
-    
-    ocr_text_length = Histogram(
+
+    ocr_text_length = _safe_create_metric(
+        Histogram,
         'document_handling_ocr_text_length',
         'Length of extracted OCR text',
         ['backend'],
@@ -71,13 +96,17 @@ if Counter and Histogram:
     )
     
     # Document Classification Metrics
-    document_classifications_total = Counter(
+    document_classifications_total = _safe_create_metric(
+        Counter,
         'document_handling_document_classifications_total',
         'Total number of document classifications',
-        ['classification_type', 'status']  # classification_type: automated, manual; status: success, failure
-    )
+        ['classification_type', 'status']
     
-    document_classification_duration_seconds = Histogram(
+    )
+
+    
+    document_classification_duration_seconds = _safe_create_metric(
+        Histogram,
         'document_handling_document_classification_duration_seconds',
         'Duration of document classification in seconds',
         ['classification_type'],
@@ -85,13 +114,17 @@ if Counter and Histogram:
     )
     
     # Document Validation Metrics
-    document_validations_total = Counter(
+    document_validations_total = _safe_create_metric(
+        Counter,
         'document_handling_document_validations_total',
         'Total number of document validations',
-        ['validation_type', 'status']  # validation_type: content, expiry, format; status: valid, invalid
-    )
+        ['validation_type', 'status']
     
-    document_validation_duration_seconds = Histogram(
+    )
+
+    
+    document_validation_duration_seconds = _safe_create_metric(
+        Histogram,
         'document_handling_document_validation_duration_seconds',
         'Duration of document validation in seconds',
         ['validation_type'],
@@ -99,13 +132,17 @@ if Counter and Histogram:
     )
     
     # Document Check Metrics
-    document_checks_total = Counter(
+    document_checks_total = _safe_create_metric(
+        Counter,
         'document_handling_document_checks_total',
         'Total number of document checks',
-        ['check_type', 'status']  # check_type: requirement_match, expiry_check, etc.; status: pass, fail
-    )
+        ['check_type', 'status']
     
-    document_check_duration_seconds = Histogram(
+    )
+
+    
+    document_check_duration_seconds = _safe_create_metric(
+        Histogram,
         'document_handling_document_check_duration_seconds',
         'Duration of document checks in seconds',
         ['check_type'],
@@ -113,27 +150,33 @@ if Counter and Histogram:
     )
     
     # Document Requirement Matching Metrics
-    document_requirement_matches_total = Counter(
+    document_requirement_matches_total = _safe_create_metric(
+        Counter,
         'document_handling_document_requirement_matches_total',
         'Total number of document requirement matches',
         ['match_status']  # match_status: matched, unmatched, partial
     )
     
     # Document Expiry Extraction Metrics
-    document_expiry_extractions_total = Counter(
+    document_expiry_extractions_total = _safe_create_metric(
+        Counter,
         'document_handling_document_expiry_extractions_total',
         'Total number of document expiry extractions',
         ['status']  # status: success, failure, not_found
     )
     
     # Document Reprocessing Metrics
-    document_reprocessing_operations_total = Counter(
+    document_reprocessing_operations_total = _safe_create_metric(
+        Counter,
         'document_handling_document_reprocessing_operations_total',
         'Total number of document reprocessing operations',
-        ['reason', 'status']  # reason: ocr_failed, validation_failed, etc.; status: success, failure
-    )
+        ['reason', 'status']
     
-    document_reprocessing_duration_seconds = Histogram(
+    )
+
+    
+    document_reprocessing_duration_seconds = _safe_create_metric(
+        Histogram,
         'document_handling_document_reprocessing_duration_seconds',
         'Duration of document reprocessing in seconds',
         [],
@@ -141,13 +184,17 @@ if Counter and Histogram:
     )
     
     # File Storage Metrics
-    file_storage_operations_total = Counter(
+    file_storage_operations_total = _safe_create_metric(
+        Counter,
         'document_handling_file_storage_operations_total',
         'Total number of file storage operations',
-        ['operation', 'storage_type']  # operation: upload, download, delete; storage_type: s3, local
-    )
+        ['operation', 'storage_type']
     
-    file_storage_duration_seconds = Histogram(
+    )
+
+    
+    file_storage_duration_seconds = _safe_create_metric(
+        Histogram,
         'document_handling_file_storage_duration_seconds',
         'Duration of file storage operations in seconds',
         ['operation', 'storage_type'],
@@ -155,20 +202,25 @@ if Counter and Histogram:
     )
     
     # Virus Scanning Metrics
-    virus_scans_total = Counter(
+    virus_scans_total = _safe_create_metric(
+        Counter,
         'document_handling_virus_scans_total',
         'Total number of virus scans',
-        ['backend', 'status']  # backend: clamav, aws_macie, none; status: clean, threat_detected, failed, skipped
-    )
+        ['backend', 'status']
     
-    virus_scan_duration_seconds = Histogram(
+    )
+
+    
+    virus_scan_duration_seconds = _safe_create_metric(
+        Histogram,
         'document_handling_virus_scan_duration_seconds',
         'Duration of virus scans in seconds',
         ['backend'],
         buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0)
     )
-    
-    virus_threats_detected_total = Counter(
+
+    virus_threats_detected_total = _safe_create_metric(
+        Counter,
         'document_handling_virus_threats_detected_total',
         'Total number of threats detected',
         ['backend', 'threat_type']  # threat_type: virus, malware, trojan, etc.

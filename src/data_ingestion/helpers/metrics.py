@@ -21,22 +21,43 @@ except ImportError:
     Gauge = None
 
 
+def _safe_create_metric(metric_class, name, *args, **kwargs):
+    """
+    Safely create a metric, returning None if it already exists.
+    This prevents duplicate registration errors during module reloads.
+    """
+    if not metric_class:
+        return None
+    
+    try:
+        return metric_class(name, *args, **kwargs)
+    except ValueError:
+        # Metric already exists in registry, return None to use dummy
+        # The existing metric will still work for tracking
+        return None
+
+
 # Document Ingestion Metrics
 if Counter and Histogram:
-    document_ingestions_total = Counter(
+    document_ingestions_total = _safe_create_metric(
+        Counter,
         'data_ingestion_document_ingestions_total',
         'Total number of document ingestion operations',
         ['source_type', 'status']  # source_type: gov_uk, api, manual; status: success, failure
     )
     
-    document_ingestion_duration_seconds = Histogram(
+    document_ingestion_duration_seconds = _safe_create_metric(
+        Histogram,
         'data_ingestion_document_ingestion_duration_seconds',
         'Duration of document ingestion operations in seconds',
         ['source_type'],
         buckets=(1.0, 5.0, 10.0, 30.0, 60.0, 300.0)
     )
     
-    document_ingestion_size_bytes = Histogram(
+    document_ingestion_size_bytes = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_document_ingestion_size_bytes',
         'Size of ingested documents in bytes',
         ['source_type'],
@@ -44,34 +65,48 @@ if Counter and Histogram:
     )
     
     # Document Parsing Metrics
-    document_parsing_operations_total = Counter(
+    document_parsing_operations_total = _safe_create_metric(
+
+        Counter,
         'data_ingestion_document_parsing_operations_total',
         'Total number of document parsing operations',
         ['status', 'jurisdiction']  # status: success, failure, partial
     )
     
-    document_parsing_duration_seconds = Histogram(
+    document_parsing_duration_seconds = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_document_parsing_duration_seconds',
         'Duration of document parsing operations in seconds',
         ['jurisdiction'],
         buckets=(1.0, 5.0, 10.0, 30.0, 60.0, 300.0)
     )
     
-    document_parsing_rules_created = Histogram(
+    document_parsing_rules_created = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_document_parsing_rules_created',
         'Number of rules created per document parsing operation',
         ['jurisdiction'],
         buckets=(1, 5, 10, 20, 50, 100, 200)
     )
     
-    document_parsing_tokens_used = Histogram(
+    document_parsing_tokens_used = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_document_parsing_tokens_used',
         'Number of tokens used in document parsing',
         ['token_type'],  # token_type: prompt, completion, total
         buckets=(1000, 5000, 10000, 20000, 50000, 100000, 200000)
     )
     
-    document_parsing_cost_usd = Histogram(
+    document_parsing_cost_usd = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_document_parsing_cost_usd',
         'Cost of document parsing operations in USD',
         [],
@@ -79,13 +114,18 @@ if Counter and Histogram:
     )
     
     # Rule Validation Metrics
-    rule_validations_total = Counter(
+    rule_validations_total = _safe_create_metric(
+
+        Counter,
         'data_ingestion_rule_validations_total',
         'Total number of rule validation operations',
         ['status', 'validation_type']  # status: approved, rejected, pending; validation_type: automated, manual
     )
     
-    rule_validation_duration_seconds = Histogram(
+    rule_validation_duration_seconds = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_rule_validation_duration_seconds',
         'Duration of rule validation operations in seconds',
         ['validation_type'],
@@ -93,26 +133,37 @@ if Counter and Histogram:
     )
     
     # Document Versioning Metrics
-    document_versions_created_total = Counter(
+    document_versions_created_total = _safe_create_metric(
+
+        Counter,
         'data_ingestion_document_versions_created_total',
         'Total number of document versions created',
         ['source_type']
     )
     
-    document_diff_detections_total = Counter(
+    document_diff_detections_total = _safe_create_metric(
+
+    
+        Counter,
         'data_ingestion_document_diff_detections_total',
         'Total number of document diff detections',
         ['has_changes']  # has_changes: true, false
     )
     
-    document_diff_detection_duration_seconds = Histogram(
+    document_diff_detection_duration_seconds = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_document_diff_detection_duration_seconds',
         'Duration of document diff detection in seconds',
         [],
         buckets=(0.1, 0.5, 1.0, 2.0, 5.0)
     )
     
-    document_diff_changes_detected = Histogram(
+    document_diff_changes_detected = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_document_diff_changes_detected',
         'Number of changes detected per document diff',
         [],
@@ -120,20 +171,28 @@ if Counter and Histogram:
     )
     
     # Document Chunking Metrics
-    document_chunks_created_total = Counter(
+    document_chunks_created_total = _safe_create_metric(
+
+        Counter,
         'data_ingestion_document_chunks_created_total',
         'Total number of document chunks created',
         ['chunking_strategy']  # chunking_strategy: fixed_size, semantic, etc.
     )
     
-    document_chunking_duration_seconds = Histogram(
+    document_chunking_duration_seconds = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_document_chunking_duration_seconds',
         'Duration of document chunking operations in seconds',
         ['chunking_strategy'],
         buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0)
     )
     
-    document_chunks_per_document = Histogram(
+    document_chunks_per_document = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_document_chunks_per_document',
         'Number of chunks created per document',
         [],
@@ -141,13 +200,18 @@ if Counter and Histogram:
     )
     
     # Data Source Metrics
-    data_source_fetches_total = Counter(
+    data_source_fetches_total = _safe_create_metric(
+
+        Counter,
         'data_ingestion_data_source_fetches_total',
         'Total number of data source fetch operations',
         ['source_type', 'status']  # status: success, failure, timeout
     )
     
-    data_source_fetch_duration_seconds = Histogram(
+    data_source_fetch_duration_seconds = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_data_source_fetch_duration_seconds',
         'Duration of data source fetch operations in seconds',
         ['source_type'],
@@ -155,20 +219,28 @@ if Counter and Histogram:
     )
     
     # Batch Processing Metrics
-    batch_processing_operations_total = Counter(
+    batch_processing_operations_total = _safe_create_metric(
+
+        Counter,
         'data_ingestion_batch_processing_operations_total',
         'Total number of batch processing operations',
         ['status']  # status: success, failure, partial
     )
     
-    batch_processing_duration_seconds = Histogram(
+    batch_processing_duration_seconds = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_batch_processing_duration_seconds',
         'Duration of batch processing operations in seconds',
         [],
         buckets=(10.0, 30.0, 60.0, 300.0, 600.0, 1800.0)
     )
     
-    batch_processing_items_processed = Histogram(
+    batch_processing_items_processed = _safe_create_metric(
+
+    
+        Histogram,
         'data_ingestion_batch_processing_items_processed',
         'Number of items processed per batch operation',
         [],

@@ -84,12 +84,6 @@ class UserProfileAPI(AuthAPI):
             if consent_given is not None:
                 profile = UserProfileService.update_consent(user, consent_given)
 
-        # Update avatar if provided
-        if 'avatar' in validated_data:
-            avatar = validated_data.get('avatar')
-            if avatar:
-                profile = UserProfileService.update_avatar(user, avatar)
-
         # If no updates were made, get the current profile
         if not profile:
             profile = UserProfileService.get_profile(user)
@@ -103,28 +97,6 @@ class UserProfileAPI(AuthAPI):
 
         return self.api_response(
             message="Profile updated successfully.",
-            data=UserProfileSerializer(profile).data,
-            status_code=status.HTTP_200_OK
-        )
-
-
-class UserProfileAvatarAPI(AuthAPI):
-    """Delete user avatar (separate endpoint for DELETE operation)."""
-    permission_classes = [AuthenticationPermission]
-
-    def delete(self, request):
-        """Remove user avatar."""
-        profile = UserProfileService.remove_avatar(request.user)
-
-        if not profile:
-            return self.api_response(
-                message="Error removing avatar.",
-                data=None,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-        return self.api_response(
-            message="Avatar removed successfully.",
             data=UserProfileSerializer(profile).data,
             status_code=status.HTTP_200_OK
         )

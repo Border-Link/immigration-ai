@@ -21,22 +21,41 @@ except ImportError:
     Gauge = None
 
 
+def _safe_create_metric(metric_class, name, *args, **kwargs):
+    """
+    Safely create a metric, returning None if it already exists.
+    This prevents duplicate registration errors during module reloads.
+    """
+    if not metric_class:
+        return None
+    
+    try:
+        return metric_class(name, *args, **kwargs)
+    except ValueError:
+        # Metric already exists in registry, return None to use dummy
+        # The existing metric will still work for tracking
+        return None
+
+
 # Eligibility Check Metrics
 if Counter and Histogram:
-    eligibility_checks_total = Counter(
+    eligibility_checks_total = _safe_create_metric(
+        Counter,
         'ai_decisions_eligibility_checks_total',
         'Total number of eligibility checks',
         ['outcome', 'requires_review', 'conflict_detected']  # outcome: likely, possible, unlikely; requires_review: true, false
     )
     
-    eligibility_check_duration_seconds = Histogram(
+    eligibility_check_duration_seconds = _safe_create_metric(
+        Histogram,
         'ai_decisions_eligibility_check_duration_seconds',
         'Duration of eligibility checks in seconds',
         ['outcome'],
         buckets=(0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0)
     )
     
-    eligibility_check_confidence = Histogram(
+    eligibility_check_confidence = _safe_create_metric(
+        Histogram,
         'ai_decisions_eligibility_check_confidence',
         'Confidence score distribution for eligibility checks',
         ['outcome'],
@@ -44,27 +63,31 @@ if Counter and Histogram:
     )
     
     # AI Reasoning Metrics
-    ai_reasoning_calls_total = Counter(
+    ai_reasoning_calls_total = _safe_create_metric(
+        Counter,
         'ai_decisions_ai_reasoning_calls_total',
         'Total number of AI reasoning calls',
         ['status', 'model']  # status: success, failure, timeout; model: gpt-4, claude, etc.
     )
     
-    ai_reasoning_duration_seconds = Histogram(
+    ai_reasoning_duration_seconds = _safe_create_metric(
+        Histogram,
         'ai_decisions_ai_reasoning_duration_seconds',
         'Duration of AI reasoning calls in seconds',
         ['model', 'status'],
         buckets=(0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0)
     )
     
-    ai_reasoning_tokens_used = Histogram(
+    ai_reasoning_tokens_used = _safe_create_metric(
+        Histogram,
         'ai_decisions_ai_reasoning_tokens_used',
         'Number of tokens used in AI reasoning calls',
         ['model', 'token_type'],  # token_type: prompt, completion, total
         buckets=(100, 500, 1000, 2000, 5000, 10000, 20000)
     )
     
-    ai_reasoning_cost_usd = Histogram(
+    ai_reasoning_cost_usd = _safe_create_metric(
+        Histogram,
         'ai_decisions_ai_reasoning_cost_usd',
         'Cost of AI reasoning calls in USD',
         ['model'],
@@ -72,27 +95,31 @@ if Counter and Histogram:
     )
     
     # RAG/Vector DB Metrics
-    vector_search_operations_total = Counter(
+    vector_search_operations_total = _safe_create_metric(
+        Counter,
         'ai_decisions_vector_search_operations_total',
         'Total number of vector similarity searches',
         ['status']  # status: success, failure
     )
     
-    vector_search_duration_seconds = Histogram(
+    vector_search_duration_seconds = _safe_create_metric(
+        Histogram,
         'ai_decisions_vector_search_duration_seconds',
         'Duration of vector similarity searches in seconds',
         ['status'],
         buckets=(0.01, 0.05, 0.1, 0.5, 1.0, 2.0)
     )
     
-    vector_search_results_count = Histogram(
+    vector_search_results_count = _safe_create_metric(
+        Histogram,
         'ai_decisions_vector_search_results_count',
         'Number of results returned from vector search',
         [],
         buckets=(1, 5, 10, 20, 50, 100)
     )
     
-    vector_search_similarity_score = Histogram(
+    vector_search_similarity_score = _safe_create_metric(
+        Histogram,
         'ai_decisions_vector_search_similarity_score',
         'Similarity scores from vector search',
         [],
@@ -100,20 +127,23 @@ if Counter and Histogram:
     )
     
     # Embedding Metrics
-    embedding_generations_total = Counter(
+    embedding_generations_total = _safe_create_metric(
+        Counter,
         'ai_decisions_embedding_generations_total',
         'Total number of embedding generations',
         ['status', 'model']  # status: success, failure; model: text-embedding-ada-002, etc.
     )
     
-    embedding_generation_duration_seconds = Histogram(
+    embedding_generation_duration_seconds = _safe_create_metric(
+        Histogram,
         'ai_decisions_embedding_generation_duration_seconds',
         'Duration of embedding generation in seconds',
         ['model'],
         buckets=(0.1, 0.5, 1.0, 2.0, 5.0)
     )
     
-    embedding_dimensions = Histogram(
+    embedding_dimensions = _safe_create_metric(
+        Histogram,
         'ai_decisions_embedding_dimensions',
         'Dimensions of generated embeddings',
         ['model'],
@@ -121,13 +151,15 @@ if Counter and Histogram:
     )
     
     # Citation Metrics
-    citations_extracted_total = Counter(
+    citations_extracted_total = _safe_create_metric(
+        Counter,
         'ai_decisions_citations_extracted_total',
         'Total number of citations extracted from AI responses',
         ['source_type']  # source_type: document, rule, policy
     )
     
-    citations_per_reasoning = Histogram(
+    citations_per_reasoning = _safe_create_metric(
+        Histogram,
         'ai_decisions_citations_per_reasoning',
         'Number of citations per AI reasoning call',
         [],
@@ -135,14 +167,16 @@ if Counter and Histogram:
     )
     
     # Conflict Detection Metrics
-    eligibility_conflicts_total = Counter(
+    eligibility_conflicts_total = _safe_create_metric(
+        Counter,
         'ai_decisions_eligibility_conflicts_total',
         'Total number of conflicts between rule engine and AI reasoning',
         ['conflict_type']  # conflict_type: outcome_mismatch, confidence_gap, etc.
     )
     
     # Auto-escalation Metrics
-    auto_escalations_total = Counter(
+    auto_escalations_total = _safe_create_metric(
+        Counter,
         'ai_decisions_auto_escalations_total',
         'Total number of auto-escalations to human review',
         ['reason']  # reason: low_confidence, conflict, error

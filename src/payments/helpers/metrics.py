@@ -19,28 +19,48 @@ except ImportError:
     Gauge = None
 
 
+def _safe_create_metric(metric_class, name, *args, **kwargs):
+    """
+    Safely create a metric, returning None if it already exists.
+    This prevents duplicate registration errors during module reloads.
+    """
+    if not metric_class:
+        return None
+    
+    try:
+        return metric_class(name, *args, **kwargs)
+    except ValueError:
+        # Metric already exists in registry, return None to use dummy
+        # The existing metric will still work for tracking
+        return None
+
+
 # Payment Management Metrics
 if Counter and Histogram:
-    payment_creations_total = Counter(
+    payment_creations_total = _safe_create_metric(
+        Counter,
         'payments_payment_creations_total',
         'Total number of payment creations',
         ['currency', 'payment_provider']  # currency: GBP, USD, etc.; payment_provider: stripe, paypal, etc.
     )
     
-    payment_amount_total = Histogram(
+    payment_amount_total = _safe_create_metric(
+        Histogram,
         'payments_payment_amount_total',
         'Payment amounts',
         ['currency'],
         buckets=(10, 30, 50, 100, 150, 300, 500, 1000)
     )
     
-    payment_status_transitions_total = Counter(
+    payment_status_transitions_total = _safe_create_metric(
+        Counter,
         'payments_payment_status_transitions_total',
         'Total number of payment status transitions',
         ['from_status', 'to_status']  # e.g., pending -> processing -> completed
     )
     
-    payment_processing_duration_seconds = Histogram(
+    payment_processing_duration_seconds = _safe_create_metric(
+        Histogram,
         'payments_payment_processing_duration_seconds',
         'Duration of payment processing in seconds',
         ['payment_provider', 'final_status'],
@@ -48,13 +68,15 @@ if Counter and Histogram:
     )
     
     # Payment Provider Metrics
-    payment_provider_calls_total = Counter(
+    payment_provider_calls_total = _safe_create_metric(
+        Counter,
         'payments_payment_provider_calls_total',
         'Total number of payment provider API calls',
         ['provider', 'operation', 'status']  # operation: create, verify, refund; status: success, failure
     )
     
-    payment_provider_call_duration_seconds = Histogram(
+    payment_provider_call_duration_seconds = _safe_create_metric(
+        Histogram,
         'payments_payment_provider_call_duration_seconds',
         'Duration of payment provider API calls in seconds',
         ['provider', 'operation'],
@@ -62,20 +84,23 @@ if Counter and Histogram:
     )
     
     # Payment Failure Metrics
-    payment_failures_total = Counter(
+    payment_failures_total = _safe_create_metric(
+        Counter,
         'payments_payment_failures_total',
         'Total number of payment failures',
         ['failure_reason', 'payment_provider']  # failure_reason: insufficient_funds, card_declined, etc.
     )
     
     # Payment Refund Metrics
-    payment_refunds_total = Counter(
+    payment_refunds_total = _safe_create_metric(
+        Counter,
         'payments_payment_refunds_total',
         'Total number of payment refunds',
         ['status', 'payment_provider']  # status: success, failure
     )
     
-    payment_refund_amount_total = Histogram(
+    payment_refund_amount_total = _safe_create_metric(
+        Histogram,
         'payments_payment_refund_amount_total',
         'Refund amounts',
         ['currency'],
@@ -83,13 +108,15 @@ if Counter and Histogram:
     )
     
     # Payment Revenue Metrics
-    payment_revenue_total = Counter(
+    payment_revenue_total = _safe_create_metric(
+        Counter,
         'payments_payment_revenue_total',
         'Total revenue from completed payments',
         ['currency']
     )
     
-    payments_by_status = Gauge(
+    payments_by_status = _safe_create_metric(
+        Gauge,
         'payments_payments_by_status',
         'Current number of payments by status',
         ['status']

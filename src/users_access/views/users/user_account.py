@@ -89,6 +89,7 @@ class UserAccountAPI(AuthAPI):
         return self.api_response(
             message="User account information retrieved successfully.",
             data=user_overview,
+            email=user.email,  # tests expect `response.data["email"]`
             status_code=status.HTTP_200_OK
         )
 

@@ -144,7 +144,7 @@ class CallSession(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(status__in=[choice[0] for choice in STATUS_CHOICES]),
+                condition=models.Q(status__in=[choice[0] for choice in STATUS_CHOICES]),
                 name='valid_call_session_status'
             ),
         ]

@@ -20,34 +20,62 @@ except ImportError:
     Gauge = None
 
 
+
+def _safe_create_metric(metric_class, name, *args, **kwargs):
+    """
+    Safely create a metric, returning None if it already exists.
+    This prevents duplicate registration errors during module reloads.
+    """
+    if not metric_class:
+        return None
+    
+    try:
+        return metric_class(name, *args, **kwargs)
+    except ValueError:
+        # Metric already exists in registry, return None to use dummy
+        # The existing metric will still work for tracking
+        return None
+
+
 # Review Management Metrics
 if Counter and Histogram:
-    review_creations_total = Counter(
+    review_creations_total = _safe_create_metric(
+        Counter,
         'human_reviews_review_creations_total',
         'Total number of review creations',
-        ['assignment_type']  # assignment_type: manual, auto, round_robin, workload
-    )
+        ['assignment_type']
     
-    review_assignments_total = Counter(
+    )
+
+    
+    review_assignments_total = _safe_create_metric(
+        Counter,
         'human_reviews_review_assignments_total',
         'Total number of review assignments',
-        ['assignment_strategy']  # assignment_strategy: round_robin, workload, manual
-    )
+        ['assignment_strategy']
     
-    review_status_transitions_total = Counter(
+    )
+
+    
+    review_status_transitions_total = _safe_create_metric(
+        Counter,
         'human_reviews_review_status_transitions_total',
         'Total number of review status transitions',
-        ['from_status', 'to_status']  # e.g., pending -> in_progress -> completed
-    )
+        ['from_status', 'to_status']
     
-    review_completion_duration_seconds = Histogram(
+    )
+
+    
+    review_completion_duration_seconds = _safe_create_metric(
+        Histogram,
         'human_reviews_review_completion_duration_seconds',
         'Duration from review creation to completion in seconds',
         ['final_status'],  # final_status: approved, rejected, etc.
         buckets=(60, 300, 600, 1800, 3600, 7200, 86400)  # 1 min to 1 day
     )
     
-    review_processing_duration_seconds = Histogram(
+    review_processing_duration_seconds = _safe_create_metric(
+        Histogram,
         'human_reviews_review_processing_duration_seconds',
         'Duration of active review processing in seconds',
         [],
@@ -55,13 +83,17 @@ if Counter and Histogram:
     )
     
     # Decision Override Metrics
-    decision_overrides_total = Counter(
+    decision_overrides_total = _safe_create_metric(
+        Counter,
         'human_reviews_decision_overrides_total',
         'Total number of decision overrides',
-        ['override_type', 'original_outcome', 'new_outcome']  # override_type: ai_override, rule_override
-    )
+        ['override_type', 'original_outcome', 'new_outcome']
     
-    decision_override_duration_seconds = Histogram(
+    )
+
+    
+    decision_override_duration_seconds = _safe_create_metric(
+        Histogram,
         'human_reviews_decision_override_duration_seconds',
         'Duration of decision override operations in seconds',
         ['override_type'],
@@ -69,13 +101,17 @@ if Counter and Histogram:
     )
     
     # Review Note Metrics
-    review_notes_created_total = Counter(
+    review_notes_created_total = _safe_create_metric(
+        Counter,
         'human_reviews_review_notes_created_total',
         'Total number of review notes created',
-        ['note_type']  # note_type: general, issue, clarification
-    )
+        ['note_type']
     
-    review_notes_per_review = Histogram(
+    )
+
+    
+    review_notes_per_review = _safe_create_metric(
+        Histogram,
         'human_reviews_review_notes_per_review',
         'Number of notes per review',
         [],
@@ -83,34 +119,40 @@ if Counter and Histogram:
     )
     
     # Reviewer Workload Metrics
-    reviewer_workload = Gauge(
+    reviewer_workload = _safe_create_metric(
+        Gauge,
         'human_reviews_reviewer_workload',
         'Current workload (number of assigned reviews) per reviewer',
-        ['reviewer_id', 'status']  # status: pending, in_progress
-    )
+        ['reviewer_id', 'status']
     
-    reviews_by_status = Gauge(
+    )
+
+    
+    reviews_by_status = _safe_create_metric(
+        Gauge,
         'human_reviews_reviews_by_status',
         'Current number of reviews by status',
         ['status']
     )
-    
-    # Review Escalation Metrics
-    review_escalations_total = Counter(
+
+    review_escalations_total = _safe_create_metric(
+        Counter,
         'human_reviews_review_escalations_total',
         'Total number of review escalations',
         ['reason']  # reason: complexity, conflict, timeout
     )
     
     # Review Reassignment Metrics
-    review_reassignments_total = Counter(
+    review_reassignments_total = _safe_create_metric(
+        Counter,
         'human_reviews_review_reassignments_total',
         'Total number of review reassignments',
         ['reason']  # reason: workload, expertise, availability
     )
     
     # Version Conflict Metrics
-    review_version_conflicts_total = Counter(
+    review_version_conflicts_total = _safe_create_metric(
+        Counter,
         'human_reviews_review_version_conflicts_total',
         'Total number of version conflicts (optimistic locking)',
         ['operation']  # operation: update, status_change

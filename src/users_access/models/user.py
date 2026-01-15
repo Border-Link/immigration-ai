@@ -1,6 +1,35 @@
 import uuid
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
+from django.contrib.auth.models import BaseUserManager
 from django.db import models
+
+
+class UserManager(BaseUserManager):
+    """
+    Custom manager required for Django auth backends.
+    ModelBackend expects `_default_manager.get_by_natural_key(...)`.
+    """
+
+    def get_by_natural_key(self, username):
+        return self.get(**{self.model.USERNAME_FIELD: username})
+
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("The Email must be set")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("role", "admin")
+        return self.create_user(email=email, password=password, **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -58,6 +87,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
 
     USERNAME_FIELD = 'email'
+    objects = UserManager()
 
     def __str__(self):
         return f"User ({self.email})"

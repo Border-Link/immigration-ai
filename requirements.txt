@@ -47,7 +47,7 @@ pytest-cov  # Test coverage reporting
 black  # Code formatting
 flake8  # Code linting
 mypy  # Static type checking
-
+pytest-django
 
 # Cloud & Storage Services
 boto3  # AWS SDK for S3/DigitalOcean Spaces integration
