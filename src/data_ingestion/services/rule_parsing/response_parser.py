@@ -8,6 +8,7 @@ import json
 import re
 import logging
 from typing import Dict, List, Optional
+from django.conf import settings
 
 logger = logging.getLogger('django')
 
@@ -28,7 +29,8 @@ class ResponseParser:
             Parsed JSON dict or None if parsing fails
         """
         if not llm_response or not llm_response.strip():
-            logger.error("Empty LLM response received")
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.error("Empty LLM response received")
             return None
         
         try:
@@ -69,7 +71,8 @@ class ResponseParser:
             except json.JSONDecodeError:
                 pass
         
-        logger.error(f"Could not parse LLM response as JSON. Response preview: {llm_response[:500]}")
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.error(f"Could not parse LLM response as JSON. Response preview: {llm_response[:500]}")
         return None
     
     @staticmethod
@@ -91,7 +94,8 @@ class ResponseParser:
                 requirements = parsed_response.get('requirements', [])
                 
                 if not isinstance(requirements, list):
-                    logger.warning("Requirements is not a list, converting")
+                    if getattr(settings, "APP_ENV", None) != "test":
+                        logger.warning("Requirements is not a list, converting")
                     requirements = [requirements] if requirements else []
                 
                 for req in requirements:
@@ -105,7 +109,8 @@ class ResponseParser:
                         }
                         rules.append(rule)
                     else:
-                        logger.warning(f"Invalid requirement format: {req}")
+                        if getattr(settings, "APP_ENV", None) != "test":
+                            logger.warning(f"Invalid requirement format: {req}")
             
             elif 'requirement_code' in parsed_response:
                 rules.append({
@@ -117,6 +122,7 @@ class ResponseParser:
                 })
         
         if not rules:
-            logger.warning(f"No rules extracted from response: {parsed_response}")
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.warning(f"No rules extracted from response: {parsed_response}")
         
         return rules
