@@ -30,7 +30,8 @@ class UKIngestionSystem(BaseIngestionSystem):
         else:
             # Fallback to default if not configured
             self.api_base = UK_GOV_BASE
-            logger.warning("UK_GOV_API_BASE_URL not set in settings, using default: https://www.gov.uk")
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.warning("UK_GOV_API_BASE_URL not set in settings, using default: https://www.gov.uk")
         
         # Use external services HTTP client
         self.client = ExternalHTTPClient(base_url=self.api_base, default_timeout=30)
@@ -62,7 +63,8 @@ class UKIngestionSystem(BaseIngestionSystem):
             )
             return result
         except Exception as e:
-            logger.error(f"Error fetching {url}: {e}")
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.error(f"Error fetching {url}: {e}")
             return {'error': str(e), 'content': None, 'content_type': None, 'status_code': None}
 
     def extract_text(self, raw_content: str, content_type: str) -> str:
@@ -146,10 +148,12 @@ class UKIngestionSystem(BaseIngestionSystem):
             return '\n'.join(filter(None, parts))
             
         except json.JSONDecodeError:
-            logger.warning("Failed to parse JSON, returning raw content for hashing")
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.warning("Failed to parse JSON, returning raw content for hashing")
             return raw_content
         except Exception as e:
-            logger.error(f"Error extracting text from JSON: {e}")
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.error(f"Error extracting text from JSON: {e}")
             return raw_content
     
     def extract_metadata(self, raw_content: str) -> dict:
@@ -247,10 +251,12 @@ class UKIngestionSystem(BaseIngestionSystem):
             return metadata
             
         except json.JSONDecodeError:
-            logger.warning("Failed to parse JSON for metadata extraction")
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.warning("Failed to parse JSON for metadata extraction")
             return {}
         except Exception as e:
-            logger.error(f"Error extracting metadata from JSON: {e}")
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.error(f"Error extracting metadata from JSON: {e}")
             return {}
 
     def parse_api_response(self, response: Dict) -> List[str]:
@@ -327,13 +333,16 @@ class UKIngestionSystem(BaseIngestionSystem):
                 time.sleep(1)  # Rate limiting for search API
                 
             except json.JSONDecodeError as e:
-                logger.warning(f"Invalid JSON from search API for taxon {taxon_content_id}, page {page}: {e}")
+                if getattr(settings, "APP_ENV", None) != "test":
+                    logger.warning(f"Invalid JSON from search API for taxon {taxon_content_id}, page {page}: {e}")
                 break
             except Exception as e:
-                logger.error(f"Error fetching search results for taxon {taxon_content_id}, page {page}: {e}")
+                if getattr(settings, "APP_ENV", None) != "test":
+                    logger.error(f"Error fetching search results for taxon {taxon_content_id}, page {page}: {e}")
                 break
         
-        logger.info(f"Found {len(content_urls)} content pages for taxon {taxon_content_id}")
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(f"Found {len(content_urls)} content pages for taxon {taxon_content_id}")
         return content_urls
 
     def get_document_urls(self) -> List[str]:
@@ -362,7 +371,8 @@ class UKIngestionSystem(BaseIngestionSystem):
             else:
                 # Final fallback
                 base_url = f"{self.api_base}/api/content/entering-staying-uk"
-                logger.warning(f"Using fallback base URL: {base_url}")
+                if getattr(settings, "APP_ENV", None) != "test":
+                    logger.warning(f"Using fallback base URL: {base_url}")
         
         errors = []
         
@@ -373,7 +383,8 @@ class UKIngestionSystem(BaseIngestionSystem):
             """
             # Safety checks
             if depth > max_depth:
-                logger.warning(f"Max depth reached for {url}")
+                if getattr(settings, "APP_ENV", None) != "test":
+                    logger.warning(f"Max depth reached for {url}")
                 return
             
             if url in visited:
@@ -398,7 +409,8 @@ class UKIngestionSystem(BaseIngestionSystem):
                 return
             
             if not response.get('content'):
-                logger.warning(f"No content returned for {url}")
+                if getattr(settings, "APP_ENV", None) != "test":
+                    logger.warning(f"No content returned for {url}")
                 return
             
             # Parse response and extract child taxon URLs
@@ -419,25 +431,31 @@ class UKIngestionSystem(BaseIngestionSystem):
                         fetch_taxons_recursive(child_url, depth + 1, max_depth)
                         
             except json.JSONDecodeError as e:
-                logger.warning(f"Invalid JSON response from {url}: {e}")
+                if getattr(settings, "APP_ENV", None) != "test":
+                    logger.warning(f"Invalid JSON response from {url}: {e}")
                 errors.append(f"JSON decode error for {url}: {e}")
             except KeyError as e:
-                logger.warning(f"Missing key in response from {url}: {e}")
+                if getattr(settings, "APP_ENV", None) != "test":
+                    logger.warning(f"Missing key in response from {url}: {e}")
                 errors.append(f"Key error for {url}: {e}")
             except Exception as e:
-                logger.error(f"Unexpected error processing {url}: {e}")
+                if getattr(settings, "APP_ENV", None) != "test":
+                    logger.error(f"Unexpected error processing {url}: {e}")
                 errors.append(f"Unexpected error for {url}: {e}")
         
         # Step 1: Discover taxon hierarchy using Content API
-        logger.info(f"Step 1: Discovering taxon hierarchy from {base_url}")
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(f"Step 1: Discovering taxon hierarchy from {base_url}")
         fetch_taxons_recursive(base_url)
         
-        logger.info(
-            f"Taxon discovery complete: {len(urls)} taxons found, {len(taxon_content_ids)} taxon IDs collected"
-        )
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(
+                f"Taxon discovery complete: {len(urls)} taxons found, {len(taxon_content_ids)} taxon IDs collected"
+            )
         
         # Step 2: Use Search API to find actual content pages for each taxon
-        logger.info(f"Step 2: Discovering content pages using Search API for {len(taxon_content_ids)} taxons")
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(f"Step 2: Discovering content pages using Search API for {len(taxon_content_ids)} taxons")
         content_pages_found = 0
         
         for taxon_id in taxon_content_ids:
@@ -449,17 +467,20 @@ class UKIngestionSystem(BaseIngestionSystem):
                         urls.append(content_url)
                         content_pages_found += 1
             except Exception as e:
-                logger.error(f"Error fetching content pages for taxon {taxon_id}: {e}")
+                if getattr(settings, "APP_ENV", None) != "test":
+                    logger.error(f"Error fetching content pages for taxon {taxon_id}: {e}")
                 errors.append(f"Error fetching content for taxon {taxon_id}: {e}")
         
         # Log final results
-        logger.info(
-            f"URL discovery complete: {len(urls)} total URLs found "
-            f"({len(taxon_content_ids)} taxons + {content_pages_found} content pages), "
-            f"{len(errors)} errors"
-        )
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(
+                f"URL discovery complete: {len(urls)} total URLs found "
+                f"({len(taxon_content_ids)} taxons + {content_pages_found} content pages), "
+                f"{len(errors)} errors"
+            )
         
         if errors:
-            logger.warning(f"Errors during URL discovery: {errors[:5]}...")  # Log first 5 errors
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.warning(f"Errors during URL discovery: {errors[:5]}...")  # Log first 5 errors
         
         return urls
