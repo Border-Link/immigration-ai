@@ -1,4 +1,5 @@
 from typing import Optional
+from decimal import Decimal, ROUND_HALF_UP
 from django.db import transaction
 from main_system.repositories.base import BaseRepositoryMixin
 from data_ingestion.models.parsed_rule import ParsedRule
@@ -7,6 +8,21 @@ from data_ingestion.models.document_version import DocumentVersion
 
 class ParsedRuleRepository:
     """Repository for ParsedRule write operations."""
+
+    @staticmethod
+    def _normalize_estimated_cost(value: Optional[object]) -> Optional[Decimal]:
+        """
+        Normalize estimated_cost to a Decimal that fits ParsedRule.estimated_cost:
+        DecimalField(max_digits=10, decimal_places=6).
+        """
+        if value is None:
+            return None
+        if isinstance(value, Decimal):
+            dec = value
+        else:
+            # IMPORTANT: never Decimal(float) (can create long repeating decimals).
+            dec = Decimal(str(value))
+        return dec.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
 
     @staticmethod
     def create_parsed_rule(
@@ -40,7 +56,7 @@ class ParsedRuleRepository:
                 llm_model=llm_model,
                 llm_model_version=llm_model_version,
                 tokens_used=tokens_used,
-                estimated_cost=estimated_cost,
+                estimated_cost=ParsedRuleRepository._normalize_estimated_cost(estimated_cost),
                 processing_time_ms=processing_time_ms
             )
             parsed_rule.full_clean()

@@ -84,10 +84,6 @@ dev-logs:
 dev-shell:
 	docker exec -it pfm_api_dev /bin/sh
 
-test:
-	docker exec -it borderlink_api /bin/sh
-	pytest -vv
-
 # ============================================================
 # 🧹 MAINTENANCE & UTILITIES
 # ============================================================

@@ -2,6 +2,7 @@ from typing import Optional
 from .base_ingestion import BaseIngestionSystem
 from .uk_ingestion import UKIngestionSystem
 import logging
+from django.conf import settings
 
 logger = logging.getLogger('django')
 
@@ -33,7 +34,8 @@ class IngestionSystemFactory:
         jurisdiction = data_source.jurisdiction
         
         if jurisdiction not in cls._systems:
-            logger.error(f"No ingestion system available for jurisdiction: {jurisdiction}")
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.error(f"No ingestion system available for jurisdiction: {jurisdiction}")
             return None
         
         system_class = cls._systems[jurisdiction]
@@ -41,7 +43,8 @@ class IngestionSystemFactory:
         try:
             return system_class(data_source)
         except Exception as e:
-            logger.error(f"Error creating ingestion system for {jurisdiction}: {e}")
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.error(f"Error creating ingestion system for {jurisdiction}: {e}")
             return None
     
     @classmethod
@@ -57,7 +60,8 @@ class IngestionSystemFactory:
             raise ValueError(f"{system_class} must inherit from BaseIngestionSystem")
         
         cls._systems[jurisdiction] = system_class
-        logger.info(f"Registered ingestion system for jurisdiction: {jurisdiction}")
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(f"Registered ingestion system for jurisdiction: {jurisdiction}")
     
     @classmethod
     def get_supported_jurisdictions(cls) -> list:

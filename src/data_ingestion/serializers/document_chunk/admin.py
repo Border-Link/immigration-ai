@@ -16,6 +16,7 @@ class DocumentChunkAdminListQuerySerializer(serializers.Serializer):
 
     def to_internal_value(self, data):
         """Parse boolean string to boolean and handle pagination."""
+        data = data.copy()
         if 'has_embedding' in data and data['has_embedding'] is not None:
             if isinstance(data['has_embedding'], str):
                 data['has_embedding'] = data['has_embedding'].lower() == 'true'

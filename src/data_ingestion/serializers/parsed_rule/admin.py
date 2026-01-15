@@ -17,6 +17,7 @@ class ParsedRuleAdminListQuerySerializer(BaseAdminListQuerySerializer):
 
     def to_internal_value(self, data):
         """Parse string dates to datetime objects and float values."""
+        data = data.copy()
         # Parse float strings before calling super
         if 'min_confidence' in data and data.get('min_confidence'):
             if isinstance(data['min_confidence'], str):

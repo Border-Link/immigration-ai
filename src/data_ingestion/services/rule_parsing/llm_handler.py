@@ -9,6 +9,7 @@ from typing import Dict, Optional
 from external_services.request import ExternalLLMClient
 from data_ingestion.helpers.cost_tracker import track_usage
 from .response_parser import ResponseParser
+from django.conf import settings
 
 logger = logging.getLogger('django')
 
@@ -71,7 +72,8 @@ class LLMHandler:
             # Extract rules from response
             rules = ResponseParser.extract_rules_from_response(parsed_response)
             
-            logger.info(f"Extracted {len(rules)} rules from LLM response (model: {llm_response.get('model')})")
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.info(f"Extracted {len(rules)} rules from LLM response (model: {llm_response.get('model')})")
             
             return {
                 'success': True,
@@ -84,7 +86,8 @@ class LLMHandler:
             
         except Exception as e:
             error_type = type(e).__name__
-            logger.error(f"Error calling LLM for rule extraction: {e}", exc_info=True)
+            if getattr(settings, "APP_ENV", None) != "test":
+                logger.error(f"Error calling LLM for rule extraction: {e}", exc_info=True)
             return {
                 'success': False,
                 'error': str(e),

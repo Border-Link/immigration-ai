@@ -61,7 +61,9 @@ class TokenBucketRateLimiter:
             Tuple of (tokens, last_refill_time)
         """
         cache_key = self._get_cache_key(bucket_type)
-        data = cache.get(cache_key, {'tokens': 0.0, 'last_refill': time.time()})
+        # Start "full" on first use to avoid initial artificial throttling.
+        default_tokens = float(self.requests_per_minute) if bucket_type == "requests" else float(self.tokens_per_minute)
+        data = cache.get(cache_key, {'tokens': default_tokens, 'last_refill': time.time()})
         return data.get('tokens', 0.0), data.get('last_refill', time.time())
     
     def _refill_tokens(self, bucket_type: str, max_tokens: float) -> float:
@@ -79,7 +81,8 @@ class TokenBucketRateLimiter:
         current_time = time.time()
         
         # Get current state
-        data = cache.get(cache_key, {'tokens': 0.0, 'last_refill': current_time})
+        # Start "full" on first use to avoid initial artificial throttling.
+        data = cache.get(cache_key, {'tokens': max_tokens, 'last_refill': current_time})
         tokens = data.get('tokens', 0.0)
         last_refill = data.get('last_refill', current_time)
         
@@ -150,7 +153,8 @@ class TokenBucketRateLimiter:
                 # Rate is per minute, so 1 token = 60/rate seconds
                 wait_time = max(0, (60.0 / self.requests_per_minute) - elapsed)
                 if wait_time > 0:
-                    logger.warning(f"Rate limit: waiting {wait_time:.2f}s for request bucket")
+                    if getattr(settings, "APP_ENV", None) != "test":
+                        logger.warning(f"Rate limit: waiting {wait_time:.2f}s for request bucket")
                     time.sleep(wait_time)
                     # Retry after wait
                     self._consume_tokens('requests', 1.0, float(self.requests_per_minute))
@@ -167,7 +171,8 @@ class TokenBucketRateLimiter:
                 # Rate is per minute, so tokens_needed/rate minutes = wait time
                 wait_time = max(0, ((estimated_tokens / self.tokens_per_minute) * 60) - elapsed)
                 if wait_time > 0:
-                    logger.warning(f"Rate limit: waiting {wait_time:.2f}s for token bucket (need {estimated_tokens} tokens)")
+                    if getattr(settings, "APP_ENV", None) != "test":
+                        logger.warning(f"Rate limit: waiting {wait_time:.2f}s for token bucket (need {estimated_tokens} tokens)")
                     time.sleep(wait_time)
                     # Retry after wait
                     self._consume_tokens('tokens', float(estimated_tokens), float(self.tokens_per_minute))
