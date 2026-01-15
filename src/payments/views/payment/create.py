@@ -16,7 +16,8 @@ class PaymentCreateAPI(AuthAPI):
         serializer.is_valid(raise_exception=True)
 
         payment = PaymentService.create_payment(
-            case_id=str(serializer.validated_data.get('case_id')),
+            case_id=str(serializer.validated_data.get('case_id')) if serializer.validated_data.get('case_id') else None,
+            user_id=str(serializer.validated_data.get('user_id')) if serializer.validated_data.get('user_id') else None,
             amount=serializer.validated_data.get('amount'),
             currency=serializer.validated_data.get('currency', Payment.DEFAULT_CURRENCY),
             status=serializer.validated_data.get('status', 'pending'),
