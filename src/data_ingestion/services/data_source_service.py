@@ -7,7 +7,7 @@ from data_ingestion.selectors.data_source_selector import DataSourceSelector
 
 logger = logging.getLogger('django')
 
-def _data_sources_cache_namespace(*args, **kwargs) -> str:
+def namespace(*args, **kwargs) -> str:
     # Single namespace to invalidate all data source caches on any write.
     return "ns:data_ingestion:data_sources"
 
@@ -16,7 +16,7 @@ class DataSourceService:
     """Service for DataSource business logic."""
 
     @staticmethod
-    @invalidate_cache(_data_sources_cache_namespace)
+    @invalidate_cache(namespace)
     def create_data_source(name: str, base_url: str, jurisdiction: str,
                           crawl_frequency: str = 'daily', is_active: bool = True):
         """Create a new data source."""
@@ -33,7 +33,7 @@ class DataSourceService:
             return None
 
     @staticmethod
-    @cache_result(timeout=1800, keys=[], namespace=_data_sources_cache_namespace)  # 30 minutes
+    @cache_result(timeout=1800, keys=[], namespace=namespace)  # 30 minutes
     def get_all():
         """Get all data sources."""
         try:
@@ -43,7 +43,7 @@ class DataSourceService:
             return DataSourceSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=1800, keys=[], namespace=_data_sources_cache_namespace)  # 30 minutes
+    @cache_result(timeout=1800, keys=[], namespace=namespace)  # 30 minutes
     def get_active():
         """Get all active data sources."""
         try:
@@ -53,7 +53,7 @@ class DataSourceService:
             return DataSourceSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=1800, keys=['jurisdiction'], namespace=_data_sources_cache_namespace)  # 30 minutes
+    @cache_result(timeout=1800, keys=['jurisdiction'], namespace=namespace)  # 30 minutes
     def get_by_jurisdiction(jurisdiction: str):
         """Get data sources by jurisdiction."""
         try:
@@ -63,7 +63,7 @@ class DataSourceService:
             return DataSourceSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['data_source_id'], namespace=_data_sources_cache_namespace)  # 1 hour
+    @cache_result(timeout=3600, keys=['data_source_id'], namespace=namespace)  # 1 hour
     def get_by_id(data_source_id):
         """Get data source by ID."""
         try:
@@ -76,7 +76,7 @@ class DataSourceService:
             return None
 
     @staticmethod
-    @invalidate_cache(_data_sources_cache_namespace)
+    @invalidate_cache(namespace)
     def update_data_source(data_source, **fields):
         """Update data source fields."""
         try:
@@ -86,7 +86,7 @@ class DataSourceService:
             return None
 
     @staticmethod
-    @invalidate_cache(_data_sources_cache_namespace)
+    @invalidate_cache(namespace)
     def activate_data_source(data_source, is_active: bool):
         """Activate or deactivate data source."""
         try:
@@ -120,7 +120,7 @@ class DataSourceService:
             return {'success': False, 'message': str(e)}
 
     @staticmethod
-    @invalidate_cache(_data_sources_cache_namespace)
+    @invalidate_cache(namespace)
     def delete_data_source(data_source_id: str) -> bool:
         """Delete a data source."""
         try:
@@ -149,6 +149,7 @@ class DataSourceService:
             return DataSourceSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get data source statistics."""
         try:
