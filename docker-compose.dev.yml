@@ -73,7 +73,7 @@ services:
     ports:
       - "8000:8000"
       # - "5678:5678" # Uncomment if using debug
-    command: gunicorn --workers ${GUNICORN_WORKERS:-4} --bind 0.0.0.0:8000 main_system.wsgi:application
+    command: gunicorn --workers ${GUNICORN_WORKERS:-4} --timeout ${GUNICORN_TIMEOUT:-120} --graceful-timeout ${GUNICORN_GRACEFUL_TIMEOUT:-30} --keep-alive ${GUNICORN_KEEPALIVE:-5} --bind 0.0.0.0:8000 main_system.wsgi:application
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
       interval: 30s
