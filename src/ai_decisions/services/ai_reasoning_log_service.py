@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from ai_decisions.models.ai_reasoning_log import AIReasoningLog
 from ai_decisions.repositories.ai_reasoning_log_repository import AIReasoningLogRepository
 from ai_decisions.selectors.ai_reasoning_log_selector import AIReasoningLogSelector
@@ -8,11 +8,15 @@ from immigration_cases.selectors.case_selector import CaseSelector
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "ai_reasoning_logs"
+
 
 class AIReasoningLogService:
     """Service for AIReasoningLog business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda log: log is not None)
     def create_reasoning_log(case_id: str, prompt: str, response: str, model_name: str,
                             tokens_used: int = None) -> Optional[AIReasoningLog]:
         """Create a new AI reasoning log."""
@@ -30,7 +34,7 @@ class AIReasoningLogService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - logs change when new reasoning occurs
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")  # 5 minutes - logs change when new reasoning occurs
     def get_all():
         """Get all AI reasoning logs."""
         try:
@@ -40,7 +44,7 @@ class AIReasoningLogService:
             return AIReasoningLogSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['case_id'])  # 5 minutes - cache logs by case
+    @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache logs by case
     def get_by_case(case_id: str):
         """Get reasoning logs by case."""
         try:
@@ -51,7 +55,7 @@ class AIReasoningLogService:
             return AIReasoningLogSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['log_id'])  # 10 minutes - cache log by ID
+    @cache_result(timeout=600, keys=['log_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache log by ID
     def get_by_id(log_id: str) -> Optional[AIReasoningLog]:
         """Get reasoning log by ID."""
         try:
@@ -64,7 +68,7 @@ class AIReasoningLogService:
             return None
     
     @staticmethod
-    @cache_result(timeout=300, keys=['model_name'])  # 5 minutes - cache logs by model
+    @cache_result(timeout=300, keys=['model_name'], namespace=namespace, user_scope="global")  # 5 minutes - cache logs by model
     def get_by_model(model_name: str):
         """Get reasoning logs by model name."""
         try:
@@ -74,6 +78,7 @@ class AIReasoningLogService:
             return AIReasoningLogSelector.get_none()
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda log: log is not None)
     def update_reasoning_log(log_id: str, **fields) -> Optional[AIReasoningLog]:
         """Update reasoning log fields."""
         try:
@@ -87,6 +92,7 @@ class AIReasoningLogService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_reasoning_log(log_id: str) -> bool:
         """Delete an AI reasoning log."""
         try:
@@ -126,6 +132,7 @@ class AIReasoningLogService:
             return AIReasoningLogSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get AI reasoning log statistics."""
         try:
