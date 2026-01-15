@@ -46,7 +46,10 @@ class UserSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         """Get full name from profile."""
         if hasattr(obj, 'profile') and obj.profile:
-            return obj.profile.full_name
+            first = (obj.profile.first_name or "").strip()
+            last = (obj.profile.last_name or "").strip()
+            full = " ".join([p for p in (first, last) if p])
+            return full or None
         return None
 
 
@@ -82,5 +85,8 @@ class WhoAmISerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         """Get full name from profile."""
         if hasattr(obj, 'profile') and obj.profile:
-            return obj.profile.full_name
+            first = (obj.profile.first_name or "").strip()
+            last = (obj.profile.last_name or "").strip()
+            full = " ".join([p for p in (first, last) if p])
+            return full or None
         return None
