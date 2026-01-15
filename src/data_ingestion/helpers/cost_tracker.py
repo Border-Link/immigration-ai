@@ -86,27 +86,31 @@ def track_usage(
     total_tokens = usage.get('total_tokens', 0)
     
     estimated_cost = calculate_cost(model, prompt_tokens, completion_tokens)
+    # Keep the value compatible with ParsedRule.estimated_cost (decimal_places=6).
+    estimated_cost_float = round(float(estimated_cost), 6)
     
     result = {
         'tokens_used': total_tokens,
-        'estimated_cost': float(estimated_cost),
+        'estimated_cost': estimated_cost_float,
         'model': model,
         'prompt_tokens': prompt_tokens,
         'completion_tokens': completion_tokens,
     }
     
     # Log cost tracking
-    logger.info(
-        f"LLM usage tracked: model={model}, tokens={total_tokens}, "
-        f"cost=${estimated_cost:.6f}, document_version={document_version_id}"
-    )
+    if getattr(settings, "APP_ENV", None) != "test":
+        logger.info(
+            f"LLM usage tracked: model={model}, tokens={total_tokens}, "
+            f"cost=${estimated_cost:.6f}, document_version={document_version_id}"
+        )
     
     # Check for cost alerts (if configured)
     cost_threshold = getattr(settings, 'LLM_COST_ALERT_THRESHOLD', None)
     if cost_threshold and estimated_cost > Decimal(str(cost_threshold)):
-        logger.warning(
-            f"High LLM cost alert: ${estimated_cost:.6f} exceeds threshold "
-            f"${cost_threshold} for model {model}"
-        )
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.warning(
+                f"High LLM cost alert: ${estimated_cost:.6f} exceeds threshold "
+                f"${cost_threshold} for model {model}"
+            )
     
     return result
