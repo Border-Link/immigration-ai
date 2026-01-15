@@ -10,6 +10,8 @@ from users_access.services.user_service import UserService
 from users_access.services.otp_services import OTPService
 
 
+API_PREFIX = "/api/v1/auth"
+
 @pytest.mark.django_db
 class TestSendForgotPasswordOTPAPIView:
     """Tests for SendForgotPasswordOTPAPIView."""
@@ -22,7 +24,7 @@ class TestSendForgotPasswordOTPAPIView:
     @pytest.fixture
     def url(self):
         """Fixture for forgot password URL."""
-        return "/api/users/forgot-password/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/forgot-password/"
 
     @patch('users_access.views.users.forgot_password.OTPBaseHandler')
     def test_send_forgot_password_otp_success(self, mock_otp_handler, client, url, verified_user):
@@ -58,7 +60,7 @@ class TestPasswordResetOTPVerificationAPIView:
     @pytest.fixture
     def url(self):
         """Fixture for OTP verification URL."""
-        return "/api/users/forgot-password/verify/{endpoint_token}/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/forgot-password/verify/{endpoint_token}/"
 
     def test_verify_otp_success(self, client, otp_service, verified_user):
         """Test successful OTP verification."""
@@ -68,7 +70,7 @@ class TestPasswordResetOTPVerificationAPIView:
             endpoint_token="test_token",
             otp_type="password_reset"
         )
-        url = f"/api/users/forgot-password/verify/test_token/"
+        url = f"{API_PREFIX}/users/forgot-password/verify/test_token/"
         data = {
             "otp": "123456"
         }
@@ -77,7 +79,7 @@ class TestPasswordResetOTPVerificationAPIView:
 
     def test_verify_otp_invalid(self, client):
         """Test invalid OTP verification."""
-        url = "/api/users/forgot-password/verify/invalid_token/"
+        url = f"{API_PREFIX}/users/forgot-password/verify/invalid_token/"
         data = {
             "otp": "wrong"
         }
@@ -97,7 +99,7 @@ class TestCreateNewPasswordTokenAPIView:
     @pytest.fixture
     def url(self):
         """Fixture for create new password URL."""
-        return "/api/users/forgot-password/reset/{endpoint_token}/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/forgot-password/reset/{endpoint_token}/"
 
     def test_create_new_password_success(self, client, otp_service, verified_user):
         """Test successful password reset."""
@@ -110,7 +112,7 @@ class TestCreateNewPasswordTokenAPIView:
         # Verify OTP first
         otp_service.verify_otp("123456", "test_token")
         
-        url = f"/api/users/forgot-password/reset/test_token/"
+        url = f"{API_PREFIX}/users/forgot-password/reset/test_token/"
         data = {
             "new_password": "NewPass123!@#",
             "retype_password": "NewPass123!@#",
@@ -121,7 +123,7 @@ class TestCreateNewPasswordTokenAPIView:
 
     def test_verify_otp_invalid_token(self, client):
         """Test OTP verification with invalid endpoint token."""
-        url = "/api/users/forgot-password/verify/invalid_token_123/"
+        url = f"{API_PREFIX}/users/forgot-password/verify/invalid_token_123/"
         data = {
             "otp": "123456"
         }
@@ -143,7 +145,7 @@ class TestCreateNewPasswordTokenAPIView:
         expired_otp.expires_at = timezone.now() - timedelta(minutes=1)
         expired_otp.save()
         
-        url = "/api/users/forgot-password/verify/expired_token/"
+        url = f"{API_PREFIX}/users/forgot-password/verify/expired_token/"
         data = {
             "otp": "123456"
         }
@@ -160,7 +162,7 @@ class TestCreateNewPasswordTokenAPIView:
         )
         otp_service.verify_otp("123456", "test_token")
         
-        url = f"/api/users/forgot-password/reset/test_token/"
+        url = f"{API_PREFIX}/users/forgot-password/reset/test_token/"
         data = {
             "new_password": "123",  # Weak password
             "retype_password": "123",
@@ -179,7 +181,7 @@ class TestCreateNewPasswordTokenAPIView:
         )
         otp_service.verify_otp("123456", "test_token")
         
-        url = f"/api/users/forgot-password/reset/test_token/"
+        url = f"{API_PREFIX}/users/forgot-password/reset/test_token/"
         data = {
             "new_password": "NewPass123!@#",
             "retype_password": "DifferentPass123!@#",
