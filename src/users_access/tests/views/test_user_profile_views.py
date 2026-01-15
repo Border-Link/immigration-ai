@@ -8,6 +8,9 @@ from rest_framework import status
 from users_access.services.user_profile_service import UserProfileService
 
 
+API_PREFIX = "/api/v1/auth"
+
+
 @pytest.mark.django_db
 class TestUserProfileAPI:
     """Tests for UserProfileAPI."""
@@ -20,7 +23,7 @@ class TestUserProfileAPI:
     @pytest.fixture
     def url(self):
         """Fixture for profile URL."""
-        return "/api/users/profile/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/profile/"
 
     def test_get_profile(self, client, url, test_user):
         """Test getting profile."""
@@ -57,7 +60,7 @@ class TestUserProfileAvatarAPI:
     @pytest.fixture
     def url(self):
         """Fixture for avatar delete URL."""
-        return "/api/users/profile/avatar/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/profile/avatar/"
 
     def test_delete_avatar(self, client, url, test_user):
         """Test deleting avatar."""
@@ -91,7 +94,7 @@ class TestUserProfileAvatarAPI:
         from django.core.files.uploadedfile import SimpleUploadedFile
         
         client.force_authenticate(user=test_user)
-        url = "/api/users/profile/avatar/"
+        url = f"{API_PREFIX}/users/profile/avatar/"
         # Create a text file instead of image
         file = SimpleUploadedFile("test.txt", b"file content", content_type="text/plain")
         response = client.post(url, {"avatar": file}, format='multipart')
@@ -105,7 +108,7 @@ class TestUserProfileAvatarAPI:
         import io
         
         client.force_authenticate(user=test_user)
-        url = "/api/users/profile/avatar/"
+        url = f"{API_PREFIX}/users/profile/avatar/"
         # Create a large image file (simulate > 5MB)
         img = Image.new('RGB', (2000, 2000), color='red')
         img_io = io.BytesIO()
