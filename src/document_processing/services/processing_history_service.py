@@ -3,7 +3,7 @@ Service for ProcessingHistory business logic.
 """
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from document_processing.models.processing_history import ProcessingHistory
 from document_processing.repositories.processing_history_repository import ProcessingHistoryRepository
 from document_processing.selectors.processing_history_selector import ProcessingHistorySelector
@@ -11,11 +11,15 @@ from document_handling.selectors.case_document_selector import CaseDocumentSelec
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "processing_history"
+
 
 class ProcessingHistoryService:
     """Service for ProcessingHistory business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda h: h is not None)
     def create_history_entry(
         case_document_id: str,
         action: str,
@@ -62,7 +66,7 @@ class ProcessingHistoryService:
             return None
 
     @staticmethod
-    @cache_result(timeout=180, keys=[])  # 3 minutes - history changes frequently as processing occurs
+    @cache_result(timeout=180, keys=[], namespace=namespace, user_scope="global")  # 3 minutes - history changes frequently as processing occurs
     def get_all():
         """Get all processing history entries."""
         try:
@@ -72,7 +76,7 @@ class ProcessingHistoryService:
             return ProcessingHistorySelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['history_id'])  # 10 minutes - cache history entry by ID
+    @cache_result(timeout=600, keys=['history_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache history entry by ID
     def get_by_id(history_id: str) -> Optional[ProcessingHistory]:
         """Get processing history entry by ID."""
         try:
@@ -85,7 +89,7 @@ class ProcessingHistoryService:
             return None
 
     @staticmethod
-    @cache_result(timeout=180, keys=['case_document_id'])  # 3 minutes - history for document changes as processing occurs
+    @cache_result(timeout=180, keys=['case_document_id'], namespace=namespace, user_scope="global")  # 3 minutes - history for document changes as processing occurs
     def get_by_case_document(case_document_id: str):
         """Get processing history by case document."""
         try:
@@ -95,7 +99,7 @@ class ProcessingHistoryService:
             return ProcessingHistorySelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=180, keys=['processing_job_id'])  # 3 minutes - history for job changes as processing occurs
+    @cache_result(timeout=180, keys=['processing_job_id'], namespace=namespace, user_scope="global")  # 3 minutes - history for job changes as processing occurs
     def get_by_processing_job(processing_job_id: str):
         """Get processing history by processing job."""
         try:
@@ -123,6 +127,7 @@ class ProcessingHistoryService:
             return ProcessingHistorySelector.get_none()
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_history_entry(history_id: str) -> bool:
         """
         Delete processing history entry.
@@ -187,6 +192,7 @@ class ProcessingHistoryService:
             return ProcessingHistorySelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get processing history statistics."""
         try:
