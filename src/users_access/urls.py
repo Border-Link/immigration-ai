@@ -1,9 +1,7 @@
 from django.urls import path
 from .views.user_settings.create import UserSettingsToggleAPI, Enable2FAAPIView
 from .views.user_settings.details import UserSettingsListAPIView
-from .views.users.avatar import UserAvatarAPI
 from .views.users.create import UserRegistrationAPI
-from .views.users.names_update import UserNamesUpdateAPI
 from .views.users.password_update import UserPasswordUpdateAPI
 from .views.users.user_account import UserAccountAPI
 from .views.users.login import UserLoginAPIView
@@ -21,7 +19,9 @@ from .views.users.logout import (
 from .views.users.user_status import UserStatusAPI
 from .views.user_profile import (
     UserProfileAPI,
-    UserProfileAvatarAPI
+    UserProfileAvatarAPI,
+    UserAvatarAPI,
+    UserNamesUpdateAPI
 )
 from .views.country import (
     CountryListAPI,
@@ -29,7 +29,6 @@ from .views.country import (
     CountryJurisdictionsAPI,
     CountryWithStatesAPI,
     CountrySearchAPI,
-    CountryCreateAPI,
     CountryUpdateAPI,
     CountryDeleteAPI
 )
@@ -50,13 +49,10 @@ from .views.notification import (
 from .views.admin import (
     UserAdminListAPI,
     UserAdminDetailAPI,
-    UserAdminUpdateAPI,
-    UserAdminDeleteAPI,
     UserAdminActivateAPI,
     UserAdminDeactivateAPI,
     UserProfileAdminListAPI,
     UserProfileAdminDetailAPI,
-    UserProfileAdminUpdateAPI,
     UserSuspendAPI,
     UserUnsuspendAPI,
     UserVerifyAPI,
@@ -67,50 +63,41 @@ from .views.admin import (
     CountrySetJurisdictionAPI,
     StateProvinceActivateAPI,
     NotificationAdminListAPI,
-    NotificationAdminCreateAPI,
     NotificationAdminBulkCreateAPI,
     NotificationAdminDeleteAPI,
     UserStatisticsAPI,
     UserActivityAPI,
 )
 
-app_name = "user_access"
+app_name = "users_access"
 
 urlpatterns = [
-    # User Authentication
-    path("register/", UserRegistrationAPI.as_view(), name="register"),
-    path("login/", UserLoginAPIView.as_view(), name="login"),
-    path("login/verify/<str:endpoint_token>/", TwoFactorVerificationAPIView.as_view(), name='two-factor-verify'),
-    path("resend-token/<str:endpoint_token>/", ResendTwoFactorTokenAPIView.as_view(), name='resent-two-factor-token'),
-    path("logout/", LogoutViewAPI.as_view(), name="logout"),
-    path("logoutall/", LogoutAllViewAPI.as_view(), name="logout-all"),
-    
-    # User Profile
-    path("profile/", UserProfileAPI.as_view(), name="profile"),
-    path("profile/avatar/", UserProfileAvatarAPI.as_view(), name="profile-avatar-delete"),
-    
-    # User Management (Legacy - keeping for backward compatibility)
-    path("change-avatar/", UserAvatarAPI.as_view(), name="change-avatar"),
-    path("change-names/", UserNamesUpdateAPI.as_view(), name="change-names"),
-    path("change-password/", UserPasswordUpdateAPI.as_view(), name="change-password"),
-    path("user-account/", UserAccountAPI.as_view(), name="user-account"),
-    
-    # Password Reset
-    path("forgot-password/", SendForgotPasswordOTPAPIView.as_view(), name="forgot-password"),
-    path("forgot-password/verify/<str:endpoint_token>/", PasswordResetOTPVerificationAPIView.as_view(), name="forgot-password-verify"),
-    path("create-new-password/<str:endpoint_token>/", CreateNewPasswordTokenAPIView.as_view(), name="create-new-password"),
-    
-    # User Status
-    path("whoami/", UserStatusAPI.as_view(), name="user-status"),
-    
-    # User Settings
-    path('<str:setting_name>/create/', UserSettingsToggleAPI.as_view(), name='user_settings_toggle'),
-    path('lists/config/', UserSettingsListAPIView.as_view(), name='config-lists'),
-    path('enable-2fa/', Enable2FAAPIView.as_view(), name='enable-2fa'),
-    
+    # -----------------------------
+    # Canonical API routes (mounted under `/api/` and `/api/v1/auth/`)
+    # -----------------------------
+    # Users
+    path("users/register/", UserRegistrationAPI.as_view(), name="users-register"),
+    path("users/login/", UserLoginAPIView.as_view(), name="users-login"),
+    path("users/login/verify/<str:endpoint_token>/", TwoFactorVerificationAPIView.as_view(), name="users-two-factor-verify"),
+    path("users/login/resend-2fa/<str:endpoint_token>/", ResendTwoFactorTokenAPIView.as_view(), name="users-resend-2fa"),
+    path("users/logout/", LogoutViewAPI.as_view(), name="users-logout"),
+    path("users/logout-all/", LogoutAllViewAPI.as_view(), name="users-logout-all"),
+    path("users/forgot-password/", SendForgotPasswordOTPAPIView.as_view(), name="users-forgot-password"),
+    path("users/forgot-password/verify/<str:endpoint_token>/", PasswordResetOTPVerificationAPIView.as_view(), name="users-forgot-password-verify"),
+    path("users/forgot-password/reset/<str:endpoint_token>/", CreateNewPasswordTokenAPIView.as_view(), name="users-forgot-password-reset"),
+    path("users/account/", UserAccountAPI.as_view(), name="users-account"),
+    path("users/status/", UserStatusAPI.as_view(), name="users-status"),
+    path("users/profile/", UserProfileAPI.as_view(), name="users-profile"),
+    path("users/profile/avatar/", UserProfileAvatarAPI.as_view(), name="users-profile-avatar"),
+    path("users/avatar/", UserAvatarAPI.as_view(), name="users-avatar"),
+    path("users/names/", UserNamesUpdateAPI.as_view(), name="users-names"),
+    path("users/password/update/", UserPasswordUpdateAPI.as_view(), name="users-password-update"),
+    path("users/settings/", UserSettingsListAPIView.as_view(), name="users-settings"),
+    path("users/settings/enable-2fa/", Enable2FAAPIView.as_view(), name="users-enable-2fa"),
+    path("users/settings/<str:setting_name>/", UserSettingsToggleAPI.as_view(), name="users-settings-toggle"),
+
     # Countries
     path("countries/", CountryListAPI.as_view(), name="countries-list"),
-    path("countries/create/", CountryCreateAPI.as_view(), name="countries-create"),
     path("countries/jurisdictions/", CountryJurisdictionsAPI.as_view(), name="countries-jurisdictions"),
     path("countries/with-states/", CountryWithStatesAPI.as_view(), name="countries-with-states"),
     path("countries/search/", CountrySearchAPI.as_view(), name="countries-search"),
@@ -120,7 +107,7 @@ urlpatterns = [
     
     # States/Provinces
     path("states/country/<uuid:country_id>/", StateProvinceListAPI.as_view(), name="states-list"),
-    path("states/create/", StateProvinceCreateAPI.as_view(), name="states-create"),
+    path("states/", StateProvinceCreateAPI.as_view(), name="states-create-compat"),
     path("states/nomination-programs/", StateProvinceNominationProgramsAPI.as_view(), name="states-nomination-programs"),
     path("states/<uuid:id>/", StateProvinceDetailAPI.as_view(), name="state-detail"),
     path("states/<uuid:id>/update/", StateProvinceUpdateAPI.as_view(), name="state-update"),
@@ -138,8 +125,6 @@ urlpatterns = [
     path("admin/users/statistics/", UserStatisticsAPI.as_view(), name="admin-users-statistics"),
     path("admin/users/bulk-operation/", BulkUserOperationAPI.as_view(), name="admin-users-bulk-operation"),
     path("admin/users/<uuid:id>/", UserAdminDetailAPI.as_view(), name="admin-users-detail"),
-    path("admin/users/<uuid:id>/update/", UserAdminUpdateAPI.as_view(), name="admin-users-update"),
-    path("admin/users/<uuid:id>/delete/", UserAdminDeleteAPI.as_view(), name="admin-users-delete"),
     path("admin/users/<uuid:id>/activate/", UserAdminActivateAPI.as_view(), name="admin-users-activate"),
     path("admin/users/<uuid:id>/deactivate/", UserAdminDeactivateAPI.as_view(), name="admin-users-deactivate"),
     path("admin/users/<uuid:id>/suspend/", UserSuspendAPI.as_view(), name="admin-users-suspend"),
@@ -152,7 +137,6 @@ urlpatterns = [
     # User Profile Management
     path("admin/user-profiles/", UserProfileAdminListAPI.as_view(), name="admin-user-profiles-list"),
     path("admin/user-profiles/<uuid:user_id>/", UserProfileAdminDetailAPI.as_view(), name="admin-user-profiles-detail"),
-    path("admin/user-profiles/<uuid:user_id>/update/", UserProfileAdminUpdateAPI.as_view(), name="admin-user-profiles-update"),
     
     # Country Management
     path("admin/countries/<uuid:id>/activate/", CountryActivateAPI.as_view(), name="admin-countries-activate"),
@@ -163,7 +147,6 @@ urlpatterns = [
     
     # Notification Management
     path("admin/notifications/", NotificationAdminListAPI.as_view(), name="admin-notifications-list"),
-    path("admin/notifications/create/", NotificationAdminCreateAPI.as_view(), name="admin-notifications-create"),
     path("admin/notifications/bulk/", NotificationAdminBulkCreateAPI.as_view(), name="admin-notifications-bulk"),
     path("admin/notifications/<uuid:id>/delete/", NotificationAdminDeleteAPI.as_view(), name="admin-notifications-delete"),
 ]
