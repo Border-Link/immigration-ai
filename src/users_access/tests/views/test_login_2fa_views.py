@@ -8,6 +8,7 @@ from rest_framework import status
 from unittest.mock import patch
 from users_access.services.otp_services import OTPService
 
+API_PREFIX = "/api/v1/auth"
 
 @pytest.mark.django_db
 class TestTwoFactorVerificationAPIView:
@@ -21,7 +22,7 @@ class TestTwoFactorVerificationAPIView:
     @pytest.fixture
     def url(self):
         """Fixture for 2FA verification URL."""
-        return "/api/users/login/verify/{endpoint_token}/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/login/verify/{endpoint_token}/"
 
     @patch('users_access.views.users.login_2fa.TOTPAuthenticator')
     @patch('users_access.views.users.login_2fa.UserDeviceSessionService')
@@ -37,7 +38,7 @@ class TestTwoFactorVerificationAPIView:
         
         mock_totp.verify_totp.return_value = True
         
-        url = f"/api/users/login/verify/test_token/"
+        url = f"{API_PREFIX}/users/login/verify/test_token/"
         data = {
             "otp": "123456",
             "is_2fa": True
@@ -47,7 +48,7 @@ class TestTwoFactorVerificationAPIView:
 
     def test_2fa_verification_invalid_otp(self, client):
         """Test invalid OTP verification."""
-        url = "/api/users/login/verify/invalid_token/"
+        url = f"{API_PREFIX}/users/login/verify/invalid_token/"
         data = {
             "otp": "wrong",
             "is_2fa": False
@@ -70,7 +71,7 @@ class TestTwoFactorVerificationAPIView:
         expired_otp.expires_at = timezone.now() - timedelta(minutes=1)
         expired_otp.save()
         
-        url = "/api/users/login/verify/expired_token/"
+        url = f"{API_PREFIX}/users/login/verify/expired_token/"
         data = {
             "otp": "123456",
             "is_2fa": False
@@ -89,7 +90,7 @@ class TestTwoFactorVerificationAPIView:
         # Verify once
         otp_service.verify_otp("123456", "test_token")
         
-        url = "/api/users/login/verify/test_token/"
+        url = f"{API_PREFIX}/users/login/verify/test_token/"
         data = {
             "otp": "123456",
             "is_2fa": False
@@ -99,7 +100,7 @@ class TestTwoFactorVerificationAPIView:
 
     def test_2fa_verification_missing_otp(self, client):
         """Test verification with missing OTP."""
-        url = "/api/users/login/verify/test_token/"
+        url = f"{API_PREFIX}/users/login/verify/test_token/"
         data = {
             "is_2fa": False
         }
@@ -108,7 +109,7 @@ class TestTwoFactorVerificationAPIView:
 
     def test_2fa_verification_empty_otp(self, client):
         """Test verification with empty OTP."""
-        url = "/api/users/login/verify/test_token/"
+        url = f"{API_PREFIX}/users/login/verify/test_token/"
         data = {
             "otp": "",
             "is_2fa": False
@@ -129,7 +130,7 @@ class TestTwoFactorVerificationAPIView:
         
         mock_totp.verify_totp.return_value = False
         
-        url = "/api/users/login/verify/test_token/"
+        url = f"{API_PREFIX}/users/login/verify/test_token/"
         data = {
             "otp": "123456",
             "is_2fa": True
