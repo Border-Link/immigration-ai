@@ -9,7 +9,7 @@ import logging
 
 logger = logging.getLogger('django')
 
-def _users_cache_namespace(*args, **kwargs) -> str:
+def namespace(*args, **kwargs) -> str:
     """
     Single namespace for all User-related cached reads.
     Any write operation must bump this namespace to avoid stale reads.
@@ -20,7 +20,7 @@ def _users_cache_namespace(*args, **kwargs) -> str:
 class UserService:
 
     @staticmethod
-    @invalidate_cache(_users_cache_namespace)
+    @invalidate_cache(namespace)
     def create_user(email, password, first_name=None, last_name=None):
         """
         Create a new user with profile.
@@ -40,7 +40,7 @@ class UserService:
             return None
 
     @staticmethod
-    @invalidate_cache(_users_cache_namespace)
+    @invalidate_cache(namespace)
     def create_superuser(email, password, first_name=None, last_name=None):
         try:
             user = UserRepository.create_superuser(email, password)
@@ -57,7 +57,7 @@ class UserService:
             return None
 
     @staticmethod
-    @invalidate_cache(_users_cache_namespace)
+    @invalidate_cache(namespace)
     def update_user(user, **fields):
         try:
             return UserRepository.update_user(user, **fields)
@@ -120,7 +120,7 @@ class UserService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[], namespace=_users_cache_namespace)  # 5 minutes - user list changes frequently
+    @cache_result(timeout=300, keys=[], namespace=namespace)  # 5 minutes - user list changes frequently
     def get_all():
         try:
             return UserSelector.get_all()
@@ -129,7 +129,7 @@ class UserService:
             return []
 
     @staticmethod
-    @cache_result(timeout=300, keys=['email'], namespace=_users_cache_namespace)  # 5 minutes - cache email existence checks
+    @cache_result(timeout=300, keys=['email'], namespace=namespace)  # 5 minutes - cache email existence checks
     def email_exists(email):
         try:
             return UserSelector.email_exists(email)
@@ -154,7 +154,7 @@ class UserService:
             return None, "Invalid credentials entered."
 
     @staticmethod
-    @cache_result(timeout=600, keys=['email'], namespace=_users_cache_namespace)  # 10 minutes - cache user lookups by email
+    @cache_result(timeout=600, keys=['email'], namespace=namespace)  # 10 minutes - cache user lookups by email
     def get_by_email(email):
         try:
             return UserSelector.get_by_email(email)
@@ -163,7 +163,7 @@ class UserService:
             return None
 
     @staticmethod
-    @cache_result(timeout=600, keys=['user_id'], namespace=_users_cache_namespace)  # 10 minutes - cache user lookups by ID
+    @cache_result(timeout=600, keys=['user_id'], namespace=namespace)  # 10 minutes - cache user lookups by ID
     def get_by_id(user_id):
         """Get user by ID."""
         try:
@@ -173,7 +173,7 @@ class UserService:
             return None
 
     @staticmethod
-    @invalidate_cache(_users_cache_namespace)
+    @invalidate_cache(namespace)
     def update_user_last_assigned_at(user):
         """Update last assigned time for reviewer assignment tracking."""
         try:
@@ -183,7 +183,7 @@ class UserService:
             return None
 
     @staticmethod
-    @invalidate_cache(_users_cache_namespace)
+    @invalidate_cache(namespace)
     def delete_user(user_id: str) -> bool:
         """Delete a user (soft delete by deactivating)."""
         try:
@@ -225,7 +225,7 @@ class UserService:
             return UserSelector.get_none()
 
     @staticmethod
-    @invalidate_cache(_users_cache_namespace)
+    @invalidate_cache(namespace)
     def activate_user_by_id(user_id: str):
         """Activate a user by ID."""
         try:
@@ -239,7 +239,7 @@ class UserService:
             return None
 
     @staticmethod
-    @invalidate_cache(_users_cache_namespace)
+    @invalidate_cache(namespace)
     def deactivate_user_by_id(user_id: str):
         """Deactivate a user by ID."""
         try:
@@ -253,6 +253,7 @@ class UserService:
             return None
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get user statistics."""
         try:
