@@ -1,7 +1,9 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.case_fact_permission import CaseFactPermission
+from main_system.permissions.case_permission import CasePermission
 from immigration_cases.services.case_fact_service import CaseFactService
+from immigration_cases.services.case_service import CaseService
 from immigration_cases.serializers.case_fact.create import CaseFactCreateSerializer
 from immigration_cases.serializers.case_fact.read import CaseFactSerializer
 
@@ -13,6 +15,21 @@ class CaseFactCreateAPI(AuthAPI):
     def post(self, request):
         serializer = CaseFactCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Enforce ownership / access for fact creation (object-level permission requires a case instance).
+        case = CaseService.get_by_id(serializer.validated_data.get('case_id'))
+        if not case:
+            return self.api_response(
+                message="Case not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        if not CasePermission().has_object_permission(request, self, case):
+            return self.api_response(
+                message="You do not have permission to submit facts for this case.",
+                data=None,
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
 
         fact = CaseFactService.create_case_fact(
             case_id=serializer.validated_data.get('case_id'),
