@@ -26,7 +26,8 @@ CURRENCY_LIMITS = {
 class PaymentCreateSerializer(serializers.Serializer):
     """Serializer for creating a payment."""
     
-    case_id = serializers.UUIDField(required=True)
+    case_id = serializers.UUIDField(required=False, allow_null=True)
+    user_id = serializers.UUIDField(required=False, allow_null=True)
     amount = serializers.DecimalField(required=True, max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
     currency = serializers.ChoiceField(
         choices=Payment.SUPPORTED_CURRENCIES,
@@ -48,6 +49,8 @@ class PaymentCreateSerializer(serializers.Serializer):
 
     def validate_case_id(self, value):
         """Validate case exists."""
+        if value is None:
+            return value
         try:
             case = CaseSelector.get_by_id(value)
             if not case:
@@ -55,9 +58,30 @@ class PaymentCreateSerializer(serializers.Serializer):
         except Exception as e:
             raise serializers.ValidationError(f"Case with ID '{value}' not found.")
         return value
+
+    def validate_user_id(self, value):
+        """Validate user exists."""
+        if value is None:
+            return value
+        try:
+            from users_access.selectors.user_selector import UserSelector
+
+            user = UserSelector.get_by_id(value)
+            if not user:
+                raise serializers.ValidationError(f"User with ID '{value}' not found.")
+        except Exception:
+            raise serializers.ValidationError(f"User with ID '{value}' not found.")
+        return value
     
     def validate(self, attrs):
         """Validate payment data including currency-specific amount limits."""
+        case_id = attrs.get("case_id")
+        user_id = attrs.get("user_id")
+        if bool(case_id) == bool(user_id):
+            raise serializers.ValidationError({
+                "non_field_errors": "Exactly one of case_id or user_id is required."
+            })
+
         amount = attrs.get('amount')
         currency = attrs.get('currency', Payment.DEFAULT_CURRENCY)
         
