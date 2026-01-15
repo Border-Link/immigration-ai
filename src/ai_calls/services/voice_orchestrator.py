@@ -5,7 +5,6 @@ from typing import Dict, Any, Optional
 from django.utils import timezone
 from ai_calls.repositories.call_transcript_repository import CallTranscriptRepository
 from ai_calls.selectors.call_session_selector import CallSessionSelector
-from ai_calls.selectors.call_transcript_selector import CallTranscriptSelector
 from ai_calls.services.guardrails_service import GuardrailsService
 from ai_calls.helpers.prompt_governance import compute_prompt_hash
 from ai_calls.helpers.voice_utils import (
