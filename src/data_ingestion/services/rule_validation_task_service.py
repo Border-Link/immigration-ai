@@ -1,16 +1,21 @@
 import logging
 from typing import Optional
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from data_ingestion.models.rule_validation_task import RuleValidationTask
 from data_ingestion.repositories.rule_validation_task_repository import RuleValidationTaskRepository
 from data_ingestion.selectors.rule_validation_task_selector import RuleValidationTaskSelector
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "rule_validation_tasks"
+
 
 class RuleValidationTaskService:
     """Service for RuleValidationTask business logic."""
 
     @staticmethod
+    @cache_result(timeout=120, keys=[], namespace=namespace, user_scope="global")
     def get_all():
         """Get all validation tasks."""
         try:
@@ -20,6 +25,7 @@ class RuleValidationTaskService:
             return RuleValidationTaskSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=120, keys=['status'], namespace=namespace, user_scope="global")
     def get_by_status(status: str):
         """Get validation tasks by status."""
         try:
@@ -29,6 +35,7 @@ class RuleValidationTaskService:
             return RuleValidationTaskSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=120, keys=['reviewer_id'], namespace=namespace, user_scope="global")
     def get_by_reviewer(reviewer_id: str):
         """Get validation tasks assigned to a reviewer."""
         try:
@@ -42,6 +49,7 @@ class RuleValidationTaskService:
             return RuleValidationTaskSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_pending():
         """Get all pending validation tasks."""
         try:
@@ -51,6 +59,7 @@ class RuleValidationTaskService:
             return RuleValidationTaskSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['task_id'], namespace=namespace, user_scope="global")
     def get_by_id(task_id: str) -> Optional[RuleValidationTask]:
         """Get validation task by ID."""
         try:
@@ -63,6 +72,7 @@ class RuleValidationTaskService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda t: t is not None)
     def assign_reviewer(task_id: str, reviewer_id: str) -> Optional[RuleValidationTask]:
         """Assign a reviewer to a validation task."""
         try:
@@ -81,6 +91,7 @@ class RuleValidationTaskService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda t: t is not None)
     def update_task(task_id: str, **fields) -> Optional[RuleValidationTask]:
         """Update validation task fields."""
         try:
@@ -94,6 +105,7 @@ class RuleValidationTaskService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda t: t is not None)
     def approve_task(task_id: str, reviewer_notes: str = None, auto_publish: bool = True) -> Optional[RuleValidationTask]:
         """
         Approve a validation task.
@@ -120,11 +132,9 @@ class RuleValidationTaskService:
             
             # Update parsed rule status to approved
             if updated_task and updated_task.parsed_rule:
-                from data_ingestion.repositories.parsed_rule_repository import ParsedRuleRepository
-                ParsedRuleRepository.update_parsed_rule(
-                    updated_task.parsed_rule,
-                    status='approved'
-                )
+                # Use service to ensure cache invalidation happens.
+                from data_ingestion.services.parsed_rule_service import ParsedRuleService
+                ParsedRuleService.update_status(str(updated_task.parsed_rule.id), status="approved")
             
             # Auto-publish if enabled
             if auto_publish and updated_task:
@@ -159,6 +169,7 @@ class RuleValidationTaskService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda t: t is not None)
     def reject_task(task_id: str, reviewer_notes: str = None) -> Optional[RuleValidationTask]:
         """Reject a validation task."""
         try:
@@ -175,6 +186,7 @@ class RuleValidationTaskService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_validation_task(task_id: str) -> bool:
         """Delete a validation task."""
         try:
@@ -207,6 +219,7 @@ class RuleValidationTaskService:
             return RuleValidationTaskSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=120, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get validation task statistics."""
         try:
