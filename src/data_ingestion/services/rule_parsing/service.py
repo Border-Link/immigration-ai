@@ -10,8 +10,8 @@ import time
 from typing import Dict
 from django.conf import settings
 from django.db import transaction
-from django.core.cache import cache
 from django.utils import timezone
+from main_system.utils.cache_utils import cache_get, cache_set
 
 from data_ingestion.models.document_version import DocumentVersion
 from data_ingestion.repositories.parsed_rule_repository import ParsedRuleRepository
@@ -151,7 +151,7 @@ class RuleParsingService:
             
             # Check cache first
             cache_key = f"llm_parse:{document_version.content_hash}:{jurisdiction}"
-            cached_result = cache.get(cache_key)
+            cached_result = cache_get(cache_key)
             
             if cached_result:
                 logger.info(f"Using cached LLM response for document version {document_version.id}")
@@ -171,7 +171,7 @@ class RuleParsingService:
                 
                 # Cache successful results
                 if ai_result.get('success') and ai_result.get('content'):
-                    cache.set(cache_key, ai_result, LLM_CACHE_TIMEOUT)
+                    cache_set(cache_key, ai_result, timeout=LLM_CACHE_TIMEOUT)
             
             if not ai_result.get('success'):
                 error_msg = ai_result.get('error', 'Unknown error')
