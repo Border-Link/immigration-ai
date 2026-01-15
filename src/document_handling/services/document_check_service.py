@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from document_handling.models.document_check import DocumentCheck
 from document_handling.models.case_document import CaseDocument
 from document_handling.repositories.document_check_repository import DocumentCheckRepository
@@ -9,11 +9,15 @@ from document_handling.selectors.case_document_selector import CaseDocumentSelec
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "document_checks"
+
 
 class DocumentCheckService:
     """Service for DocumentCheck business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda chk: chk is not None)
     def create_document_check(case_document_id: str, check_type: str, result: str,
                              details: dict = None, performed_by: str = None):
         """
@@ -53,7 +57,7 @@ class DocumentCheckService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - document checks change frequently
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")  # 5 minutes - document checks change frequently
     def get_all():
         """Get all document checks."""
         try:
@@ -63,7 +67,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['case_document_id'])  # 5 minutes - cache checks by case document
+    @cache_result(timeout=300, keys=['case_document_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache checks by case document
     def get_by_case_document(case_document_id: str):
         """Get checks by case document."""
         try:
@@ -77,7 +81,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['check_type'])  # 5 minutes - cache checks by type
+    @cache_result(timeout=300, keys=['check_type'], namespace=namespace, user_scope="global")  # 5 minutes - cache checks by type
     def get_by_check_type(check_type: str):
         """Get checks by check type."""
         try:
@@ -87,7 +91,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['result'])  # 5 minutes - cache checks by result
+    @cache_result(timeout=300, keys=['result'], namespace=namespace, user_scope="global")  # 5 minutes - cache checks by result
     def get_by_result(result: str):
         """Get checks by result."""
         try:
@@ -97,7 +101,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['check_id'])  # 10 minutes - cache check by ID
+    @cache_result(timeout=600, keys=['check_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache check by ID
     def get_by_id(check_id: str) -> Optional[DocumentCheck]:
         """Get document check by ID."""
         try:
@@ -110,6 +114,7 @@ class DocumentCheckService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda chk: chk is not None)
     def update_document_check(check_id: str, **fields) -> Optional[DocumentCheck]:
         """
         Update document check.
@@ -143,6 +148,7 @@ class DocumentCheckService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_document_check(check_id: str) -> bool:
         """
         Delete document check.
@@ -208,6 +214,7 @@ class DocumentCheckService:
             return DocumentCheckSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get document check statistics."""
         try:
