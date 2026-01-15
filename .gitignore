@@ -77,6 +77,8 @@ db.sqlite3-journal
 #log files in json should be ignored
 src/logs/*.json
 src/logs/*.json.*
+logs/*.json
+logs/*.json.*
 
 # Flask stuff:
 instance/
