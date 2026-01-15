@@ -11,9 +11,10 @@ class UserSettingRepository:
     def create_user_setting(user):
         """Create user settings for a user."""
         with transaction.atomic():
-            settings = UserSetting.objects.create(user=user)
-            settings.full_clean()
-            settings.save()
+            settings, created = UserSetting.objects.get_or_create(user=user)
+            if created:
+                settings.full_clean()
+                settings.save()
             return settings
 
     @staticmethod
