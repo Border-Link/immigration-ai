@@ -3,10 +3,14 @@ Service for RuleParsingAuditLog business logic.
 """
 import logging
 from typing import Optional
+from main_system.utils.cache_utils import cache_result
 from data_ingestion.models.audit_log import RuleParsingAuditLog
 from data_ingestion.selectors.audit_log_selector import RuleParsingAuditLogSelector
 
 logger = logging.getLogger('django')
+
+def namespace(*args, **kwargs) -> str:
+    return "rule_parsing_audit_logs"
 
 
 class RuleParsingAuditLogService:
@@ -99,6 +103,7 @@ class RuleParsingAuditLogService:
             return RuleParsingAuditLogSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get audit log statistics."""
         try:
