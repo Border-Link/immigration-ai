@@ -7,6 +7,7 @@ According to ROLE_TO_IMPLEMENT.md:
 - Staff: Login, create users
 - Super Admin: Full user management (CRUD users, assign roles)
 """
+from rest_framework.exceptions import NotAuthenticated
 from .base_permissions import BaseModulePermission
 from .role_checker import RoleChecker
 
@@ -34,13 +35,14 @@ class AuthenticationPermission(BaseModulePermission):
         # Password reset is public (no auth required)
         if request.method == 'POST' and 'password' in str(view.__class__).lower() and 'reset' in str(view.__class__).lower():
             return True
-        
-        # User management requires staff or superadmin
-        if 'admin' in str(view.__class__).lower() or 'user' in str(view.__class__).lower():
-            return RoleChecker.is_staff(user)
-        
-        # Default: require authentication
-        return RoleChecker.is_user(user)
+
+        # Everything else requires authentication; unauth should be a 401 (not 403).
+        if not user or not getattr(user, "is_authenticated", False):
+            raise NotAuthenticated()
+
+        # Default: any authenticated user is allowed for "authenticated" endpoints.
+        # Staff-only endpoints should use AdminPermission explicitly.
+        return True
     
     def has_object_permission(self, request, view, obj):
         """Object-level permission: Users can manage their own account."""
