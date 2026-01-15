@@ -33,4 +33,12 @@ show_urls:
 	python manage.py show_urls
 
 test:
-	pytest -vv
+	@echo "Enter the module you want to run (leave empty to run all tests):"; \
+	read module; \
+	if [ -z "$$module" ]; then \
+		pytest -vv; \
+	else \
+		pytest -vv "$$module"; \
+	fi
+
+
