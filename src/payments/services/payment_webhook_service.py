@@ -7,8 +7,7 @@ All webhook business logic must live here - no direct ORM access.
 import logging
 from typing import Optional, Dict, Any
 from django.db import transaction
-from django.core.cache import cache
-from payments.models.payment import Payment
+from main_system.utils.cache_utils import cache_get, cache_set
 from payments.selectors.payment_selector import PaymentSelector
 from payments.selectors.payment_webhook_event_selector import PaymentWebhookEventSelector
 from payments.repositories.payment_webhook_event_repository import PaymentWebhookEventRepository
@@ -228,12 +227,12 @@ class PaymentWebhookService:
             True if rate limit is exceeded, False otherwise
         """
         cache_key = f"webhook_rate_limit:{provider}:{client_ip}"
-        request_count = cache.get(cache_key, 0)
+        request_count = cache_get(cache_key, 0)
         
         if request_count >= max_requests:
             logger.warning(f"Rate limit exceeded for webhook from {client_ip} (provider: {provider})")
             return True
         
         # Increment counter
-        cache.set(cache_key, request_count + 1, timeout=window_seconds)
+        cache_set(cache_key, request_count + 1, timeout=window_seconds)
         return False
