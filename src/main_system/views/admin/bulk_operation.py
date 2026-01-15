@@ -110,10 +110,37 @@ class BaseBulkOperationAPI(AuthAPI):
         
         Default implementation looks for '{entity_name}_ids' field.
         Override if field name differs.
+
+        Compatibility: some existing serializers use legacy field names
+        (e.g. document_ids, version_ids, diff_ids, rule_ids, task_ids).
+        This method supports both patterns to avoid "no-op" bulk operations.
         """
         entity_name = self.get_entity_name().lower().replace(' ', '_')
         field_name = f'{entity_name}_ids'
-        return validated_data.get(field_name, [])
+        if field_name in validated_data:
+            return validated_data.get(field_name, [])
+
+        # Common legacy/specialized field names used across admin serializers
+        for alt in (
+            "entity_ids",
+            "ids",
+            "data_source_ids",
+            "document_ids",
+            "version_ids",
+            "diff_ids",
+            "rule_ids",
+            "task_ids",
+            "document_chunk_ids",
+        ):
+            if alt in validated_data:
+                return validated_data.get(alt, [])
+
+        # Last resort: pick the first *_ids list field
+        for key, value in validated_data.items():
+            if key.endswith("_ids") and isinstance(value, list):
+                return value
+
+        return []
     
     def get_entity_id_field_name(self) -> str:
         """
