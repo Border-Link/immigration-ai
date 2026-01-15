@@ -118,7 +118,7 @@ class VisaRuleVersion(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=Q(effective_to__isnull=True) | Q(effective_to__gte=F('effective_from')),
+                condition=Q(effective_to__isnull=True) | Q(effective_to__gte=F('effective_from')),
                 name='effective_to_after_effective_from'
             ),
         ]
