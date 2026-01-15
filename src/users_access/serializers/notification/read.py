@@ -20,7 +20,19 @@ class NotificationSerializer(serializers.ModelSerializer):
             'metadata',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'notification_type',
+            'title',
+            'message',
+            'priority',
+            'is_read',
+            'read_at',
+            'related_entity_type',
+            'related_entity_id',
+            'metadata',
+            'created_at',
+        )
 
 
 class NotificationListSerializer(serializers.ModelSerializer):
@@ -37,5 +49,13 @@ class NotificationListSerializer(serializers.ModelSerializer):
             'is_read',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'notification_type',
+            'title',
+            'message',
+            'priority',
+            'is_read',
+            'created_at',
+        )
 
