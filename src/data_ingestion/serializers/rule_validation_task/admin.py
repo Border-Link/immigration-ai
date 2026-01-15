@@ -16,6 +16,7 @@ class RuleValidationTaskAdminListQuerySerializer(BaseAdminListQuerySerializer):
 
     def to_internal_value(self, data):
         """Parse string dates to datetime objects and boolean values."""
+        data = data.copy()
         # Parse boolean strings before calling super
         if 'sla_overdue' in data and data.get('sla_overdue') is not None:
             if isinstance(data['sla_overdue'], str):
