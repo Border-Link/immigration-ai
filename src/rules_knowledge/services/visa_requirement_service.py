@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from rules_knowledge.models.visa_requirement import VisaRequirement
 from rules_knowledge.repositories.visa_requirement_repository import VisaRequirementRepository
 from rules_knowledge.selectors.visa_requirement_selector import VisaRequirementSelector
@@ -9,11 +9,15 @@ from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "visa_requirements"
+
 
 class VisaRequirementService:
     """Service for VisaRequirement business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda req: req is not None)
     def create_requirement(rule_version_id: str, requirement_code: str, rule_type: str,
                           description: str, condition_expression: dict, is_mandatory: bool = True):
         """Create a new visa requirement."""
@@ -41,7 +45,7 @@ class VisaRequirementService:
             return None
 
     @staticmethod
-    @cache_result(timeout=600, keys=[])  # 10 minutes - can change when requirements are updated
+    @cache_result(timeout=600, keys=[], namespace=namespace, user_scope="global")  # 10 minutes - can change when requirements are updated
     def get_all():
         """Get all requirements."""
         try:
@@ -51,7 +55,7 @@ class VisaRequirementService:
             return VisaRequirement.objects.none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['rule_version_id'])  # 1 hour - requirements per version change infrequently
+    @cache_result(timeout=3600, keys=['rule_version_id'], namespace=namespace, user_scope="global")  # 1 hour - requirements per version change infrequently
     def get_by_rule_version(rule_version_id: str):
         """Get requirements by rule version."""
         try:
@@ -62,7 +66,7 @@ class VisaRequirementService:
             return VisaRequirement.objects.none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['requirement_id'])  # 1 hour - cache by requirement ID
+    @cache_result(timeout=3600, keys=['requirement_id'], namespace=namespace, user_scope="global")  # 1 hour - cache by requirement ID
     def get_by_id(requirement_id: str) -> Optional[VisaRequirement]:
         """Get requirement by ID."""
         try:
@@ -75,6 +79,7 @@ class VisaRequirementService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda req: req is not None)
     def update_requirement(requirement_id: str, **fields) -> Optional[VisaRequirement]:
         """Update requirement."""
         try:
@@ -103,6 +108,7 @@ class VisaRequirementService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_requirement(requirement_id: str) -> bool:
         """Delete requirement."""
         try:
