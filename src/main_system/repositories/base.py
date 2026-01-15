@@ -4,7 +4,6 @@ Base Repository Mixin
 Common patterns for repository update methods.
 """
 from django.db import transaction
-from django.core.cache import cache
 from typing import Any, Dict, Optional
 
 
@@ -16,7 +15,7 @@ class BaseRepositoryMixin:
     - Transaction wrapping
     - Field iteration and setting
     - full_clean() and save()
-    - Optional cache invalidation
+    - Optional cache invalidation (deprecated: use service-layer namespace invalidation)
     
     Usage:
         class MyRepository(BaseRepositoryMixin):
@@ -60,9 +59,8 @@ class BaseRepositoryMixin:
             model_instance.full_clean()
             model_instance.save()
             
-            # Invalidate cache if keys provided
-            if cache_keys:
-                for cache_key in cache_keys:
-                    cache.delete(cache_key)
+            # Cache invalidation is intentionally handled at the service layer via
+            # `main_system.utils.cache_utils.invalidate_cache(...)` to avoid
+            # scattered key-deletion logic and stale caches.
             
             return model_instance

@@ -12,7 +12,7 @@ import uuid
 from decimal import Decimal
 from typing import Dict, List
 import pytest
-from django.core.cache import cache
+from main_system.utils.cache_utils import cache_clear
 from rest_framework.test import APIClient
 from users_access.services.user_service import UserService
 from data_ingestion.services.data_source_service import DataSourceService
@@ -29,7 +29,7 @@ from data_ingestion.services.rule_parsing.service import RuleParsingService
 @pytest.fixture(autouse=True)
 def _clear_cache():
     """Avoid cross-test cache coupling due to @cache_result usage."""
-    cache.clear()
+    cache_clear()
 
 
 @pytest.fixture

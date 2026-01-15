@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from ai_decisions.models.eligibility_result import EligibilityResult
 from ai_decisions.repositories.eligibility_result_repository import EligibilityResultRepository
 from ai_decisions.selectors.eligibility_result_selector import EligibilityResultSelector
@@ -10,11 +10,15 @@ from rules_knowledge.selectors.visa_rule_version_selector import VisaRuleVersion
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "eligibility_results"
+
 
 class EligibilityResultService:
     """Service for EligibilityResult business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda r: r is not None)
     def create_eligibility_result(case_id: str, visa_type_id: str, rule_version_id: str,
                                  outcome: str, confidence: float = 0.0, reasoning_summary: str = None,
                                  missing_facts: dict = None) -> Optional[EligibilityResult]:
@@ -55,7 +59,7 @@ class EligibilityResultService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - eligibility results change frequently
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")  # 5 minutes - eligibility results change frequently
     def get_all():
         """Get all eligibility results."""
         try:
@@ -65,7 +69,7 @@ class EligibilityResultService:
             return EligibilityResultSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['case_id'])  # 5 minutes - cache results by case
+    @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache results by case
     def get_by_case(case_id: str):
         """Get eligibility results by case."""
         try:
@@ -76,7 +80,7 @@ class EligibilityResultService:
             return EligibilityResultSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['result_id'])  # 10 minutes - cache result by ID
+    @cache_result(timeout=600, keys=['result_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache result by ID
     def get_by_id(result_id: str) -> Optional[EligibilityResult]:
         """Get eligibility result by ID."""
         try:
@@ -89,6 +93,7 @@ class EligibilityResultService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda r: r is not None)
     def update_eligibility_result(result_id: str, **fields) -> Optional[EligibilityResult]:
         """
         Update eligibility result fields.
@@ -119,6 +124,7 @@ class EligibilityResultService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_eligibility_result(result_id: str) -> bool:
         """
         Delete an eligibility result.
@@ -235,6 +241,7 @@ class EligibilityResultService:
             return None, f"Error fetching eligibility results: {str(e)}"
     
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get eligibility result statistics."""
         try:

@@ -9,6 +9,9 @@ from unittest.mock import patch, MagicMock
 from users_access.services.otp_services import OTPService
 
 
+API_PREFIX = "/api/v1/auth"
+
+
 @pytest.mark.django_db
 class TestResendTwoFactorTokenAPIView:
     """Tests for ResendTwoFactorTokenAPIView."""
@@ -21,7 +24,7 @@ class TestResendTwoFactorTokenAPIView:
     @pytest.fixture
     def url(self):
         """Fixture for resend 2FA URL."""
-        return "/api/users/login/resend-2fa/{endpoint_token}/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/login/resend-2fa/{endpoint_token}/"
 
     @patch('users_access.views.users.resend_2fa.send_otp_email_task')
     def test_resend_2fa_success(self, mock_email_task, client, otp_service, test_user):
@@ -32,12 +35,12 @@ class TestResendTwoFactorTokenAPIView:
             endpoint_token="test_token",
             otp_type="login"
         )
-        url = f"/api/users/login/resend-2fa/test_token/"
+        url = f"{API_PREFIX}/users/login/resend-2fa/test_token/"
         response = client.post(url, {}, format='json')
         assert response.status_code == status.HTTP_200_OK
 
     def test_resend_2fa_invalid_token(self, client):
         """Test resend 2FA with invalid token."""
-        url = "/api/users/login/resend-2fa/invalid_token/"
+        url = f"{API_PREFIX}/users/login/resend-2fa/invalid_token/"
         response = client.post(url, {}, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST

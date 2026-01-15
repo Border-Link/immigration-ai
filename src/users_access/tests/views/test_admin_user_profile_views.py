@@ -8,6 +8,8 @@ from rest_framework import status
 from users_access.services.user_profile_service import UserProfileService
 
 
+API_PREFIX = "/api/v1/auth"
+
 @pytest.mark.django_db
 class TestUserProfileAdminListAPI:
     """Tests for UserProfileAdminListAPI."""
@@ -20,7 +22,7 @@ class TestUserProfileAdminListAPI:
     @pytest.fixture
     def url(self):
         """Fixture for admin profiles list URL."""
-        return "/api/admin/user-profiles/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/admin/user-profiles/"
 
     def test_list_profiles_as_admin(self, client, url, admin_user, user_profile_service, test_user):
         """Test listing profiles as admin."""
@@ -49,7 +51,7 @@ class TestUserProfileAdminDetailAPI:
     def test_get_profile_detail(self, client, admin_user, test_user):
         """Test getting profile detail."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/user-profiles/{test_user.id}/"
+        url = f"{API_PREFIX}/admin/user-profiles/{test_user.id}/"
         response = client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
@@ -66,7 +68,7 @@ class TestUserProfileAdminUpdateAPI:
     def test_update_profile(self, client, admin_user, test_user):
         """Test updating profile."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/admin/user-profiles/{test_user.id}/"
+        url = f"{API_PREFIX}/admin/user-profiles/{test_user.id}/"
         data = {
             "first_name": "Jane",
             "last_name": "Smith"

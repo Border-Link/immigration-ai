@@ -39,8 +39,14 @@ class BaseAPI(GenericAPIView):
         - Server errors (500): Hide internal details in production, log fully
         """
         from rest_framework.views import exception_handler
-        from rest_framework.exceptions import APIException
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        from django.core.exceptions import ValidationError as DjangoValidationError
         
+        # Normalize Django ValidationError -> DRF ValidationError (so API clients get 400, not 500).
+        if isinstance(exc, DjangoValidationError):
+            detail = getattr(exc, "message_dict", None) or getattr(exc, "messages", None) or str(exc)
+            exc = DRFValidationError(detail)
+
         # Let DRF handle known exceptions (validation, authentication, etc.)
         response = exception_handler(exc, self)
         

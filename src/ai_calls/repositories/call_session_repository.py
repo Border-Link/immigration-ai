@@ -2,7 +2,6 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from django.core.cache import cache
 from ai_calls.models.call_session import CallSession
 from ai_calls.helpers.state_machine_validator import CallSessionStateValidator
 
@@ -23,11 +22,6 @@ class CallSessionRepository:
             )
             call_session.full_clean()
             call_session.save()
-            
-            # Invalidate cache
-            cache.delete(f"call_session:case:{case.id}:active")
-            cache.delete(f"call_sessions:user:{user.id}")
-            
             return call_session
 
     @staticmethod
@@ -70,12 +64,6 @@ class CallSessionRepository:
             
             call_session.full_clean()
             call_session.save()
-            
-            # Invalidate cache
-            cache.delete(f"call_session:{call_session.id}")
-            cache.delete(f"call_session:case:{call_session.case.id}:active")
-            cache.delete(f"call_sessions:user:{call_session.user.id}")
-            
             return call_session
 
     @staticmethod
@@ -97,12 +85,6 @@ class CallSessionRepository:
             call_session.refresh_from_db()
             call_session.full_clean()
             call_session.save()
-            
-            # Invalidate cache
-            cache.delete(f"call_session:{call_session.id}")
-            cache.delete(f"call_session:case:{call_session.case.id}:active")
-            cache.delete(f"call_sessions:user:{call_session.user.id}")
-            
             return call_session
 
     @staticmethod

@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from ai_decisions.models.ai_citation import AICitation
 from ai_decisions.repositories.ai_citation_repository import AICitationRepository
 from ai_decisions.selectors.ai_citation_selector import AICitationSelector
@@ -9,11 +9,15 @@ from data_ingestion.selectors.document_version_selector import DocumentVersionSe
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "ai_citations"
+
 
 class AICitationService:
     """Service for AICitation business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda c: c is not None)
     def create_citation(reasoning_log_id: str, document_version_id: str, excerpt: str,
                        relevance_score: float = None) -> Optional[AICitation]:
         """Create a new AI citation."""
@@ -32,7 +36,7 @@ class AICitationService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - citations change when new reasoning occurs
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")  # 5 minutes - citations change when new reasoning occurs
     def get_all():
         """Get all AI citations."""
         try:
@@ -42,7 +46,7 @@ class AICitationService:
             return AICitationSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['reasoning_log_id'])  # 5 minutes - cache citations by reasoning log
+    @cache_result(timeout=300, keys=['reasoning_log_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache citations by reasoning log
     def get_by_reasoning_log(reasoning_log_id: str):
         """Get citations by reasoning log."""
         try:
@@ -53,7 +57,7 @@ class AICitationService:
             return AICitationSelector.get_none()
     
     @staticmethod
-    @cache_result(timeout=300, keys=['document_version_id'])  # 5 minutes - cache citations by document version
+    @cache_result(timeout=300, keys=['document_version_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache citations by document version
     def get_by_document_version(document_version_id: str):
         """Get citations by document version."""
         try:
@@ -64,7 +68,7 @@ class AICitationService:
             return AICitationSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['citation_id'])  # 10 minutes - cache citation by ID
+    @cache_result(timeout=600, keys=['citation_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache citation by ID
     def get_by_id(citation_id: str) -> Optional[AICitation]:
         """Get citation by ID."""
         try:
@@ -77,6 +81,7 @@ class AICitationService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda c: c is not None)
     def update_citation(citation_id: str, **fields) -> Optional[AICitation]:
         """Update citation fields."""
         try:
@@ -90,6 +95,7 @@ class AICitationService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_citation(citation_id: str) -> bool:
         """Delete an AI citation."""
         try:
@@ -167,6 +173,7 @@ class AICitationService:
         }
     
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get AI citation statistics."""
         try:

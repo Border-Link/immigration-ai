@@ -22,9 +22,7 @@ class CaseFactSerializer(serializers.ModelSerializer):
             'fact_value',
             'source',
             'created_at',
-            'updated_at',
         ]
-        read_only_fields = '__all__'
 
 
 class CaseFactListSerializer(serializers.ModelSerializer):
@@ -40,4 +38,3 @@ class CaseFactListSerializer(serializers.ModelSerializer):
             'source',
             'created_at',
         ]
-        read_only_fields = '__all__'

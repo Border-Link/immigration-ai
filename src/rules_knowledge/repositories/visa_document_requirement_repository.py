@@ -1,5 +1,4 @@
 from django.db import transaction
-from django.core.cache import cache
 from rules_knowledge.models.visa_document_requirement import VisaDocumentRequirement
 from rules_knowledge.models.visa_rule_version import VisaRuleVersion
 from rules_knowledge.models.document_type import DocumentType
@@ -21,17 +20,6 @@ class VisaDocumentRequirementRepository:
             )
             doc_requirement.full_clean()
             doc_requirement.save()
-            
-            # Invalidate cache (try pattern deletion if available, otherwise delete specific keys)
-            try:
-                if hasattr(cache, 'delete_pattern'):
-                    cache.delete_pattern("visa_document_requirement:*")
-            except AttributeError:
-                pass
-            # Delete specific known cache keys
-            cache.delete(f"visa_document_requirement:{doc_requirement.id}")
-            cache.delete(f"visa_document_requirement:rule_version:{rule_version.id}")
-            
             return doc_requirement
 
     @staticmethod
@@ -43,12 +31,6 @@ class VisaDocumentRequirementRepository:
                     setattr(doc_requirement, key, value)
             doc_requirement.full_clean()
             doc_requirement.save()
-            
-            # Invalidate cache
-            cache.delete_pattern("visa_document_requirement:*")
-            cache.delete(f"visa_document_requirement:{doc_requirement.id}")
-            cache.delete(f"visa_document_requirement:rule_version:{doc_requirement.rule_version.id}")
-            
             return doc_requirement
 
     @staticmethod
@@ -60,9 +42,3 @@ class VisaDocumentRequirementRepository:
             rule_version_id = doc_requirement.rule_version.id
             
             doc_requirement.delete()
-            
-            # Invalidate cache
-            cache.delete_pattern("visa_document_requirement:*")
-            cache.delete(f"visa_document_requirement:{doc_requirement_id}")
-            cache.delete(f"visa_document_requirement:rule_version:{rule_version_id}")
-

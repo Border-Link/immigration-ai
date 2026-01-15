@@ -7,7 +7,6 @@ All database write operations must live here.
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
-from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from payments.models.payment import Payment
 from payments.helpers.status_validator import PaymentStatusTransitionValidator
@@ -55,6 +54,7 @@ class PaymentRepository:
         
         with transaction.atomic():
             payment = Payment.objects.create(
+                user=case.user,
                 case=case,
                 amount=amount,
                 currency=currency,
@@ -64,13 +64,36 @@ class PaymentRepository:
             )
             payment.full_clean()
             payment.save()
-            
-            # Invalidate cache
-            cache.delete(f"payment:{payment.id}")
-            cache.delete(f"payments:case:{case.id}")
-            cache.delete("payments:all")
-            cache.delete(f"payments:status:{status}")
-            
+            return payment
+
+    @staticmethod
+    def create_user_payment(
+        user,
+        amount,
+        currency: str = Payment.DEFAULT_CURRENCY,
+        status: str = 'pending',
+        payment_provider: str = None,
+        provider_transaction_id: str = None,
+    ) -> Payment:
+        """
+        Create a pre-case payment for a user (case is nullable).
+        """
+        # Validate currency
+        if currency not in [code for code, _ in Payment.SUPPORTED_CURRENCIES]:
+            currency = Payment.DEFAULT_CURRENCY
+
+        with transaction.atomic():
+            payment = Payment.objects.create(
+                user=user,
+                case=None,
+                amount=amount,
+                currency=currency,
+                status=status,
+                payment_provider=payment_provider,
+                provider_transaction_id=provider_transaction_id,
+            )
+            payment.full_clean()
+            payment.save()
             return payment
 
     @staticmethod
@@ -118,15 +141,6 @@ class PaymentRepository:
             
             payment.full_clean()
             payment.save()
-            
-            # Invalidate cache
-            cache.delete(f"payment:{payment.id}")
-            cache.delete(f"payments:case:{payment.case.id}")
-            cache.delete("payments:all")
-            cache.delete(f"payments:status:{payment.status}")
-            if payment.provider_transaction_id:
-                cache.delete(f"payments:transaction:{payment.provider_transaction_id}")
-            
             return payment
 
     @staticmethod
@@ -140,19 +154,11 @@ class PaymentRepository:
         with transaction.atomic():
             # Store values before deletion for cache invalidation
             payment_id = payment.id
-            case_id = payment.case.id
+            case_id = payment.case.id if payment.case_id else None
             status = payment.status
             transaction_id = payment.provider_transaction_id
             
             payment.delete()
-            
-            # Invalidate cache
-            cache.delete(f"payment:{payment_id}")
-            cache.delete(f"payments:case:{case_id}")
-            cache.delete("payments:all")
-            cache.delete(f"payments:status:{status}")
-            if transaction_id:
-                cache.delete(f"payments:transaction:{transaction_id}")
     
     @staticmethod
     def soft_delete_payment(payment: Payment, deleted_by=None) -> Payment:
@@ -167,22 +173,14 @@ class PaymentRepository:
             Soft-deleted Payment instance
         """
         with transaction.atomic():
-            payment.is_deleted = True
-            payment.deleted_at = timezone.now()
-            # Increment version
-            Payment.objects.filter(id=payment.id).update(version=F('version') + 1)
+            # IMPORTANT: persist is_deleted/deleted_at in the DB before refreshing,
+            # otherwise refresh_from_db() will overwrite in-memory changes.
+            Payment.objects.filter(id=payment.id).update(
+                is_deleted=True,
+                deleted_at=timezone.now(),
+                version=F('version') + 1,
+            )
             payment.refresh_from_db()
-            payment.full_clean()
-            payment.save()
-            
-            # Invalidate cache
-            cache.delete(f"payment:{payment.id}")
-            cache.delete(f"payments:case:{payment.case.id}")
-            cache.delete("payments:all")
-            cache.delete(f"payments:status:{payment.status}")
-            if payment.provider_transaction_id:
-                cache.delete(f"payments:transaction:{payment.provider_transaction_id}")
-            
             return payment
     
     @staticmethod
@@ -198,18 +196,10 @@ class PaymentRepository:
             Restored Payment instance
         """
         with transaction.atomic():
-            payment.is_deleted = False
-            payment.deleted_at = None
-            # Increment version
-            Payment.objects.filter(id=payment.id).update(version=F('version') + 1)
+            Payment.objects.filter(id=payment.id).update(
+                is_deleted=False,
+                deleted_at=None,
+                version=F('version') + 1,
+            )
             payment.refresh_from_db()
-            payment.full_clean()
-            payment.save()
-            
-            # Invalidate cache
-            cache.delete(f"payment:{payment.id}")
-            cache.delete(f"payments:case:{payment.case.id}")
-            cache.delete("payments:all")
-            cache.delete(f"payments:status:{payment.status}")
-            
             return payment

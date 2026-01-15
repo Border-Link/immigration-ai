@@ -36,6 +36,8 @@ class CaseAdminListQuerySerializer(BaseAdminListQuerySerializer):
     
     def to_internal_value(self, data):
         """Parse date strings to datetime objects."""
+        if hasattr(data, "copy"):
+            data = data.copy()
         # Parse updated_date fields
         self.parse_datetime_string(data, 'updated_date_from')
         self.parse_datetime_string(data, 'updated_date_to')
@@ -62,6 +64,8 @@ class CaseAdminStatisticsQuerySerializer(serializers.Serializer):
     
     def to_internal_value(self, data):
         """Parse date strings to datetime objects."""
+        if hasattr(data, "copy"):
+            data = data.copy()
         if 'date_from' in data and isinstance(data['date_from'], str):
             data['date_from'] = parse_datetime(data['date_from'])
         if 'date_to' in data and isinstance(data['date_to'], str):

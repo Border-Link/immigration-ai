@@ -31,7 +31,6 @@ class CaseSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = '__all__'
 
 
 class CaseListSerializer(serializers.ModelSerializer):
@@ -48,4 +47,3 @@ class CaseListSerializer(serializers.ModelSerializer):
             'status',
             'created_at',
         ]
-        read_only_fields = '__all__'

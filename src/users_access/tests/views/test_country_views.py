@@ -7,6 +7,8 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from users_access.services.country_service import CountryService
 
+API_PREFIX = "/api/v1/auth"
+
 
 @pytest.mark.django_db
 class TestCountryCreateAPI:
@@ -20,7 +22,7 @@ class TestCountryCreateAPI:
     @pytest.fixture
     def url(self):
         """Fixture for country create URL."""
-        return "/api/countries/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/countries/"
 
     def test_create_country_as_admin(self, client, url, admin_user):
         """Test creating country as admin."""
@@ -65,7 +67,7 @@ class TestCountryListAPI:
     @pytest.fixture
     def url(self):
         """Fixture for country list URL."""
-        return "/api/countries/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/countries/"
 
     def test_list_countries(self, client, url, test_user):
         """Test listing countries."""
@@ -91,7 +93,7 @@ class TestCountryDetailAPI:
     def test_get_country(self, client, test_user, test_country):
         """Test getting a country."""
         client.force_authenticate(user=test_user)
-        url = f"/api/countries/{test_country.id}/"
+        url = f"{API_PREFIX}/countries/{test_country.id}/"
         response = client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
@@ -99,7 +101,7 @@ class TestCountryDetailAPI:
         """Test getting non-existent country."""
         from uuid import uuid4
         client.force_authenticate(user=test_user)
-        url = f"/api/countries/{uuid4()}/"
+        url = f"{API_PREFIX}/countries/{uuid4()}/"
         response = client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -116,7 +118,7 @@ class TestCountryJurisdictionsAPI:
     @pytest.fixture
     def url(self):
         """Fixture for jurisdictions URL."""
-        return "/api/countries/jurisdictions/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/countries/jurisdictions/"
 
     def test_get_jurisdictions(self, client, url, test_user, country_service):
         """Test getting jurisdictions."""
@@ -138,7 +140,7 @@ class TestCountrySearchAPI:
     @pytest.fixture
     def url(self):
         """Fixture for search URL."""
-        return "/api/countries/search/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/countries/search/"
 
     def test_search_countries(self, client, url, test_user, country_service):
         """Test searching countries."""
@@ -166,7 +168,7 @@ class TestCountryUpdateAPI:
     def test_update_country_as_admin(self, client, admin_user, test_country):
         """Test updating country as admin."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/countries/{test_country.id}/update/"
+        url = f"{API_PREFIX}/countries/{test_country.id}/update/"
         data = {"name": "Updated Country Name"}
         response = client.patch(url, data, format='json')
         assert response.status_code == status.HTTP_200_OK
@@ -174,7 +176,7 @@ class TestCountryUpdateAPI:
     def test_update_country_requires_admin(self, client, test_user, test_country):
         """Test updating country requires admin permission."""
         client.force_authenticate(user=test_user)
-        url = f"/api/countries/{test_country.id}/update/"
+        url = f"{API_PREFIX}/countries/{test_country.id}/update/"
         data = {"name": "Updated Country Name"}
         response = client.patch(url, data, format='json')
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -183,7 +185,7 @@ class TestCountryUpdateAPI:
         """Test updating non-existent country."""
         from uuid import uuid4
         client.force_authenticate(user=admin_user)
-        url = f"/api/countries/{uuid4()}/update/"
+        url = f"{API_PREFIX}/countries/{uuid4()}/update/"
         data = {"name": "Updated Country Name"}
         response = client.patch(url, data, format='json')
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -191,7 +193,7 @@ class TestCountryUpdateAPI:
     def test_update_country_invalid_data(self, client, admin_user, test_country):
         """Test updating country with invalid data."""
         client.force_authenticate(user=admin_user)
-        url = f"/api/countries/{test_country.id}/update/"
+        url = f"{API_PREFIX}/countries/{test_country.id}/update/"
         data = {"code": ""}  # Invalid empty code
         response = client.patch(url, data, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -210,14 +212,14 @@ class TestCountryDeleteAPI:
         """Test deleting country as admin."""
         country = country_service.create_country(code="US", name="United States")
         client.force_authenticate(user=admin_user)
-        url = f"/api/countries/{country.id}/delete/"
+        url = f"{API_PREFIX}/countries/{country.id}/delete/"
         response = client.delete(url)
         assert response.status_code == status.HTTP_200_OK
 
     def test_delete_country_requires_admin(self, client, test_user, test_country):
         """Test deleting country requires admin permission."""
         client.force_authenticate(user=test_user)
-        url = f"/api/countries/{test_country.id}/delete/"
+        url = f"{API_PREFIX}/countries/{test_country.id}/delete/"
         response = client.delete(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -225,6 +227,6 @@ class TestCountryDeleteAPI:
         """Test deleting non-existent country."""
         from uuid import uuid4
         client.force_authenticate(user=admin_user)
-        url = f"/api/countries/{uuid4()}/delete/"
+        url = f"{API_PREFIX}/countries/{uuid4()}/delete/"
         response = client.delete(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

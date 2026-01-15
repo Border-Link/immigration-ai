@@ -28,7 +28,6 @@ class CaseStatusHistorySerializer(serializers.ModelSerializer):
             'metadata',
             'created_at',
         ]
-        read_only_fields = '__all__'
 
 
 class CaseStatusHistoryListSerializer(serializers.ModelSerializer):
@@ -48,4 +47,3 @@ class CaseStatusHistoryListSerializer(serializers.ModelSerializer):
             'reason',
             'created_at',
         ]
-        read_only_fields = '__all__'

@@ -3,17 +3,22 @@ Service for DocumentChunk business logic.
 """
 import logging
 from typing import Optional
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from data_ingestion.models.document_chunk import DocumentChunk
 from data_ingestion.selectors.document_chunk_selector import DocumentChunkSelector
 from data_ingestion.repositories.document_chunk_repository import DocumentChunkRepository
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "document_chunks"
+
 
 class DocumentChunkService:
     """Service for DocumentChunk business logic."""
 
     @staticmethod
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")
     def get_all():
         """Get all document chunks."""
         try:
@@ -23,6 +28,7 @@ class DocumentChunkService:
             return DocumentChunkSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=['document_version_id'], namespace=namespace, user_scope="global")
     def get_by_document_version(document_version_id: str):
         """Get document chunks by document version ID."""
         try:
@@ -32,6 +38,7 @@ class DocumentChunkService:
             return DocumentChunkSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=600, keys=['chunk_id'], namespace=namespace, user_scope="global")
     def get_by_id(chunk_id: str) -> Optional[DocumentChunk]:
         """Get document chunk by ID."""
         try:
@@ -44,6 +51,7 @@ class DocumentChunkService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_document_chunk(chunk_id: str) -> bool:
         """Delete a document chunk."""
         try:
@@ -58,6 +66,7 @@ class DocumentChunkService:
             return False
 
     @staticmethod
+    @cache_result(timeout=300, keys=['document_version_id', 'has_embedding'], namespace=namespace, user_scope="global")
     def get_by_filters(document_version_id: str = None, has_embedding: bool = None):
         """Get document chunks with filters."""
         try:
@@ -70,6 +79,7 @@ class DocumentChunkService:
             return DocumentChunkSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get document chunk statistics."""
         try:
@@ -79,6 +89,7 @@ class DocumentChunkService:
             return {}
     
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def regenerate_embedding(chunk_id: str, model: str = "text-embedding-ada-002") -> bool:
         """
         Regenerate embedding for a document chunk.

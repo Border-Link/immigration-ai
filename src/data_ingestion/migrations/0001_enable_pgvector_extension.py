@@ -3,6 +3,24 @@
 from django.db import migrations
 
 
+def enable_pgvector(apps, schema_editor):
+    """
+    Enable pgvector extension in PostgreSQL.
+
+    SQLite (used in many test environments) does not support extensions; this is a no-op there.
+    """
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    schema_editor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+
+
+def disable_pgvector(apps, schema_editor):
+    """Reverse of enable_pgvector (PostgreSQL only)."""
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    schema_editor.execute("DROP EXTENSION IF EXISTS vector;")
+
+
 class Migration(migrations.Migration):
     """
     Enable pgvector extension in PostgreSQL.
@@ -17,9 +35,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql="CREATE EXTENSION IF NOT EXISTS vector;",
-            reverse_sql="DROP EXTENSION IF EXISTS vector;"
-        ),
+        migrations.RunPython(enable_pgvector, reverse_code=disable_pgvector),
     ]
 

@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from document_handling.models.case_document import CaseDocument
 from document_handling.repositories.case_document_repository import CaseDocumentRepository
 from document_handling.selectors.case_document_selector import CaseDocumentSelector
@@ -10,11 +10,15 @@ from rules_knowledge.selectors.document_type_selector import DocumentTypeSelecto
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "case_documents"
+
 
 class CaseDocumentService:
     """Service for CaseDocument business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda doc: doc is not None)
     def create_case_document(case_id: str, document_type_id: str, file_path: str,
                             file_name: str, file_size: int = None, mime_type: str = None,
                             status: str = 'uploaded'):
@@ -59,7 +63,7 @@ class CaseDocumentService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - document list changes frequently
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")  # 5 minutes - document list changes frequently
     def get_all():
         """Get all case documents."""
         try:
@@ -69,7 +73,7 @@ class CaseDocumentService:
             return CaseDocumentSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['case_id'])  # 5 minutes - cache documents by case
+    @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache documents by case
     def get_by_case(case_id: str):
         """Get documents by case."""
         try:
@@ -83,7 +87,7 @@ class CaseDocumentService:
             return CaseDocumentSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['status'])  # 5 minutes - cache documents by status
+    @cache_result(timeout=300, keys=['status'], namespace=namespace, user_scope="global")  # 5 minutes - cache documents by status
     def get_by_status(status: str):
         """Get documents by status."""
         try:
@@ -93,7 +97,7 @@ class CaseDocumentService:
             return CaseDocumentSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['document_type_id'])  # 5 minutes - cache documents by type
+    @cache_result(timeout=300, keys=['document_type_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache documents by type
     def get_by_document_type(document_type_id: str):
         """Get documents by document type."""
         try:
@@ -103,7 +107,7 @@ class CaseDocumentService:
             return CaseDocumentSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['document_id'])  # 10 minutes - cache document by ID
+    @cache_result(timeout=600, keys=['document_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache document by ID
     def get_by_id(document_id: str) -> Optional[CaseDocument]:
         """Get case document by ID."""
         try:
@@ -116,6 +120,7 @@ class CaseDocumentService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda doc: doc is not None)
     def update_case_document(document_id: str, **fields) -> Optional[CaseDocument]:
         """
         Update case document.
@@ -156,6 +161,7 @@ class CaseDocumentService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda doc: doc is not None)
     def update_status(document_id: str, status: str) -> Optional[CaseDocument]:
         """
         Update document status.
@@ -191,6 +197,7 @@ class CaseDocumentService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_case_document(document_id: str) -> bool:
         """
         Delete case document and its stored file.
@@ -283,6 +290,7 @@ class CaseDocumentService:
             return CaseDocumentSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get case document statistics."""
         try:

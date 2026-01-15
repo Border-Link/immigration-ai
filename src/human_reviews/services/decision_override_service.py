@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 from django.db import transaction
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from human_reviews.models.decision_override import DecisionOverride
 from human_reviews.repositories.decision_override_repository import DecisionOverrideRepository
 from human_reviews.selectors.decision_override_selector import DecisionOverrideSelector
@@ -15,11 +15,15 @@ from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "decision_overrides"
+
 
 class DecisionOverrideService:
     """Service for DecisionOverride business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda o: o is not None)
     def create_decision_override(case_id: str, original_result_id: str, overridden_outcome: str,
                                reason: str, reviewer_id: str = None, review_id: str = None) -> Optional[DecisionOverride]:
         """
@@ -128,7 +132,7 @@ class DecisionOverrideService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=[])  # 5 minutes - overrides change when reviewers make decisions
+    @cache_result(timeout=300, keys=[], namespace=namespace, user_scope="global")  # 5 minutes - overrides change when reviewers make decisions
     def get_all():
         """Get all decision overrides."""
         try:
@@ -138,7 +142,7 @@ class DecisionOverrideService:
             return DecisionOverride.objects.none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['case_id'])  # 5 minutes - cache overrides by case
+    @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache overrides by case
     def get_by_case(case_id: str):
         """Get overrides by case."""
         try:
@@ -149,7 +153,7 @@ class DecisionOverrideService:
             return DecisionOverride.objects.none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['original_result_id'])  # 5 minutes - cache overrides by result
+    @cache_result(timeout=300, keys=['original_result_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache overrides by result
     def get_by_original_result(original_result_id: str):
         """Get overrides by original eligibility result."""
         try:
@@ -160,7 +164,7 @@ class DecisionOverrideService:
             return DecisionOverride.objects.none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['original_result_id'])  # 5 minutes - cache latest override by result
+    @cache_result(timeout=300, keys=['original_result_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache latest override by result
     def get_latest_by_original_result(original_result_id: str) -> Optional[DecisionOverride]:
         """Get latest override for an eligibility result."""
         try:
@@ -174,7 +178,7 @@ class DecisionOverrideService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=['reviewer_id'])  # 5 minutes - cache overrides by reviewer
+    @cache_result(timeout=300, keys=['reviewer_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache overrides by reviewer
     def get_by_reviewer(reviewer_id: str):
         """Get overrides by reviewer."""
         try:
@@ -186,7 +190,7 @@ class DecisionOverrideService:
             return DecisionOverride.objects.none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['override_id'])  # 10 minutes - cache override by ID
+    @cache_result(timeout=600, keys=['override_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache override by ID
     def get_by_id(override_id: str) -> Optional[DecisionOverride]:
         """Get decision override by ID."""
         try:
@@ -199,6 +203,7 @@ class DecisionOverrideService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda o: o is not None)
     def update_decision_override(override_id: str, **fields) -> Optional[DecisionOverride]:
         """
         Update decision override fields.
@@ -232,6 +237,7 @@ class DecisionOverrideService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_decision_override(override_id: str) -> bool:
         """
         Delete a decision override.

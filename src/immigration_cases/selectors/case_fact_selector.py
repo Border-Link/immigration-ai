@@ -1,4 +1,3 @@
-from django.core.cache import cache
 from immigration_cases.models.case_fact import CaseFact
 from immigration_cases.models.case import Case
 
@@ -9,35 +8,15 @@ class CaseFactSelector:
     @staticmethod
     def get_all(use_cache: bool = False):
         """Get all case facts."""
-        if use_cache:
-            cache_key = "case_facts:all"
-            cached = cache.get(cache_key)
-            if cached:
-                return cached
-        
         queryset = CaseFact.objects.select_related('case', 'case__user').all().order_by('-created_at')
-        
-        if use_cache:
-            cache.set(cache_key, queryset, timeout=300)  # 5 minutes
-        
         return queryset
 
     @staticmethod
     def get_by_case(case: Case, use_cache: bool = True):
         """Get facts by case."""
-        if use_cache:
-            cache_key = f"case_facts:case:{case.id}"
-            cached = cache.get(cache_key)
-            if cached:
-                return cached
-        
         queryset = CaseFact.objects.select_related('case', 'case__user').filter(
             case=case
         ).order_by('-created_at')
-        
-        if use_cache:
-            cache.set(cache_key, queryset, timeout=600)  # 10 minutes
-        
         return queryset
 
     @staticmethod

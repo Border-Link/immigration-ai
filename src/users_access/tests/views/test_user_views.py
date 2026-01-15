@@ -9,6 +9,9 @@ from unittest.mock import patch, MagicMock
 from users_access.services.user_service import UserService
 
 
+API_PREFIX = "/api/v1/auth"
+
+
 @pytest.mark.django_db
 class TestUserRegistrationAPI:
     """Tests for UserRegistrationAPI."""
@@ -21,7 +24,7 @@ class TestUserRegistrationAPI:
     @pytest.fixture
     def url(self):
         """Fixture for registration URL."""
-        return "/api/users/register/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/register/"
 
     @patch('users_access.views.users.create.OTPService')
     @patch('users_access.views.users.create.OTPBaseHandler')
@@ -85,7 +88,7 @@ class TestUserLoginAPI:
     @pytest.fixture
     def url(self):
         """Fixture for login URL."""
-        return "/api/users/login/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/login/"
 
     @patch('users_access.views.users.login.OTPBaseHandler')
     @patch('users_access.views.users.login.UserDeviceSessionService')
@@ -124,7 +127,7 @@ class TestUserAccountAPI:
     @pytest.fixture
     def url(self):
         """Fixture for account URL."""
-        return "/api/users/account/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/account/"
 
     def test_get_user_account(self, client, url, test_user):
         """Test getting user account."""
@@ -152,7 +155,7 @@ class TestUserAccountAPI:
             "first_name": "John",
             "last_name": "Doe"
         }
-        response = client.post("/api/users/register/", data, format='json')
+        response = client.post(f"{API_PREFIX}/users/register/", data, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @patch('users_access.views.users.create.OTPService')
@@ -169,7 +172,7 @@ class TestUserAccountAPI:
             "first_name": "John",
             "last_name": "Doe"
         }
-        response = client.post("/api/users/register/", data, format='json')
+        response = client.post(f"{API_PREFIX}/users/register/", data, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_login_unverified_user(self, client, url, user_service):
@@ -179,7 +182,7 @@ class TestUserAccountAPI:
             "email": "unverified@example.com",
             "password": "testpass123"
         }
-        response = client.post("/api/users/login/", data, format='json')
+        response = client.post(f"{API_PREFIX}/users/login/", data, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_login_inactive_user(self, client, url, user_service):
@@ -191,7 +194,7 @@ class TestUserAccountAPI:
             "email": "inactive@example.com",
             "password": "testpass123"
         }
-        response = client.post("/api/users/login/", data, format='json')
+        response = client.post(f"{API_PREFIX}/users/login/", data, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_account_endpoint_missing_profile(self, client, url, user_service):

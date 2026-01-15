@@ -3,7 +3,7 @@ Service for ProcessingJob business logic.
 """
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from document_processing.models.processing_job import ProcessingJob
 from document_processing.repositories.processing_job_repository import ProcessingJobRepository
 from document_processing.selectors.processing_job_selector import ProcessingJobSelector
@@ -11,11 +11,15 @@ from document_handling.selectors.case_document_selector import CaseDocumentSelec
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "processing_jobs"
+
 
 class ProcessingJobService:
     """Service for ProcessingJob business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda job: job is not None)
     def create_processing_job(
         case_document_id: str,
         processing_type: str,
@@ -68,7 +72,7 @@ class ProcessingJobService:
             return None
 
     @staticmethod
-    @cache_result(timeout=180, keys=[])  # 3 minutes - jobs change frequently as they process
+    @cache_result(timeout=180, keys=[], namespace=namespace, user_scope="global")  # 3 minutes - jobs change frequently as they process
     def get_all():
         """Get all processing jobs."""
         try:
@@ -78,7 +82,7 @@ class ProcessingJobService:
             return ProcessingJobSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['job_id'])  # 5 minutes - cache job by ID
+    @cache_result(timeout=300, keys=['job_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache job by ID
     def get_by_id(job_id: str) -> Optional[ProcessingJob]:
         """Get processing job by ID."""
         try:
@@ -91,7 +95,7 @@ class ProcessingJobService:
             return None
 
     @staticmethod
-    @cache_result(timeout=180, keys=['case_document_id'])  # 3 minutes - jobs for document change as processing occurs
+    @cache_result(timeout=180, keys=['case_document_id'], namespace=namespace, user_scope="global")  # 3 minutes - jobs for document change as processing occurs
     def get_by_case_document(case_document_id: str):
         """Get processing jobs by case document."""
         try:
@@ -101,7 +105,7 @@ class ProcessingJobService:
             return ProcessingJobSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=180, keys=['status'])  # 3 minutes - jobs by status change frequently
+    @cache_result(timeout=180, keys=['status'], namespace=namespace, user_scope="global")  # 3 minutes - jobs by status change frequently
     def get_by_status(status: str):
         """Get processing jobs by status."""
         try:
@@ -111,7 +115,7 @@ class ProcessingJobService:
             return ProcessingJobSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=300, keys=['processing_type'])  # 5 minutes - cache jobs by type
+    @cache_result(timeout=300, keys=['processing_type'], namespace=namespace, user_scope="global")  # 5 minutes - cache jobs by type
     def get_by_processing_type(processing_type: str):
         """Get processing jobs by processing type."""
         try:
@@ -148,6 +152,7 @@ class ProcessingJobService:
             return ProcessingJobSelector.get_none()
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda job: job is not None)
     def update_processing_job(job_id: str, **fields) -> Optional[ProcessingJob]:
         """
         Update processing job.
@@ -182,6 +187,7 @@ class ProcessingJobService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda job: job is not None)
     def update_status(job_id: str, status: str, error_message: str = None, error_type: str = None) -> Optional[ProcessingJob]:
         """Update processing job status with optional error information."""
         try:
@@ -220,6 +226,7 @@ class ProcessingJobService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_processing_job(job_id: str) -> bool:
         """Delete processing job."""
         try:
@@ -263,6 +270,7 @@ class ProcessingJobService:
             return ProcessingJobSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=30, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get processing job statistics."""
         try:

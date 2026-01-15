@@ -1,18 +1,21 @@
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from data_ingestion.models.source_document import SourceDocument
 from data_ingestion.selectors.source_document_selector import SourceDocumentSelector
 from data_ingestion.repositories.source_document_repository import SourceDocumentRepository
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "source_documents"
+
 
 class SourceDocumentService:
     """Service for SourceDocument business logic."""
 
     @staticmethod
-    @cache_result(timeout=600, keys=[])  # 10 minutes - documents change when ingested
+    @cache_result(timeout=600, keys=[], namespace=namespace, user_scope="global")  # 10 minutes - documents change when ingested
     def get_all():
         """Get all source documents."""
         try:
@@ -22,7 +25,7 @@ class SourceDocumentService:
             return SourceDocumentSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['data_source_id'])  # 10 minutes - cache documents by data source
+    @cache_result(timeout=600, keys=['data_source_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache documents by data source
     def get_by_data_source(data_source_id: str):
         """Get source documents by data source ID."""
         try:
@@ -36,7 +39,7 @@ class SourceDocumentService:
             return SourceDocumentSelector.get_none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['document_id'])  # 1 hour - cache document by ID
+    @cache_result(timeout=3600, keys=['document_id'], namespace=namespace, user_scope="global")  # 1 hour - cache document by ID
     def get_by_id(document_id: str) -> Optional[SourceDocument]:
         """Get source document by ID."""
         try:
@@ -49,7 +52,7 @@ class SourceDocumentService:
             return None
 
     @staticmethod
-    @cache_result(timeout=1800, keys=['data_source_id'])  # 30 minutes - latest document changes when new one ingested
+    @cache_result(timeout=1800, keys=['data_source_id'], namespace=namespace, user_scope="global")  # 30 minutes - latest document changes when new one ingested
     def get_latest_by_data_source(data_source_id: str) -> Optional[SourceDocument]:
         """Get latest source document for a data source."""
         try:
@@ -63,6 +66,7 @@ class SourceDocumentService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_source_document(document_id: str) -> bool:
         """Delete a source document."""
         try:
@@ -101,6 +105,7 @@ class SourceDocumentService:
             return SourceDocumentSelector.get_none()
 
     @staticmethod
+    @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")
     def get_statistics():
         """Get source document statistics."""
         try:

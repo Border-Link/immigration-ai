@@ -40,7 +40,8 @@ class PaymentNotificationService:
                 logger.error(f"Payment {payment_id} not found for notification")
                 return None
             
-            user = payment.case.user
+            # Pre-case payments may not yet be attached to a case.
+            user = payment.user if payment.case_id is None else payment.case.user
             
             # Determine notification details based on type
             if notification_type == 'status_changed':

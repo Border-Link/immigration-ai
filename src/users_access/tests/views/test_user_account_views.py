@@ -9,6 +9,9 @@ from users_access.services.user_service import UserService
 from users_access.services.user_profile_service import UserProfileService
 
 
+API_PREFIX = "/api/v1/auth"
+
+
 @pytest.mark.django_db
 class TestUserAccountAPI:
     """Tests for UserAccountAPI."""
@@ -21,7 +24,7 @@ class TestUserAccountAPI:
     @pytest.fixture
     def url(self):
         """Fixture for account URL."""
-        return "/api/users/account/"  # Adjust based on actual URL
+        return f"{API_PREFIX}/users/account/"
 
     def test_get_user_account(self, client, url, test_user, user_profile_service):
         """Test getting user account."""

@@ -1,7 +1,9 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.case_fact_permission import CaseFactPermission
+from main_system.permissions.role_checker import RoleChecker
 from immigration_cases.services.case_fact_service import CaseFactService
+from immigration_cases.services.case_service import CaseService
 from immigration_cases.serializers.case_fact.read import (
     CaseFactListQuerySerializer,
     CaseFactSerializer,
@@ -24,10 +26,32 @@ class CaseFactListAPI(AuthAPI):
         page = validated_params.get('page', 1)
         page_size = validated_params.get('page_size', 20)
 
-        if case_id:
+        # Security: Non-staff users must scope facts to a case they can access.
+        if not RoleChecker.is_staff(request.user):
+            if not case_id:
+                return self.api_response(
+                    message="case_id is required.",
+                    data=None,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+            case = CaseService.get_by_id(str(case_id))
+            if not case:
+                return self.api_response(
+                    message=f"Case with ID '{case_id}' not found.",
+                    data=None,
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
+            # Reuse CaseFactPermission's underlying ownership logic via CaseFactPermission on a fact object
+            # isn't possible here; instead enforce case ownership/staff access.
+            if str(case.user.id) != str(request.user.id):
+                return self.api_response(
+                    message="You do not have permission to access facts for this case.",
+                    data=None,
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
             facts = CaseFactService.get_by_case(str(case_id))
         else:
-            facts = CaseFactService.get_all()
+            facts = CaseFactService.get_by_case(str(case_id)) if case_id else CaseFactService.get_all()
 
         # Paginate results
         paginated_facts, pagination_metadata = paginate_queryset(facts, page=page, page_size=page_size)
@@ -54,6 +78,8 @@ class CaseFactDetailAPI(AuthAPI):
                 data=None,
                 status_code=status.HTTP_404_NOT_FOUND
             )
+
+        self.check_object_permissions(request, fact)
 
         return self.api_response(
             message="Case fact retrieved successfully.",

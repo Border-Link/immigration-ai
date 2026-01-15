@@ -28,15 +28,6 @@ class VisaRuleVersionSelector:
     @staticmethod
     def get_current_by_visa_type(visa_type: VisaType, use_cache: bool = True):
         """Get current rule version for a visa type (excluding soft-deleted, with caching)."""
-        from django.core.cache import cache
-        
-        cache_key = f"current_rule_version:{visa_type.id}"
-        
-        if use_cache:
-            cached = cache.get(cache_key)
-            if cached:
-                return cached
-        
         now = timezone.now()
         version = VisaRuleVersion.objects.select_related(
             'visa_type',
@@ -50,10 +41,6 @@ class VisaRuleVersionSelector:
         ).filter(
             models.Q(effective_to__isnull=True) | models.Q(effective_to__gte=now)
         ).order_by('-effective_from').first()
-        
-        if use_cache and version:
-            cache.set(cache_key, version, timeout=3600)  # 1 hour cache
-        
         return version
 
     @staticmethod

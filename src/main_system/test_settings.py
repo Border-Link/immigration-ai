@@ -43,6 +43,20 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 
 # -------------------------
+# Database: avoid external Postgres in tests
+# -------------------------
+# The production settings expect a Postgres host (often a docker service name like "postgres").
+# For unit/integration tests, default to SQLite to keep the suite runnable without external
+# infrastructure. This does not affect production settings.
+DATABASES = {  # noqa: F405
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
+    }
+}
+
+
+# -------------------------
 # Celery: run tasks inline during tests (if used)
 # -------------------------
 
@@ -55,4 +69,5 @@ CELERY_TASK_EAGER_PROPAGATES = True
 # -------------------------
 
 SENTRY_DSN = None
+
 
