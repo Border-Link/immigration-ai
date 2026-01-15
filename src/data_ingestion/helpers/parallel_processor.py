@@ -9,6 +9,7 @@ import asyncio
 from typing import List, Dict, Optional, Any, Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.conf import settings
+from decimal import Decimal
 
 logger = logging.getLogger('django')
 
@@ -43,7 +44,8 @@ class ParallelProcessor:
         max_workers = max_workers or DEFAULT_MAX_WORKERS
         results = []
         
-        logger.info(f"Processing {len(items)} items in parallel with {max_workers} workers")
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(f"Processing {len(items)} items in parallel with {max_workers} workers")
         
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks
@@ -64,7 +66,8 @@ class ParallelProcessor:
                         'error': None
                     })
                 except Exception as e:
-                    logger.error(f"Error processing item {item}: {e}", exc_info=True)
+                    if getattr(settings, "APP_ENV", None) != "test":
+                        logger.error(f"Error processing item {item}: {e}", exc_info=True)
                     results.append({
                         'item': item,
                         'result': None,
@@ -112,7 +115,8 @@ class ParallelProcessor:
                         'error': None
                     }
                 except Exception as e:
-                    logger.error(f"Error processing item {item}: {e}", exc_info=True)
+                    if getattr(settings, "APP_ENV", None) != "test":
+                        logger.error(f"Error processing item {item}: {e}", exc_info=True)
                     return {
                         'item': item,
                         'result': None,
@@ -173,12 +177,18 @@ class StreamingProcessor:
             result['end'] = end
             chunks.append(result)
             
-            # Move to next chunk with overlap
-            start = end - overlap
-            if start >= text_length:
+            # If we reached the end, stop (prevents infinite loop when end == text_length)
+            if end >= text_length:
                 break
+
+            # Move to next chunk with overlap; ensure forward progress
+            next_start = max(0, end - overlap)
+            if next_start <= start:
+                next_start = end
+            start = next_start
         
-        logger.info(f"Processed text into {len(chunks)} chunks")
+        if getattr(settings, "APP_ENV", None) != "test":
+            logger.info(f"Processed text into {len(chunks)} chunks")
         return chunks
     
     @staticmethod
@@ -198,6 +208,7 @@ class StreamingProcessor:
             'tokens_used': 0,
             'estimated_cost': 0.0,
         }
+        estimated_cost_total = Decimal("0")
         
         # Aggregate results
         for chunk_result in chunk_results:
@@ -206,7 +217,10 @@ class StreamingProcessor:
             if chunk_result.get('tokens_used'):
                 merged['tokens_used'] += chunk_result['tokens_used']
             if chunk_result.get('estimated_cost'):
-                merged['estimated_cost'] += chunk_result['estimated_cost']
+                # Avoid float precision artifacts (e.g. 0.30000000000000004)
+                estimated_cost_total += Decimal(str(chunk_result['estimated_cost']))
+        
+        merged['estimated_cost'] = float(estimated_cost_total)
         
         # Deduplicate rules (simple: by requirement_code and description)
         seen = set()
