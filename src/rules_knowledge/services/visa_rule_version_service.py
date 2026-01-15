@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from rules_knowledge.models.visa_rule_version import VisaRuleVersion
 from rules_knowledge.repositories.visa_rule_version_repository import VisaRuleVersionRepository
 from rules_knowledge.selectors.visa_rule_version_selector import VisaRuleVersionSelector
@@ -11,11 +11,15 @@ from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
 
+def namespace(*args, **kwargs) -> str:
+    return "visa_rule_versions"
+
 
 class VisaRuleVersionService:
     """Service for VisaRuleVersion business logic."""
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda rv: rv is not None)
     def create_rule_version(visa_type_id: str, effective_from, effective_to=None,
                            source_document_version_id=None, is_published: bool = False, created_by=None):
         """Create a new rule version."""
@@ -48,7 +52,7 @@ class VisaRuleVersionService:
             return None
 
     @staticmethod
-    @cache_result(timeout=600, keys=[])  # 10 minutes - can change when rules are published
+    @cache_result(timeout=600, keys=[], namespace=namespace, user_scope="global")  # 10 minutes - can change when rules are published
     def get_all():
         """Get all rule versions."""
         try:
@@ -58,7 +62,7 @@ class VisaRuleVersionService:
             return VisaRuleVersion.objects.none()
 
     @staticmethod
-    @cache_result(timeout=600, keys=['visa_type_id'])  # 10 minutes - cache by visa type
+    @cache_result(timeout=600, keys=['visa_type_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache by visa type
     def get_by_visa_type(visa_type_id: str):
         """Get rule versions by visa type."""
         try:
@@ -69,7 +73,7 @@ class VisaRuleVersionService:
             return VisaRuleVersion.objects.none()
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['visa_type_id'])  # 1 hour - current version changes infrequently
+    @cache_result(timeout=3600, keys=['visa_type_id'], namespace=namespace, user_scope="global")  # 1 hour - current version changes infrequently
     def get_current_by_visa_type(visa_type_id: str) -> Optional[VisaRuleVersion]:
         """Get current rule version for a visa type."""
         try:
@@ -80,7 +84,7 @@ class VisaRuleVersionService:
             return None
 
     @staticmethod
-    @cache_result(timeout=3600, keys=['version_id'])  # 1 hour - cache by version ID
+    @cache_result(timeout=3600, keys=['version_id'], namespace=namespace, user_scope="global")  # 1 hour - cache by version ID
     def get_by_id(version_id: str) -> Optional[VisaRuleVersion]:
         """Get rule version by ID."""
         try:
@@ -93,6 +97,7 @@ class VisaRuleVersionService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda rv: rv is not None)
     def publish_rule_version(version_id: str, published_by=None, expected_version=None) -> Optional[VisaRuleVersion]:
         """
         Publish a rule version with optimistic locking support.
@@ -138,6 +143,7 @@ class VisaRuleVersionService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda rv: rv is not None)
     def update_rule_version(version_id: str, updated_by=None, expected_version=None, **fields) -> Optional[VisaRuleVersion]:
         """
         Update rule version with optimistic locking support.
@@ -185,6 +191,7 @@ class VisaRuleVersionService:
             return None
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
     def delete_rule_version(version_id: str) -> bool:
         """Delete rule version."""
         try:
@@ -229,6 +236,7 @@ class VisaRuleVersionService:
             return VisaRuleVersion.objects.none()
 
     @staticmethod
+    @invalidate_cache(namespace, predicate=lambda rv: rv is not None)
     def publish_rule_version_by_flag(rule_version, is_published: bool) -> Optional[VisaRuleVersion]:
         """Publish or unpublish a rule version."""
         try:
