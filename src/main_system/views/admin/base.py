@@ -197,7 +197,8 @@ class BaseAdminUpdateAPI(AuthAPI):
             )
         
         serializer_class = self.get_serializer_class()
-        serializer = serializer_class(data=request.data)
+        # PATCH semantics: partial update (do not require all fields).
+        serializer = serializer_class(entity, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         
         try:
