@@ -20,9 +20,8 @@ class SourceDocumentSerializer(serializers.ModelSerializer):
             'content_type',
             'http_status_code',
             'fetch_error',
-            'created_at',
         ]
-        read_only_fields = ['id', 'fetched_at', 'created_at']
+        read_only_fields = ['id', 'fetched_at']
 
 
 class SourceDocumentListSerializer(serializers.ModelSerializer):
