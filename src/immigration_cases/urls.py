@@ -40,8 +40,8 @@ urlpatterns = [
     path('cases/<uuid:id>/delete/', CaseDeleteAPI.as_view(), name='case-delete'),
     
     # Eligibility endpoints (from implementation.md Section 4.3)
-    path('cases/<uuid:id>/eligibility', CaseEligibilityCheckAPI.as_view(), name='case-eligibility-check'),
-    path('cases/<uuid:id>/eligibility/<uuid:result_id>/explanation', CaseEligibilityExplanationAPI.as_view(), name='case-eligibility-explanation'),
+    path('cases/<uuid:id>/eligibility/', CaseEligibilityCheckAPI.as_view(), name='case-eligibility-check'),
+    path('cases/<uuid:id>/eligibility/<uuid:result_id>/explanation/', CaseEligibilityExplanationAPI.as_view(), name='case-eligibility-explanation'),
     
     # CaseFact endpoints
     path('case-facts/', CaseFactListAPI.as_view(), name='case-fact-list'),
