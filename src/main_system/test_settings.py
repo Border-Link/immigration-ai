@@ -4,9 +4,57 @@ Test settings for pytest/django.
 Goals:
 - Remove hard dependency on external services (Redis/Sentry/etc.) for unit/integration tests.
 - Keep production settings unchanged.
+
+Important:
+- main_system.settings reads several required environment variables at import time.
+  For tests, we provide safe defaults here so the suite can run in clean environments
+  (CI, sandboxes) without a .env file.
 """
 
-from .settings import *  # noqa: F403,F401
+from __future__ import annotations
+
+import os
+
+# -------------------------
+# Minimal required env vars (import-time)
+# -------------------------
+# SECURITY: These are non-production defaults used only for tests.
+os.environ.setdefault("APP_ENV", "test")
+os.environ.setdefault("DEBUG", "False")
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("FIELD_ENCRYPTION_KEY", "test-field-encryption-key")
+os.environ.setdefault("FINGERPRINT_SECRET", "test-fingerprint-secret")
+os.environ.setdefault("SITE_NAME", "Borderlink Test")
+os.environ.setdefault("UK_GOV_API_BASE_URL", "https://example.test")
+
+# Celery/Redis (overridden below, but required for settings import)
+os.environ.setdefault("CELERY_BROKER_URL", "redis://localhost:6379/0")
+os.environ.setdefault("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+os.environ.setdefault("CELERY_TASK_SERIALIZER", "json")
+os.environ.setdefault("CELERY_RESULT_SERIALIZER", "json")
+os.environ.setdefault("CELERY_TIMEZONE", "UTC")
+
+# Database (overridden below, but required for settings import)
+os.environ.setdefault("DB_ENGINE", "django.db.backends.sqlite3")
+os.environ.setdefault("DB_DATABASE", ":memory:")
+os.environ.setdefault("DB_USERNAME", "test")
+os.environ.setdefault("DB_PASSWORD", "test")
+os.environ.setdefault("DB_PORT", "5432")
+os.environ.setdefault("DB_HOST", "localhost")
+os.environ.setdefault("CONN_MAX_AGE", "0")
+
+# Email (overridden below, but required for settings import)
+os.environ.setdefault("DEFAULT_FROM_EMAIL", "no-reply@test.local")
+os.environ.setdefault("EMAIL_BACKEND", "django.core.mail.backends.locmem.EmailBackend")
+os.environ.setdefault("EMAIL_HOST", "localhost")
+os.environ.setdefault("EMAIL_HOST_USER", "")
+os.environ.setdefault("EMAIL_HOST_PASSWORD", "")
+os.environ.setdefault("EMAIL_PORT", "1025")
+
+# Observability
+os.environ.setdefault("SENTRY_DSN", "")
+
+from .settings import *  # noqa: F403,F401,E402
 
 
 # -------------------------
