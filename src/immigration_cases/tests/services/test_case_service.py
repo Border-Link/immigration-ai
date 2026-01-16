@@ -4,10 +4,10 @@ Tests for CaseService.
 All tests use services as the entrypoint (no direct model usage in tests).
 """
 
-import pytest
-
-from django.core.exceptions import ValidationError
 from decimal import Decimal
+
+import pytest
+from django.core.exceptions import ValidationError
 
 
 @pytest.mark.django_db
@@ -77,6 +77,7 @@ class TestCaseService:
         other = user_service.create_user(email="case-other@example.com", password="testpass123")
         user_service.activate_user(other)
         from payments.services.payment_service import PaymentService
+
         # Prepay both users
         p1 = PaymentService.create_payment(
             user_id=str(case_owner.id),
@@ -145,7 +146,9 @@ class TestCaseService:
         assert http_status == 400
         assert error and "at least one fact" in error.lower()
 
-    def test_status_transition_to_evaluated_with_fact_creates_history(self, case_service, case_status_history_service, paid_case_with_fact, case_owner):
+    def test_status_transition_to_evaluated_with_fact_creates_history(
+        self, case_service, case_status_history_service, paid_case_with_fact, case_owner
+    ):
         case, _fact = paid_case_with_fact
         current = case_service.get_by_id(str(case.id))
 
@@ -301,4 +304,38 @@ class TestCaseService:
         from immigration_cases.helpers.status_transition_validator import CaseStatusTransitionValidator
 
         assert CaseStatusTransitionValidator.get_valid_transitions("draft") == ["evaluated", "closed"]
+
+    def test_update_case_not_found_returns_404(self, case_service):
+        updated, error, http_status = case_service.update_case(
+            case_id="00000000-0000-0000-0000-000000000000",
+            version=1,
+            jurisdiction="CA",
+            reason="test",
+        )
+        assert updated is None
+        assert http_status == 404
+        assert error and "not found" in error.lower()
+
+    def test_update_case_unexpected_exception_returns_500(self, monkeypatch, case_service, paid_case):
+        """
+        Production-standard failure-path: unexpected errors are translated to a safe 500 tuple.
+        """
+        case, _payment = paid_case
+
+        from immigration_cases.repositories.case_repository import CaseRepository
+
+        def _boom(*args, **kwargs):
+            raise Exception("boom")
+
+        monkeypatch.setattr(CaseRepository, "update_case", _boom)
+
+        updated, error, http_status = case_service.update_case(
+            case_id=str(case.id),
+            version=case.version,
+            jurisdiction="CA",
+            reason="test",
+        )
+        assert updated is None
+        assert http_status == 500
+        assert error and "boom" in error.lower()
 
