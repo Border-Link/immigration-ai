@@ -145,6 +145,12 @@ class PaymentService:
         return PaymentSelector.get_all()
 
     @staticmethod
+    @cache_result(timeout=300, keys=["user_id"], namespace=namespace, user_scope="global")  # 5 minutes - cache payments by user
+    def get_by_user(user) -> QuerySet:
+        """Get payments by user (non-deleted)."""
+        return PaymentSelector.get_by_user(user)
+
+    @staticmethod
     @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache payments by case
     def get_by_case(case_id: str) -> QuerySet:
         """
