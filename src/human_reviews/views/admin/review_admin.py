@@ -23,6 +23,8 @@ from human_reviews.serializers.review.admin import (
 )
 from django.core.exceptions import ValidationError
 
+logger = logging.getLogger('django')
+
 
 class ReviewAdminListAPI(AuthAPI):
     """
@@ -188,6 +190,9 @@ class ReviewAdminUpdateAPI(BaseAdminUpdateAPI):
                     data=None,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
+        except ValidationError:
+            # Let BaseAPI.handle_exception normalize Django ValidationError to DRF 400.
+            raise
         except Exception as e:
             logger.error(f"Error updating {self.get_entity_name()} {id}: {e}", exc_info=True)
             return self.api_response(
