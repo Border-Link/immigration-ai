@@ -5,7 +5,7 @@ Validates that extracted JSON Logic expressions are valid and can be evaluated.
 """
 
 import logging
-import json_logic
+from main_system.utils import json_logic
 from typing import Dict, Tuple, Optional, Any
 from data_ingestion.helpers.rule_parsing_constants import VALID_JSON_LOGIC_OPERATORS
 from django.conf import settings
