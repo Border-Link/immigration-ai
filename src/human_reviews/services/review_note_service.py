@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 from typing import Optional
+from django.core.exceptions import ObjectDoesNotExist
 from main_system.utils.cache_utils import cache_result, invalidate_cache
-from human_reviews.models.review_note import ReviewNote
 from human_reviews.repositories.review_note_repository import ReviewNoteRepository
 from human_reviews.selectors.review_note_selector import ReviewNoteSelector
 from human_reviews.selectors.review_selector import ReviewSelector
@@ -32,8 +34,11 @@ class ReviewNoteService:
                 logger.error(f"Review {review_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review note creation")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(
+                review.case,
+                operation_name="review note creation",
+            )
             if not is_valid:
                 logger.warning(f"Review note creation blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
@@ -51,7 +56,7 @@ class ReviewNoteService:
             return ReviewNoteSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all review notes: {e}")
-            return ReviewNote.objects.none()
+            return ReviewNoteSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=300, keys=['review_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache notes by review
@@ -62,7 +67,7 @@ class ReviewNoteService:
             return ReviewNoteSelector.get_by_review(review)
         except Exception as e:
             logger.error(f"Error fetching notes for review {review_id}: {e}")
-            return ReviewNote.objects.none()
+            return ReviewNoteSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=300, keys=['review_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache public notes by review
@@ -73,7 +78,7 @@ class ReviewNoteService:
             return ReviewNoteSelector.get_public_by_review(review)
         except Exception as e:
             logger.error(f"Error fetching public notes for review {review_id}: {e}")
-            return ReviewNote.objects.none()
+            return ReviewNoteSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=600, keys=['note_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache note by ID
@@ -81,7 +86,7 @@ class ReviewNoteService:
         """Get review note by ID."""
         try:
             return ReviewNoteSelector.get_by_id(note_id)
-        except ReviewNote.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review note {note_id} not found")
             return None
         except Exception as e:
@@ -105,8 +110,8 @@ class ReviewNoteService:
                 logger.error(f"Review note {note_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(
                 review_note.review.case, 
                 operation_name="review note update"
             )
@@ -115,7 +120,7 @@ class ReviewNoteService:
                 raise ValidationError(error)
             
             return ReviewNoteRepository.update_review_note(review_note, **fields)
-        except ReviewNote.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review note {note_id} not found")
             return None
         except Exception as e:
@@ -140,8 +145,8 @@ class ReviewNoteService:
                 logger.error(f"Review note {note_id} not found")
                 return False
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(
                 review_note.review.case, 
                 operation_name="review note deletion"
             )
@@ -151,7 +156,7 @@ class ReviewNoteService:
             
             ReviewNoteRepository.delete_review_note(review_note)
             return True
-        except ReviewNote.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review note {note_id} not found")
             return False
         except Exception as e:
@@ -170,4 +175,4 @@ class ReviewNoteService:
             )
         except Exception as e:
             logger.error(f"Error filtering review notes: {e}")
-            return ReviewNote.objects.none()
+            return ReviewNoteSelector.get_none()
