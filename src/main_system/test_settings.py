@@ -56,6 +56,8 @@ os.environ.setdefault("SENTRY_DSN", "")
 
 from .settings import *  # noqa: F403,F401,E402
 
+import copy
+
 
 # -------------------------
 # Core test toggles
@@ -118,4 +120,29 @@ CELERY_TASK_EAGER_PROPAGATES = True
 
 SENTRY_DSN = None
 
+
+# -------------------------
+# Logging: avoid filesystem / DB handlers in tests
+# -------------------------
+# Some sandbox/CI environments do not expose files under `logs/` (or they may be ignored),
+# and DB-backed log handlers can introduce side-effects during app init.
+#
+# In production we write structured logs to files + DB. In tests we keep only console logging.
+LOGGING = copy.deepcopy(LOGGING)  # noqa: F405
+
+# Replace file/db handlers with NullHandler (safe even if referenced elsewhere)
+for _handler_name in ("json_file", "celery_file", "db"):
+    if _handler_name in LOGGING.get("handlers", {}):
+        LOGGING["handlers"][_handler_name] = {"class": "logging.NullHandler"}
+
+# Root logger: console only
+if "root" in LOGGING and "handlers" in LOGGING["root"]:
+    LOGGING["root"]["handlers"] = ["console"]
+
+# Named loggers: strip file/db handlers
+for _logger_name in ("celery", "django", "django.db.backends"):
+    if _logger_name in LOGGING.get("loggers", {}):
+        LOGGING["loggers"][_logger_name]["handlers"] = [
+            h for h in LOGGING["loggers"][_logger_name].get("handlers", []) if h == "console"
+        ]
 
