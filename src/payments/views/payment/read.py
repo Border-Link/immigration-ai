@@ -13,12 +13,13 @@ class PaymentListAPI(AuthAPI):
         case_id = request.query_params.get('case_id', None)
         status_filter = request.query_params.get('status', None)
 
+        # Security: regular users only see their own payments; staff can see all.
         if case_id:
             payments = PaymentService.get_by_case(str(case_id))
         elif status_filter:
             payments = PaymentService.get_by_status(status_filter)
         else:
-            payments = PaymentService.get_all()
+            payments = PaymentService.get_all() if request.user.is_staff else PaymentService.get_by_user(request.user)
 
         return self.api_response(
             message="Payments retrieved successfully.",
@@ -39,6 +40,9 @@ class PaymentDetailAPI(AuthAPI):
                 data=None,
                 status_code=status.HTTP_404_NOT_FOUND
             )
+
+        # Enforce object-level access control (PaymentPermission.has_object_permission)
+        self.check_object_permissions(request, payment)
 
         return self.api_response(
             message="Payment retrieved successfully.",
