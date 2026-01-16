@@ -5,7 +5,7 @@ Validates JSON Logic expressions before saving to database.
 """
 import logging
 from typing import Tuple, Optional, Any, Dict
-import json_logic
+from main_system.utils import json_logic
 
 logger = logging.getLogger('django')
 
