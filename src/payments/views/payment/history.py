@@ -9,6 +9,7 @@ from main_system.permissions.payment_permission import PaymentPermission
 from payments.services.payment_service import PaymentService
 from payments.services.payment_history_service import PaymentHistoryService
 from payments.serializers.payment.history import PaymentHistorySerializer
+from payments.serializers.payment.read import PaymentSerializer
 
 
 class PaymentHistoryAPI(AuthAPI):
@@ -28,14 +29,9 @@ class PaymentHistoryAPI(AuthAPI):
                 data=None,
                 status_code=status.HTTP_404_NOT_FOUND
             )
-        
-        # Check if user owns the case
-        if payment.case.user != request.user and not request.user.is_staff:
-            return self.api_response(
-                message="You do not have permission to view this payment history.",
-                data=None,
-                status_code=status.HTTP_403_FORBIDDEN
-            )
+
+        # Enforce object-level access control
+        self.check_object_permissions(request, payment)
         
         history = PaymentHistoryService.get_by_payment(str(id))
         
@@ -65,14 +61,9 @@ class PaymentRetryAPI(AuthAPI):
                 data=None,
                 status_code=status.HTTP_404_NOT_FOUND
             )
-        
-        # Check if user owns the case
-        if payment.case.user != request.user and not request.user.is_staff:
-            return self.api_response(
-                message="You do not have permission to retry this payment.",
-                data=None,
-                status_code=status.HTTP_403_FORBIDDEN
-            )
+
+        # Enforce object-level access control
+        self.check_object_permissions(request, payment)
         
         result = PaymentRetryService.retry_payment(str(id))
         
@@ -96,7 +87,7 @@ class PaymentRetryAPI(AuthAPI):
         return self.api_response(
             message="Payment retry initiated successfully.",
             data={
-                'payment': updated_payment,
+                'payment': PaymentSerializer(updated_payment).data if updated_payment else None,
                 'retry_result': result,
             },
             status_code=status.HTTP_200_OK
