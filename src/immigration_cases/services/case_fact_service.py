@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 from typing import Optional
+from django.core.exceptions import ObjectDoesNotExist
 from main_system.utils.cache_utils import cache_result, invalidate_cache
-from immigration_cases.models.case_fact import CaseFact
 from immigration_cases.repositories.case_fact_repository import CaseFactRepository
 from immigration_cases.selectors.case_fact_selector import CaseFactSelector
 from immigration_cases.selectors.case_selector import CaseSelector
@@ -55,7 +57,7 @@ class CaseFactService:
             return CaseFactSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all case facts: {e}")
-            return CaseFact.objects.none()
+            return CaseFactSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache facts by case
@@ -66,7 +68,7 @@ class CaseFactService:
             return CaseFactSelector.get_by_case(case)
         except Exception as e:
             logger.error(f"Error fetching facts for case {case_id}: {e}")
-            return CaseFact.objects.none()
+            return CaseFactSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=600, keys=['fact_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache fact by ID
@@ -74,7 +76,7 @@ class CaseFactService:
         """Get case fact by ID."""
         try:
             return CaseFactSelector.get_by_id(fact_id)
-        except CaseFact.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Case fact {fact_id} not found")
             return None
         except Exception as e:
@@ -102,7 +104,7 @@ class CaseFactService:
                 raise ValidationError(error)
             
             return CaseFactRepository.update_case_fact(fact, **fields)
-        except CaseFact.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Case fact {fact_id} not found")
             return None
         except Exception as e:
@@ -148,7 +150,7 @@ class CaseFactService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return True
-        except CaseFact.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Case fact {fact_id} not found")
             return False
         except Exception as e:
@@ -168,4 +170,4 @@ class CaseFactService:
             )
         except Exception as e:
             logger.error(f"Error filtering case facts: {e}")
-            return CaseFact.objects.none()
+            return CaseFactSelector.get_none()
