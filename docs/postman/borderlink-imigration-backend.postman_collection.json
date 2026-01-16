@@ -1,8 +1,8 @@
 {
     "info": {
         "_postman_id": "d4e8c1f0-6a51-4c77-9f0e-4e4f6ad9b2a4",
-        "name": "Borderlink Immigration Backend (api/v1) - users_access, data_ingestion, immigration_cases, ai_decisions",
-        "description": "Generated from Django URLConfs:\n- users_access mounted at /api/v1/auth/\n- data_ingestion mounted at /api/v1/data-ingestion/\n- immigration_cases mounted at /api/v1/imigration-cases/ (note spelling)\n- ai_decisions mounted at /api/v1/ai-decisions/\n\nAuth model:\n- Login returns an endpoint_token in JSON\n- Login verify sets Secure cookies (access_token, fingerprint, sessionid, etc.) used by the backend's CookieAccessOnlyTokenAuthentication\n\nPostman tips:\n- Use https base URL if you want Secure cookies to be sent.\n- Ensure Postman Cookie Jar is enabled.\n\nCollection variables you\u2019ll likely set:\n- baseUrl (default: https://localhost:8000)\n- endpointToken (set automatically after Login)\n- caseId, caseFactId, dataSourceId, parsedRuleId, validationTaskId, etc.\n",
+        "name": "Borderlink Immigration Backend (api/v1) - users_access, compliance, data_ingestion, immigration_cases, ai_decisions, rules_knowledge, human_reviews, ai_calls, payments",
+        "description": "Generated from Django URLConfs:\n- users_access mounted at /api/v1/auth/\n- compliance mounted at /api/v1/compliances/\n- data_ingestion mounted at /api/v1/data-ingestion/\n- immigration_cases mounted at /api/v1/imigration-cases/ (note spelling)\n- ai_calls mounted at /api/v1/ai-calls/\n- ai_decisions mounted at /api/v1/ai-decisions/\n- rules_knowledge mounted at /api/v1/rules-knowledge/\n- human_reviews mounted at /api/v1/human-reviews/\n\nAuth model:\n- Login returns an endpoint_token in JSON\n- Login verify sets Secure cookies (access_token, fingerprint, sessionid, etc.) used by the backend's CookieAccessOnlyTokenAuthentication\n\nPostman tips:\n- Use https base URL if you want Secure cookies to be sent.\n- Ensure Postman Cookie Jar is enabled.\n\nCollection variables you’ll likely set:\n- baseUrl (default: https://localhost:8000)\n- endpointToken (set automatically after Login)\n- caseId, caseFactId, dataSourceId, parsedRuleId, validationTaskId, etc.\n",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
@@ -79,6 +79,14 @@
             "value": ""
         },
         {
+            "key": "callSessionId",
+            "value": ""
+        },
+        {
+            "key": "paymentId",
+            "value": ""
+        },
+        {
             "key": "caseFactId",
             "value": ""
         },
@@ -104,6 +112,50 @@
         },
         {
             "key": "documentCheckId",
+            "value": ""
+        },
+        {
+            "key": "visaTypeId",
+            "value": ""
+        },
+        {
+            "key": "visaRuleVersionId",
+            "value": ""
+        },
+        {
+            "key": "visaRequirementId",
+            "value": ""
+        },
+        {
+            "key": "visaDocumentRequirementId",
+            "value": ""
+        },
+        {
+            "key": "reviewId",
+            "value": ""
+        },
+        {
+            "key": "reviewNoteId",
+            "value": ""
+        },
+        {
+            "key": "decisionOverrideId",
+            "value": ""
+        },
+        {
+            "key": "reviewStatusHistoryId",
+            "value": ""
+        },
+        {
+            "key": "reviewerId",
+            "value": ""
+        },
+        {
+            "key": "processingJobId",
+            "value": ""
+        },
+        {
+            "key": "processingHistoryId",
             "value": ""
         }
     ],
@@ -926,6 +978,203 @@
                             "request": {
                                 "method": "DELETE",
                                 "url": "{{baseUrl}}/api/v1/auth/admin/notifications/{{notificationId}}/delete/"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Compliance",
+            "item": [
+                {
+                    "name": "Audit Logs",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "const first = json?.data?.items?.[0];",
+                                            "if (first?.id) pm.collectionVariables.set('auditLogId', first.id);",
+                                            "pm.test('audit logs response shape', function () {",
+                                            "  pm.expect(json).to.have.property('message');",
+                                            "  pm.expect(json).to.have.property('data');",
+                                            "  pm.expect(json.data).to.have.property('items');",
+                                            "  pm.expect(json.data).to.have.property('pagination');",
+                                            "});"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/compliances/audit-logs/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/compliances/audit-logs/{{auditLogId}}/"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Document Processing",
+            "item": [
+                {
+                    "name": "Admin - Processing Jobs",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "const first = json?.data?.[0];",
+                                            "if (first?.id) pm.collectionVariables.set('processingJobId', first.id);",
+                                            "pm.test('response has data array', function () {",
+                                            "  pm.expect(json).to.have.property('data');",
+                                            "  pm.expect(json.data).to.be.an('array');",
+                                            "});"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-processing/admin/processing-jobs/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-processing/admin/processing-jobs/{{processingJobId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"priority\": 8\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/document-processing/admin/processing-jobs/{{processingJobId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/document-processing/admin/processing-jobs/{{processingJobId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"job_ids\": [\"{{processingJobId}}\"],\n  \"operation\": \"update_priority\",\n  \"priority\": 5\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/document-processing/admin/processing-jobs/bulk-operation/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Processing History",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "const first = json?.data?.[0];",
+                                            "if (first?.id) pm.collectionVariables.set('processingHistoryId', first.id);",
+                                            "pm.test('response has data array', function () {",
+                                            "  pm.expect(json).to.have.property('data');",
+                                            "  pm.expect(json.data).to.be.an('array');",
+                                            "});"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-processing/admin/processing-history/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-processing/admin/processing-history/{{processingHistoryId}}/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/document-processing/admin/processing-history/{{processingHistoryId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"history_ids\": [\"{{processingHistoryId}}\"],\n  \"operation\": \"delete\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/document-processing/admin/processing-history/bulk-operation/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Analytics",
+                    "item": [
+                        {
+                            "name": "Statistics (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-processing/admin/statistics/"
                             }
                         }
                     ]
@@ -2439,6 +2688,1352 @@
                             "request": {
                                 "method": "GET",
                                 "url": "{{baseUrl}}/api/v1/document-handling/admin/statistics/"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Rules Knowledge",
+            "item": [
+                {
+                    "name": "Document Types",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/document-types/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Create (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"code\": \"PASSPORT\",\n  \"name\": \"Passport\",\n  \"description\": \"Passport document\",\n  \"is_active\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/document-types/create/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/document-types/{{documentTypeId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Passport (Updated)\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/document-types/{{documentTypeId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/document-types/{{documentTypeId}}/delete/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Visa Types",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-types/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Create (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"jurisdiction\": \"UK\",\n  \"code\": \"SKILLED_WORKER\",\n  \"name\": \"Skilled Worker\",\n  \"description\": \"UK skilled worker route\",\n  \"is_active\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-types/create/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-types/{{visaTypeId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Skilled Worker (Updated)\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-types/{{visaTypeId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-types/{{visaTypeId}}/delete/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Visa Rule Versions",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-rule-versions/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Create (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"visa_type_id\": \"{{visaTypeId}}\",\n  \"effective_from\": \"2026-01-01T00:00:00Z\",\n  \"effective_to\": null,\n  \"source_document_version_id\": null\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-rule-versions/create/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-rule-versions/{{visaRuleVersionId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"effective_to\": \"2026-12-31T23:59:59Z\",\n  \"version\": 1\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-rule-versions/{{visaRuleVersionId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-rule-versions/{{visaRuleVersionId}}/delete/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Visa Requirements",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-requirements/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Create (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"rule_version_id\": \"{{visaRuleVersionId}}\",\n  \"requirement_code\": \"MIN_AGE\",\n  \"description\": \"Applicant must be at least 18\",\n  \"condition_expression\": {\n    \">=\": [\n      {\"var\": \"age\"},\n      18\n    ]\n  },\n  \"is_active\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-requirements/create/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-requirements/{{visaRequirementId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_active\": false\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-requirements/{{visaRequirementId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-requirements/{{visaRequirementId}}/delete/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Visa Document Requirements",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-document-requirements/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Create (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"rule_version_id\": \"{{visaRuleVersionId}}\",\n  \"document_type_id\": \"{{documentTypeId}}\",\n  \"mandatory\": true,\n  \"description\": \"Passport required\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-document-requirements/create/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-document-requirements/{{visaDocumentRequirementId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"mandatory\": false,\n  \"description\": \"Optional in some cases\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-document-requirements/{{visaDocumentRequirementId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/visa-document-requirements/{{visaDocumentRequirementId}}/delete/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin",
+                    "item": [
+                        {
+                            "name": "Statistics (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/admin/statistics/"
+                            }
+                        },
+                        {
+                            "name": "Document Types - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"document_type_ids\": [\"{{documentTypeId}}\"],\n  \"operation\": \"deactivate\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/admin/document-types/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Visa Types - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"visa_type_ids\": [\"{{visaTypeId}}\"],\n  \"operation\": \"deactivate\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/admin/visa-types/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Visa Rule Versions - Publish (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_published\": true,\n  \"version\": 1\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/admin/visa-rule-versions/{{visaRuleVersionId}}/publish/"
+                            }
+                        },
+                        {
+                            "name": "Visa Requirements - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"requirement_ids\": [\"{{visaRequirementId}}\"],\n  \"operation\": \"set_optional\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/admin/visa-requirements/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Visa Document Requirements - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"document_requirement_ids\": [\"{{visaDocumentRequirementId}}\"],\n  \"operation\": \"set_optional\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/rules-knowledge/admin/visa-document-requirements/bulk-operation/"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Human Reviews",
+            "item": [
+                {
+                    "name": "Reviews",
+                    "item": [
+                        {
+                            "name": "List Reviews",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/"
+                            }
+                        },
+                        {
+                            "name": "Create Review",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/create/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"case_id\": \"{{caseId}}\",\n  \"reviewer_id\": \"{{reviewerId}}\",\n  \"auto_assign\": false,\n  \"assignment_strategy\": \"round_robin\"\n}"
+                                }
+                            },
+                            "description": "Note: reviewer_id must be a staff reviewer user."
+                        },
+                        {
+                            "name": "Get Pending Reviews (unassigned)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/pending/"
+                            }
+                        },
+                        {
+                            "name": "Get My Reviews (pending/in_progress)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/my-reviews/"
+                            }
+                        },
+                        {
+                            "name": "Get Review Detail",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/"
+                            }
+                        },
+                        {
+                            "name": "Update Review (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/update/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"status\": \"cancelled\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Assign Reviewer",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/assign/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reviewer_id\": \"{{reviewerId}}\",\n  \"assignment_strategy\": \"round_robin\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Complete Review",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/complete/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Cancel Review",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/cancel/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Delete Review",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/delete/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Review Actions",
+                    "item": [
+                        {
+                            "name": "Reassign Review",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/reassign/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"new_reviewer_id\": \"{{reviewerId}}\",\n  \"reason\": \"workload\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Escalate Review",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/escalate/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"complex\",\n  \"priority\": \"urgent\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Approve Review",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/approve/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"approved\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Reject Review",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/reject/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"requires changes\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Request Changes",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/request-changes/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"please update documents\"\n}"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Review Status History",
+                    "item": [
+                        {
+                            "name": "List Review Status History",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/status-history/"
+                            }
+                        },
+                        {
+                            "name": "Get Status History Detail",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/status-history/{reviewStatusHistoryId}/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Review Notes",
+                    "item": [
+                        {
+                            "name": "List Review Notes",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/review-notes/?review_id={reviewId}"
+                            }
+                        },
+                        {
+                            "name": "Create Review Note",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/review-notes/create/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"review_id\": \"{{reviewId}}\",\n  \"note\": \"Public note for the review\",\n  \"is_internal\": false\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Get Review Note Detail",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/review-notes/{reviewNoteId}/"
+                            }
+                        },
+                        {
+                            "name": "Update Review Note",
+                            "request": {
+                                "method": "PATCH",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/review-notes/{reviewNoteId}/update/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"note\": \"Updated note\",\n  \"is_internal\": true\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Delete Review Note",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/review-notes/{reviewNoteId}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Get Public Notes for Review",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/reviews/{reviewId}/notes/public/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Decision Overrides",
+                    "item": [
+                        {
+                            "name": "List Decision Overrides",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/decision-overrides/"
+                            }
+                        },
+                        {
+                            "name": "Create Decision Override",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/decision-overrides/create/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"case_id\": \"{{caseId}}\",\n  \"original_result_id\": \"{{eligibilityResultId}}\",\n  \"overridden_outcome\": \"eligible\",\n  \"reason\": \"Override reason (human review)\",\n  \"review_id\": \"{{reviewId}}\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Get Decision Override Detail",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/decision-overrides/{decisionOverrideId}/"
+                            }
+                        },
+                        {
+                            "name": "Get Latest Override for Eligibility Result",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/decision-overrides/latest/{eligibilityResultId}/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin",
+                    "item": [
+                        {
+                            "name": "Admin: List Reviews",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/reviews/"
+                            }
+                        },
+                        {
+                            "name": "Admin: Review Detail",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/reviews/{reviewId}/"
+                            }
+                        },
+                        {
+                            "name": "Admin: Update Review",
+                            "request": {
+                                "method": "PUT",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/reviews/{reviewId}/update/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"status\": \"cancelled\",\n  \"version\": 1\n}"
+                                }
+                            },
+                            "description": "Set version to the current review.version for optimistic locking."
+                        },
+                        {
+                            "name": "Admin: Delete Review",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/reviews/{reviewId}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Admin: Bulk Review Operation",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/reviews/bulk-operation/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"review_ids\": [\n    \"{{reviewId}}\"\n  ],\n  \"operation\": \"delete\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Admin: List Review Notes",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/review-notes/"
+                            }
+                        },
+                        {
+                            "name": "Admin: Review Note Detail",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/review-notes/{reviewNoteId}/"
+                            }
+                        },
+                        {
+                            "name": "Admin: Update Review Note",
+                            "request": {
+                                "method": "PUT",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/review-notes/{reviewNoteId}/update/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_internal\": true\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Admin: Delete Review Note",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/review-notes/{reviewNoteId}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Admin: Bulk Review Note Operation",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/review-notes/bulk-operation/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"review_note_ids\": [\n    \"{{reviewNoteId}}\"\n  ],\n  \"operation\": \"delete\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Admin: List Decision Overrides",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/decision-overrides/"
+                            }
+                        },
+                        {
+                            "name": "Admin: Decision Override Detail",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/decision-overrides/{decisionOverrideId}/"
+                            }
+                        },
+                        {
+                            "name": "Admin: Update Decision Override",
+                            "request": {
+                                "method": "PUT",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/decision-overrides/{decisionOverrideId}/update/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"Updated reason\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Admin: Delete Decision Override",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/decision-overrides/{decisionOverrideId}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Admin: Bulk Decision Override Operation",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/decision-overrides/bulk-operation/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"decision_override_ids\": [\n    \"{{decisionOverrideId}}\"\n  ],\n  \"operation\": \"delete\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Admin: Human Reviews Statistics",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/human-reviews/admin/statistics/"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Payments",
+            "item": [
+                {
+                    "name": "Public",
+                    "item": [
+                        {
+                            "name": "List Payments",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/payments/"
+                            }
+                        },
+                        {
+                            "name": "Create Payment (sets paymentId)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json?.data?.id) pm.collectionVariables.set('paymentId', json.data.id);",
+                                            "pm.test('payment created', function () {",
+                                            "  pm.expect(json?.data?.id).to.be.ok;",
+                                            "});"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/payments/create/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"amount\": \"100.00\",\n  \"currency\": \"USD\",\n  \"payment_provider\": \"stripe\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Get Payment Detail",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update Payment",
+                            "request": {
+                                "method": "PATCH",
+                                "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}/update/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"status\": \"processing\",\n  \"version\": 1\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Delete Payment",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Initiate Payment",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}/initiate/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"return_url\": \"https://example.com/return\",\n  \"callback_url\": \"https://example.com/callback\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Verify Payment",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}/verify/"
+                            }
+                        },
+                        {
+                            "name": "Refund Payment",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}/refund/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"Duplicate payment\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Payment History",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}/history/"
+                            }
+                        },
+                        {
+                            "name": "Retry Payment",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}/retry/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin",
+                    "item": [
+                        {
+                            "name": "Admin: List Payments",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/payments/admin/payments/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Admin: Payment Detail",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/payments/admin/payments/{{paymentId}}/"
+                            }
+                        },
+                        {
+                            "name": "Admin: Update Payment",
+                            "request": {
+                                "method": "PATCH",
+                                "url": "{{baseUrl}}/api/v1/payments/admin/payments/{{paymentId}}/update/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"status\": \"processing\",\n  \"version\": 1\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Admin: Delete Payment",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/payments/admin/payments/{{paymentId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Admin: Bulk Payment Operation",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/payments/admin/payments/bulk-operation/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"payment_ids\": [\n    \"{{paymentId}}\"\n  ],\n  \"operation\": \"update_status\",\n  \"status\": \"completed\"\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Admin: Payment Statistics",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/payments/admin/statistics/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Webhooks",
+                    "item": [
+                        {
+                            "name": "Stripe Webhook",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/payments/webhooks/stripe/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "stripe-signature",
+                                        "value": "sig"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"pi_test\",\n      \"amount\": 1000,\n      \"currency\": \"usd\",\n      \"metadata\": {\n        \"reference\": \"{{paymentId}}\"\n      }\n    }\n  }\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "PayPal Webhook",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/payments/webhooks/paypal/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "paypal-transmission-sig",
+                                        "value": "sig"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"event_type\": \"PAYMENT.CAPTURE.COMPLETED\",\n  \"resource\": {\n    \"id\": \"cap_test\",\n    \"custom_id\": \"{{paymentId}}\",\n    \"amount\": {\n      \"value\": \"10.00\",\n      \"currency_code\": \"USD\"\n    }\n  }\n}"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Adyen Webhook",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/payments/webhooks/adyen/",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "adyen-signature",
+                                        "value": "sig"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"notificationItems\": [\n    {\n      \"NotificationRequestItem\": {\n        \"eventCode\": \"AUTHORISATION\",\n        \"success\": \"true\",\n        \"pspReference\": \"psp_test\",\n        \"merchantReference\": \"{{paymentId}}\",\n        \"amount\": {\n          \"currency\": \"USD\",\n          \"value\": 1000\n        }\n      }\n    }\n  ]\n}"
+                                }
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "AI Calls",
+            "item": [
+                {
+                    "name": "Create Call Session",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json?.data?.id) pm.collectionVariables.set('callSessionId', json.data.id);",
+                                    "pm.test('callSessionId returned', function () { pm.expect(json?.data?.id).to.be.ok; });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/v1/ai-calls/sessions/",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"case_id\": \"{{caseId}}\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Call Session Detail",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/v1/ai-calls/sessions/{{callSessionId}}/"
+                    }
+                },
+                {
+                    "name": "Prepare Call Session",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/v1/ai-calls/sessions/{{callSessionId}}/prepare/"
+                    }
+                },
+                {
+                    "name": "Start Call Session",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/v1/ai-calls/sessions/{{callSessionId}}/start/"
+                    }
+                },
+                {
+                    "name": "Heartbeat",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/v1/ai-calls/sessions/{{callSessionId}}/heartbeat/"
+                    }
+                },
+                {
+                    "name": "Get Transcript",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/v1/ai-calls/sessions/{{callSessionId}}/transcript/"
+                    }
+                },
+                {
+                    "name": "End Call Session",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/v1/ai-calls/sessions/{{callSessionId}}/end/"
+                    }
+                },
+                {
+                    "name": "Terminate Call Session",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/v1/ai-calls/sessions/{{callSessionId}}/terminate/",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"reason\": \"User requested\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Speech (multipart audio upload)",
+                    "description": "Requires an in-progress session. Upload a short audio clip as form-data field `audio`.",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/v1/ai-calls/sessions/{{callSessionId}}/speech/",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "audio",
+                                    "type": "file",
+                                    "src": [],
+                                    "description": "Upload a small WAV/MP3 file here in Postman"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Admin",
+                    "item": [
+                        {
+                            "name": "Admin - List Sessions",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-calls/admin/sessions/"
+                            }
+                        },
+                        {
+                            "name": "Admin - Session Detail",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-calls/admin/sessions/{{callSessionId}}/"
+                            }
+                        },
+                        {
+                            "name": "Admin - Statistics",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-calls/admin/statistics/"
+                            }
+                        },
+                        {
+                            "name": "Admin - Guardrail Analytics",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-calls/admin/guardrail-analytics/"
                             }
                         }
                     ]
