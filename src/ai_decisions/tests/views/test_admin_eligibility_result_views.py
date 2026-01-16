@@ -57,3 +57,39 @@ class TestAdminEligibilityResultViews:
         assert resp.status_code == status.HTTP_200_OK
         assert eligibility_result_service.get_by_id(str(eligibility_result.id)) is None
 
+
+    def test_admin_bulk_delete_operation(self, api_client, admin_user, eligibility_result, eligibility_result_service):
+        api_client.force_authenticate(user=admin_user)
+        resp = api_client.post(
+            f"{API_PREFIX}/admin/eligibility-results/bulk-operation/",
+            {"result_ids": [str(eligibility_result.id)], "operation": "delete"},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_200_OK
+        assert eligibility_result_service.get_by_id(str(eligibility_result.id)) is None
+
+    def test_admin_bulk_invalid_operation_is_reported_not_500(self, api_client, admin_user, eligibility_result):
+        api_client.force_authenticate(user=admin_user)
+        resp = api_client.post(
+            f"{API_PREFIX}/admin/eligibility-results/bulk-operation/",
+            {"result_ids": [str(eligibility_result.id)], "operation": "not-a-real-op"},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert "operation" in resp.data
+
+    def test_admin_update_invalid_body(self, api_client, admin_user, eligibility_result):
+        api_client.force_authenticate(user=admin_user)
+        resp = api_client.patch(
+            f"{API_PREFIX}/admin/eligibility-results/{eligibility_result.id}/update/",
+            {"confidence": 1.5},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_admin_delete_not_found(self, api_client, admin_user):
+        import uuid
+
+        api_client.force_authenticate(user=admin_user)
+        resp = api_client.delete(f"{API_PREFIX}/admin/eligibility-results/{uuid.uuid4()}/delete/")
+        assert resp.status_code == status.HTTP_404_NOT_FOUND
