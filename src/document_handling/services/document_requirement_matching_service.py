@@ -107,6 +107,13 @@ class DocumentRequirementMatchingService:
             is_mandatory = matching_requirement.mandatory
             
             # Check conditional logic if present
+            # Load case facts for conditional logic evaluation (defensive: if loading fails, default to empty facts)
+            case_facts = {}
+            try:
+                case_facts = RuleEngineService.load_case_facts(case)
+            except Exception as e:
+                logger.warning(f"Error loading case facts for requirement matching: {e}")
+
             conditional_passed = True
             conditional_details = {}
             if matching_requirement.conditional_logic:

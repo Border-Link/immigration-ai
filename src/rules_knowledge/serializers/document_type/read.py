@@ -16,7 +16,6 @@ class DocumentTypeSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = '__all__'
 
 
 class DocumentTypeListSerializer(serializers.ModelSerializer):
@@ -30,5 +29,4 @@ class DocumentTypeListSerializer(serializers.ModelSerializer):
             'name',
             'is_active',
         ]
-        read_only_fields = '__all__'
 

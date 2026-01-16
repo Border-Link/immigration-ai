@@ -21,7 +21,16 @@ class DecisionOverrideSerializer(serializers.ModelSerializer):
             'reviewer_email',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'case_id',
+            'original_result_id',
+            'overridden_outcome',
+            'reason',
+            'reviewer',
+            'reviewer_email',
+            'created_at',
+        )
 
 
 class DecisionOverrideListSerializer(serializers.ModelSerializer):
@@ -29,6 +38,7 @@ class DecisionOverrideListSerializer(serializers.ModelSerializer):
     
     case_id = serializers.UUIDField(source='case.id', read_only=True)
     original_result_id = serializers.UUIDField(source='original_result.id', read_only=True)
+    reviewer_email = serializers.EmailField(source='reviewer.email', read_only=True, allow_null=True)
     
     class Meta:
         model = DecisionOverride
@@ -40,5 +50,12 @@ class DecisionOverrideListSerializer(serializers.ModelSerializer):
             'reviewer_email',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'case_id',
+            'original_result_id',
+            'overridden_outcome',
+            'reviewer_email',
+            'created_at',
+        )
 

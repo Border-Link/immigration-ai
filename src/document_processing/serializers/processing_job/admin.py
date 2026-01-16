@@ -20,6 +20,10 @@ class ProcessingJobAdminListQuerySerializer(BaseAdminListQuerySerializer):
 
     def to_internal_value(self, data):
         """Parse string dates to datetime objects and other types."""
+        # DRF passes `request.query_params` (a QueryDict) for GETs; it is immutable.
+        # Make a mutable copy before normalizing values.
+        if hasattr(data, "copy"):
+            data = data.copy()
         # Parse boolean and integer strings before calling super
         if 'max_retries_exceeded' in data and data.get('max_retries_exceeded') is not None:
             if isinstance(data['max_retries_exceeded'], str):
@@ -61,7 +65,7 @@ class ProcessingJobAdminListSerializer(serializers.ModelSerializer):
             'completed_at',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = fields
 
 
 class ProcessingJobAdminDetailSerializer(serializers.ModelSerializer):
@@ -99,7 +103,7 @@ class ProcessingJobAdminDetailSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = fields
 
 
 class ProcessingJobAdminUpdateSerializer(serializers.Serializer):

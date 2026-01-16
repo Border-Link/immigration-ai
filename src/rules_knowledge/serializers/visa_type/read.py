@@ -17,7 +17,6 @@ class VisaTypeSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = '__all__'
 
 
 class VisaTypeListSerializer(serializers.ModelSerializer):
@@ -32,5 +31,4 @@ class VisaTypeListSerializer(serializers.ModelSerializer):
             'name',
             'is_active',
         ]
-        read_only_fields = '__all__'
 

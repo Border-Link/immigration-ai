@@ -90,6 +90,12 @@ class RuleVersionConflictService:
         Returns:
             Conflict type: 'overlap', 'contains', 'contained_by', or None
         """
+        # Special case: Creating a new "current" version (new_to is None) after an existing
+        # "current" version (existing_to is None). This is a valid workflow because the
+        # repository will close the existing current version at new_from when effective_to is None.
+        if existing_to is None and new_to is None and new_from > existing_from:
+            return None
+
         # Case 1: New range is completely before existing range
         if new_to and new_to < existing_from:
             return None

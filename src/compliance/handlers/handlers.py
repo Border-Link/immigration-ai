@@ -7,7 +7,15 @@ class DatabaseLogHandler(logging.Handler):
     def emit(self, record):
         """Stores log messages in the database."""
         try:
-            if "audit_log_auditlog" in connection.introspection.table_names():  #Ensure DB table exists
+            # Ensure DB table exists. In some environments (e.g., pytest-django collection)
+            # database access may be intentionally blocked; in that case, skip silently.
+            try:
+                table_names = connection.introspection.table_names()
+            except Exception:
+                return
+
+            audit_log_table = AuditLog._meta.db_table
+            if audit_log_table in table_names:  # Ensure DB table exists
                 AuditLog.objects.create(
                     level=record.levelname,
                     logger_name=record.name,
@@ -18,7 +26,9 @@ class DatabaseLogHandler(logging.Handler):
                     process=record.process,
                     thread=record.threadName
                 )
-        except OperationalError as e:
-            logging.getLogger("django").warning(f"Database unavailable: {e}")
-        except Exception as e:
-            logging.getLogger("django").error(f"Error saving logentry: {e}")
+        except OperationalError:
+            # Never raise from logging handlers; avoid recursive logging here.
+            return
+        except Exception:
+            # Never raise from logging handlers; avoid recursive logging here.
+            return

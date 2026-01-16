@@ -13,7 +13,7 @@ class VisaDocumentRequirementSelector:
             'rule_version',
             'rule_version__visa_type',
             'document_type'
-        ).all()
+        ).all().order_by('document_type__code')
 
     @staticmethod
     def get_by_rule_version(rule_version: VisaRuleVersion):

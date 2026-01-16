@@ -1,6 +1,7 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.ai_reasoning_permission import AIReasoningPermission
+from ai_decisions.permissions.eligibility_result_permissions import CanViewEligibilityResult
 from ai_decisions.services.eligibility_result_service import EligibilityResultService
 from ai_decisions.serializers.eligibility_result.read import (
     EligibilityResultListQuerySerializer,
@@ -65,7 +66,7 @@ class EligibilityResultDetailAPI(AuthAPI):
     
     Security: Users can only access results for cases they own (unless admin/reviewer).
     """
-    permission_classes = [AIReasoningPermission]
+    permission_classes = [AIReasoningPermission, CanViewEligibilityResult]
 
     def get(self, request, id):
         result = EligibilityResultService.get_by_id(id)
@@ -76,8 +77,8 @@ class EligibilityResultDetailAPI(AuthAPI):
                 status_code=status.HTTP_404_NOT_FOUND
             )
 
-        # Permission check is handled by CanViewEligibilityResult permission class
-        # It checks if user has access to result.case
+        # Enforce object-level access (case ownership/admin).
+        self.check_object_permissions(request, result)
 
         return self.api_response(
             message="Eligibility result retrieved successfully.",

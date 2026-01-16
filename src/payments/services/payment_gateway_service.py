@@ -97,19 +97,24 @@ class PaymentGatewayService:
             raise PaymentGatewayError(f"Payment gateway {payment.payment_provider} not available")
         
         try:
-            # Get customer email from case
-            customer_email = payment.case.user.email
+            # Get customer email/name.
+            # Support both case-attached payments and pre-case payments (case is nullable).
+            user = payment.user if payment.case_id is None else payment.case.user
+            customer_email = user.email
             customer_name = None
-            if hasattr(payment.case.user, 'profile'):
-                profile = payment.case.user.profile
+            if hasattr(user, 'profile'):
+                profile = user.profile
                 if profile:
                     customer_name = f"{profile.first_name} {profile.last_name}".strip()
             
             # Prepare metadata
             metadata = {
-                'case_id': str(payment.case.id),
                 'payment_id': str(payment.id),
             }
+            if payment.case_id:
+                metadata['case_id'] = str(payment.case.id)
+            else:
+                metadata['user_id'] = str(user.id)
             
             result = gateway.initialize_payment(
                 amount=payment.amount,

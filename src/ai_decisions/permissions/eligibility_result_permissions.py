@@ -65,5 +65,21 @@ class CanModifyEligibilityResult(permissions.BasePermission):
         """
         if not hasattr(obj, 'case'):
             return False
-        
-        return CaseOwnershipPermission.has_case_write_access(request.user, obj.case)
+
+        user = request.user
+
+        # User owns case
+        if obj.case.user == user:
+            return True
+
+        # Superuser can modify anything
+        if user.is_superuser:
+            return True
+
+        # Admin/staff can modify, but reviewers are explicitly read-only even if staff.
+        if user.role == 'admin':
+            return True
+        if user.is_staff and user.role != 'reviewer':
+            return True
+
+        return False

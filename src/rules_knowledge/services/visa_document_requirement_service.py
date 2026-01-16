@@ -175,7 +175,20 @@ class VisaDocumentRequirementService:
 
     @staticmethod
     def update_visa_document_requirement(requirement_id: str, **fields) -> Optional[VisaDocumentRequirement]:
-        """Update visa document requirement (alias for update_document_requirement)."""
+        """
+        Update visa document requirement (wrapper for views).
+        
+        API uses `description`; model stores it under `conditional_logic` metadata.
+        """
+        if 'description' in fields and 'conditional_logic' not in fields:
+            description = fields.pop('description')
+            if description is None or (isinstance(description, str) and description.strip() == ""):
+                fields['conditional_logic'] = None
+            else:
+                fields['conditional_logic'] = {'description': description}
+        else:
+            # Drop unknown alias if both provided to avoid silent no-op
+            fields.pop('description', None)
         return VisaDocumentRequirementService.update_document_requirement(requirement_id, **fields)
 
     @staticmethod

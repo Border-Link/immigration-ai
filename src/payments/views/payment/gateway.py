@@ -23,6 +23,15 @@ class PaymentInitiateAPI(AuthAPI):
     permission_classes = [PaymentPermission]
     
     def post(self, request, id):
+        existing = PaymentService.get_by_id(str(id))
+        if not existing:
+            return self.api_response(
+                message="Failed to initiate payment.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        self.check_object_permissions(request, existing)
+
         return_url = request.data.get('return_url')
         callback_url = request.data.get('callback_url')
         
@@ -55,6 +64,15 @@ class PaymentVerifyAPI(AuthAPI):
     permission_classes = [PaymentPermission]
     
     def post(self, request, id):
+        existing = PaymentService.get_by_id(str(id))
+        if not existing:
+            return self.api_response(
+                message="Failed to verify payment.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        self.check_object_permissions(request, existing)
+
         result = PaymentService.verify_payment_status(payment_id=str(id))
         
         if not result:
@@ -88,6 +106,15 @@ class PaymentRefundAPI(AuthAPI):
     def post(self, request, id):
         from decimal import Decimal
         from payments.serializers.payment.refund import PaymentRefundSerializer
+
+        existing = PaymentService.get_by_id(str(id))
+        if not existing:
+            return self.api_response(
+                message="Failed to process refund.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        self.check_object_permissions(request, existing)
         
         serializer = PaymentRefundSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

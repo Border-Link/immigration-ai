@@ -33,7 +33,8 @@ urlpatterns = [
     
     # Admin endpoints
     path('admin/sessions/', CallSessionAdminListAPI.as_view(), name='admin-call-sessions-list'),
-    path('admin/sessions/<uuid:session_id>/', CallSessionAdminDetailAPI.as_view(), name='admin-call-sessions-detail'),
+    # BaseAdminDetailAPI expects kwarg name `id`
+    path('admin/sessions/<uuid:id>/', CallSessionAdminDetailAPI.as_view(), name='admin-call-sessions-detail'),
     path('admin/statistics/', CallSessionStatisticsAPI.as_view(), name='admin-call-statistics'),
     path('admin/guardrail-analytics/', GuardrailAnalyticsAPI.as_view(), name='admin-guardrail-analytics'),
 ]

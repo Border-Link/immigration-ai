@@ -5,14 +5,17 @@ class CallSessionSelector:
     """Selector for CallSession read operations."""
 
     @staticmethod
-    def get_by_id(session_id, use_cache: bool = True):
-        """Get call session by ID, excluding soft-deleted ones."""
-        call_session = CallSession.objects.select_related(
-            'case', 'user', 'summary'
-        ).filter(
-            is_deleted=False
-        ).get(id=session_id)
-        return call_session
+    def get_by_id(session_id, use_cache: bool = True, include_deleted: bool = False):
+        """
+        Get call session by ID.
+
+        Returns None if not found (do not raise DoesNotExist) to keep view/service
+        layers deterministic and avoid leaking 500s for simple not-found cases.
+        """
+        queryset = CallSession.objects.select_related('case', 'user', 'summary', 'parent_session').all()
+        if not include_deleted:
+            queryset = queryset.filter(is_deleted=False)
+        return queryset.filter(id=session_id).first()
 
     @staticmethod
     def get_by_case(case, use_cache: bool = True):
