@@ -1,980 +1,2449 @@
 {
-  "info": {
-    "_postman_id": "d4e8c1f0-6a51-4c77-9f0e-4e4f6ad9b2a4",
-    "name": "Borderlink Immigration Backend (api/v1) - users_access, data_ingestion, immigration_cases",
-    "description": "Generated from Django URLConfs:\n- users_access mounted at /api/v1/auth/\n- data_ingestion mounted at /api/v1/data-ingestion/\n- immigration_cases mounted at /api/v1/imigration-cases/ (note spelling)\n\nAuth model:\n- Login returns an endpoint_token in JSON\n- Login verify sets Secure cookies (access_token, fingerprint, sessionid, etc.) used by the backend's CookieAccessOnlyTokenAuthentication\n\nPostman tips:\n- Use https base URL if you want Secure cookies to be sent.\n- Ensure Postman Cookie Jar is enabled.\n\nCollection variables you’ll likely set:\n- baseUrl (default: https://localhost:8000)\n- endpointToken (set automatically after Login)\n- caseId, caseFactId, dataSourceId, parsedRuleId, validationTaskId, etc.\n",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    { "key": "baseUrl", "value": "https://localhost:8000" },
-    { "key": "endpointToken", "value": "" },
-    { "key": "email", "value": "user@example.com" },
-    { "key": "password", "value": "ChangeMe123!" },
-    { "key": "otp", "value": "123456" },
-    { "key": "countryId", "value": "" },
-    { "key": "stateProvinceId", "value": "" },
-    { "key": "notificationId", "value": "" },
-    { "key": "userId", "value": "" },
-    { "key": "dataSourceId", "value": "" },
-    { "key": "sourceDocumentId", "value": "" },
-    { "key": "documentVersionId", "value": "" },
-    { "key": "documentChunkId", "value": "" },
-    { "key": "documentDiffId", "value": "" },
-    { "key": "parsedRuleId", "value": "" },
-    { "key": "validationTaskId", "value": "" },
-    { "key": "auditLogId", "value": "" },
-    { "key": "caseId", "value": "" },
-    { "key": "caseFactId", "value": "" },
-    { "key": "eligibilityResultId", "value": "" }
-  ],
-  "item": [
-    {
-      "name": "users_access (mounted under /api/v1/auth/)",
-      "item": [
+    "info": {
+        "_postman_id": "d4e8c1f0-6a51-4c77-9f0e-4e4f6ad9b2a4",
+        "name": "Borderlink Immigration Backend (api/v1) - users_access, data_ingestion, immigration_cases, ai_decisions",
+        "description": "Generated from Django URLConfs:\n- users_access mounted at /api/v1/auth/\n- data_ingestion mounted at /api/v1/data-ingestion/\n- immigration_cases mounted at /api/v1/imigration-cases/ (note spelling)\n- ai_decisions mounted at /api/v1/ai-decisions/\n\nAuth model:\n- Login returns an endpoint_token in JSON\n- Login verify sets Secure cookies (access_token, fingerprint, sessionid, etc.) used by the backend's CookieAccessOnlyTokenAuthentication\n\nPostman tips:\n- Use https base URL if you want Secure cookies to be sent.\n- Ensure Postman Cookie Jar is enabled.\n\nCollection variables you\u2019ll likely set:\n- baseUrl (default: https://localhost:8000)\n- endpointToken (set automatically after Login)\n- caseId, caseFactId, dataSourceId, parsedRuleId, validationTaskId, etc.\n",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
         {
-          "name": "Users",
-          "item": [
-            {
-              "name": "Register",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/register/"
-              }
-            },
-            {
-              "name": "Login (returns endpoint_token)",
-              "event": [
+            "key": "baseUrl",
+            "value": "http://localhost:8000"
+        },
+        {
+            "key": "endpointToken",
+            "value": ""
+        },
+        {
+            "key": "email",
+            "value": "user@example.com"
+        },
+        {
+            "key": "password",
+            "value": "ChangeMe123!"
+        },
+        {
+            "key": "otp",
+            "value": "123456"
+        },
+        {
+            "key": "countryId",
+            "value": ""
+        },
+        {
+            "key": "stateProvinceId",
+            "value": ""
+        },
+        {
+            "key": "notificationId",
+            "value": ""
+        },
+        {
+            "key": "userId",
+            "value": ""
+        },
+        {
+            "key": "dataSourceId",
+            "value": ""
+        },
+        {
+            "key": "sourceDocumentId",
+            "value": ""
+        },
+        {
+            "key": "documentVersionId",
+            "value": ""
+        },
+        {
+            "key": "documentChunkId",
+            "value": ""
+        },
+        {
+            "key": "documentDiffId",
+            "value": ""
+        },
+        {
+            "key": "parsedRuleId",
+            "value": ""
+        },
+        {
+            "key": "validationTaskId",
+            "value": ""
+        },
+        {
+            "key": "auditLogId",
+            "value": ""
+        },
+        {
+            "key": "caseId",
+            "value": ""
+        },
+        {
+            "key": "caseFactId",
+            "value": ""
+        },
+        {
+            "key": "eligibilityResultId",
+            "value": ""
+        },
+        {
+            "key": "aiReasoningLogId",
+            "value": ""
+        },
+        {
+            "key": "aiCitationId",
+            "value": ""
+        },
+        {
+            "key": "caseDocumentId",
+            "value": ""
+        },
+        {
+            "key": "documentTypeId",
+            "value": ""
+        },
+        {
+            "key": "documentCheckId",
+            "value": ""
+        }
+    ],
+    "item": [
+        {
+            "name": "Users Access",
+            "item": [
                 {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "const json = pm.response.json();",
-                      "if (json?.data?.endpoint_token) pm.collectionVariables.set('endpointToken', json.data.endpoint_token);",
-                      "if (json?.data?.email) pm.collectionVariables.set('email', json.data.email);",
-                      "pm.test('endpoint_token returned', function () {",
-                      "  pm.expect(json?.data?.endpoint_token).to.be.ok;",
-                      "});"
+                    "name": "Users",
+                    "item": [
+                        {
+                            "name": "Register",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/register/"
+                            }
+                        },
+                        {
+                            "name": "Login (returns endpoint_token)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json?.data?.endpoint_token) pm.collectionVariables.set('endpointToken', json.data.endpoint_token);",
+                                            "if (json?.data?.email) pm.collectionVariables.set('email', json.data.email);",
+                                            "pm.test('endpoint_token returned', function () {",
+                                            "  pm.expect(json?.data?.endpoint_token).to.be.ok;",
+                                            "});"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/login/"
+                            }
+                        },
+                        {
+                            "name": "Login Verify (OTP or 2FA) (sets cookies)",
+                            "description": "This endpoint sets Secure cookies (access_token, fingerprint, sessionid, etc.). Ensure you use https and Cookie Jar is enabled.",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"otp\": \"{{otp}}\",\n  \"is_2fa\": false\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/login/verify/{{endpointToken}}/"
+                            }
+                        },
+                        {
+                            "name": "Resend login OTP/2FA token",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/auth/users/login/resend-2fa/{{endpointToken}}/"
+                            }
+                        },
+                        {
+                            "name": "Logout",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/auth/users/logout/"
+                            }
+                        },
+                        {
+                            "name": "Logout All",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/auth/users/logout-all/"
+                            }
+                        },
+                        {
+                            "name": "Forgot Password - Send OTP",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"email\": \"{{email}}\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/forgot-password/"
+                            }
+                        },
+                        {
+                            "name": "Forgot Password - Verify OTP",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"otp\": \"{{otp}}\",\n  \"is_2fa\": false\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/forgot-password/verify/{{endpointToken}}/"
+                            }
+                        },
+                        {
+                            "name": "Forgot Password - Reset Password",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"email\": \"{{email}}\",\n  \"new_password\": \"{{password}}\",\n  \"retype_password\": \"{{password}}\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/forgot-password/reset/{{endpointToken}}/"
+                            }
+                        },
+                        {
+                            "name": "Account (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/users/account/"
+                            }
+                        },
+                        {
+                            "name": "Status (WhoAmI) (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/users/status/"
+                            }
+                        },
+                        {
+                            "name": "Profile (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/users/profile/"
+                            }
+                        },
+                        {
+                            "name": "Profile (POST create-if-missing)",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/auth/users/profile/"
+                            }
+                        },
+                        {
+                            "name": "Profile (PATCH update)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"date_of_birth\": \"1990-01-01\",\n  \"country_code\": \"UK\",\n  \"state_code\": null,\n  \"consent_given\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/profile/"
+                            }
+                        },
+                        {
+                            "name": "Profile Avatar (POST upload - multipart/form-data)",
+                            "request": {
+                                "method": "POST",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "avatar",
+                                            "type": "file",
+                                            "src": ""
+                                        }
+                                    ]
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/profile/avatar/"
+                            }
+                        },
+                        {
+                            "name": "Profile Avatar (PATCH compatibility - update nationality fields)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"country_code\": \"UK\",\n  \"state_code\": null\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/profile/avatar/"
+                            }
+                        },
+                        {
+                            "name": "Profile Avatar (DELETE remove avatar)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/auth/users/profile/avatar/"
+                            }
+                        },
+                        {
+                            "name": "Avatar (PATCH /users/avatar/)",
+                            "request": {
+                                "method": "PATCH",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "avatar",
+                                            "type": "file",
+                                            "src": ""
+                                        }
+                                    ]
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/avatar/"
+                            }
+                        },
+                        {
+                            "name": "Update Names (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/names/"
+                            }
+                        },
+                        {
+                            "name": "Update Password (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"old_password\": \"OldPassword123!\",\n  \"password\": \"{{password}}\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/password/update/"
+                            }
+                        },
+                        {
+                            "name": "Settings (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/users/settings/"
+                            }
+                        },
+                        {
+                            "name": "Enable 2FA (POST)",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/auth/users/settings/enable-2fa/"
+                            }
+                        },
+                        {
+                            "name": "Toggle Setting (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"value\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/users/settings/{{settingName}}/"
+                            },
+                            "variable": [
+                                {
+                                    "key": "settingName",
+                                    "value": "dark_mode"
+                                }
+                            ]
+                        }
                     ]
-                  }
+                },
+                {
+                    "name": "Countries",
+                    "item": [
+                        {
+                            "name": "List Countries (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/countries/"
+                            }
+                        },
+                        {
+                            "name": "Create Country (POST) (admin)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"code\": \"UK\",\n  \"name\": \"United Kingdom\",\n  \"has_states\": false,\n  \"is_jurisdiction\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/countries/"
+                            }
+                        },
+                        {
+                            "name": "Get Country (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/countries/{{countryId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update Country (PATCH) (admin)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"United Kingdom (Updated)\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/countries/{{countryId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete Country (DELETE) (admin)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/auth/countries/{{countryId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Jurisdictions (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/countries/jurisdictions/"
+                            }
+                        },
+                        {
+                            "name": "Countries With States (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/countries/with-states/"
+                            }
+                        },
+                        {
+                            "name": "Search Countries (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/countries/search/?query={{query}}"
+                            },
+                            "variable": [
+                                {
+                                    "key": "query",
+                                    "value": "Uni"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "States/Provinces",
+                    "item": [
+                        {
+                            "name": "List States By Country (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/states/country/{{countryId}}/"
+                            }
+                        },
+                        {
+                            "name": "Create State/Province (POST) (admin)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"country_id\": \"{{countryId}}\",\n  \"code\": \"ENG\",\n  \"name\": \"England\",\n  \"has_nomination_program\": false\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/states/"
+                            }
+                        },
+                        {
+                            "name": "Nomination Programs (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/states/nomination-programs/?country_id={{countryId}}"
+                            }
+                        },
+                        {
+                            "name": "Get State/Province (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/states/{{stateProvinceId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update State/Province (PATCH) (admin)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"England (Updated)\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/states/{{stateProvinceId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete State/Province (DELETE) (admin)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/auth/states/{{stateProvinceId}}/delete/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Notifications",
+                    "item": [
+                        {
+                            "name": "List Notifications (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/notifications/?unread_only=false"
+                            }
+                        },
+                        {
+                            "name": "Unread Count (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/notifications/unread-count/"
+                            }
+                        },
+                        {
+                            "name": "Mark Read (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"mark_all\": false,\n  \"notification_id\": \"{{notificationId}}\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/notifications/mark-read/"
+                            }
+                        },
+                        {
+                            "name": "Get Notification (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/notifications/{{notificationId}}/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin",
+                    "item": [
+                        {
+                            "name": "Users - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/"
+                            }
+                        },
+                        {
+                            "name": "Users - Statistics (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/statistics/"
+                            }
+                        },
+                        {
+                            "name": "Users - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"user_ids\": [\"{{userId}}\"],\n  \"operation\": \"deactivate\",\n  \"reason\": \"test\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Users - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/"
+                            }
+                        },
+                        {
+                            "name": "Users - Update (PATCH) (compat on detail path)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_active\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/"
+                            }
+                        },
+                        {
+                            "name": "Users - Delete/Deactivate (DELETE) (compat on detail path)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/"
+                            }
+                        },
+                        {
+                            "name": "Users - Activate/Deactivate (POST /activate/)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_active\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/activate/"
+                            }
+                        },
+                        {
+                            "name": "Users - Deactivate (POST /deactivate/)",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/deactivate/"
+                            }
+                        },
+                        {
+                            "name": "Users - Suspend (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"policy\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/suspend/"
+                            }
+                        },
+                        {
+                            "name": "Users - Unsuspend (POST)",
+                            "request": {
+                                "method": "POST",
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/unsuspend/"
+                            }
+                        },
+                        {
+                            "name": "Users - Verify (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_verified\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/verify/"
+                            }
+                        },
+                        {
+                            "name": "Users - Reset Password (POST) (superadmin)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"new_password\": \"ChangeMe123!\",\n  \"send_email\": false\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/reset-password/"
+                            }
+                        },
+                        {
+                            "name": "Users - Role (PATCH) (superadmin)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"role\": \"reviewer\",\n  \"is_staff\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/role/"
+                            }
+                        },
+                        {
+                            "name": "Users - Activity (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/activity/"
+                            }
+                        },
+                        {
+                            "name": "User Profiles - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/admin/user-profiles/"
+                            }
+                        },
+                        {
+                            "name": "User Profiles - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/admin/user-profiles/{{userId}}/"
+                            }
+                        },
+                        {
+                            "name": "User Profiles - Update (PATCH) (compat on detail path)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/user-profiles/{{userId}}/"
+                            }
+                        },
+                        {
+                            "name": "Countries - Activate (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_active\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/countries/{{countryId}}/activate/"
+                            }
+                        },
+                        {
+                            "name": "Countries - Set Jurisdiction (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_jurisdiction\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/countries/{{countryId}}/set-jurisdiction/"
+                            }
+                        },
+                        {
+                            "name": "States - Activate (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_active\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/states/{{stateProvinceId}}/activate/"
+                            }
+                        },
+                        {
+                            "name": "Admin Notifications - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/auth/admin/notifications/"
+                            }
+                        },
+                        {
+                            "name": "Admin Notifications - Create (POST) (compat on list path)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"notification_type\": \"system\",\n  \"title\": \"Test\",\n  \"message\": \"Hello\",\n  \"priority\": \"medium\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/notifications/"
+                            }
+                        },
+                        {
+                            "name": "Admin Notifications - Bulk Create (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"user_ids\": [\"{{userId}}\"],\n  \"notification_type\": \"system\",\n  \"title\": \"Test\",\n  \"message\": \"Hello\",\n  \"priority\": \"medium\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/auth/admin/notifications/bulk/"
+                            }
+                        },
+                        {
+                            "name": "Admin Notifications - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/auth/admin/notifications/{{notificationId}}/delete/"
+                            }
+                        }
+                    ]
                 }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/login/"
-              }
-            },
-            {
-              "name": "Login Verify (OTP or 2FA) (sets cookies)",
-              "description": "This endpoint sets Secure cookies (access_token, fingerprint, sessionid, etc.). Ensure you use https and Cookie Jar is enabled.",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"otp\": \"{{otp}}\",\n  \"is_2fa\": false\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/login/verify/{{endpointToken}}/"
-              }
-            },
-            {
-              "name": "Resend login OTP/2FA token",
-              "request": {
-                "method": "POST",
-                "url": "{{baseUrl}}/api/v1/auth/users/login/resend-2fa/{{endpointToken}}/"
-              }
-            },
-            {
-              "name": "Logout",
-              "request": {
-                "method": "POST",
-                "url": "{{baseUrl}}/api/v1/auth/users/logout/"
-              }
-            },
-            {
-              "name": "Logout All",
-              "request": {
-                "method": "POST",
-                "url": "{{baseUrl}}/api/v1/auth/users/logout-all/"
-              }
-            },
-            {
-              "name": "Forgot Password - Send OTP",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"email\": \"{{email}}\"\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/forgot-password/"
-              }
-            },
-            {
-              "name": "Forgot Password - Verify OTP",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"otp\": \"{{otp}}\",\n  \"is_2fa\": false\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/forgot-password/verify/{{endpointToken}}/"
-              }
-            },
-            {
-              "name": "Forgot Password - Reset Password",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"email\": \"{{email}}\",\n  \"new_password\": \"{{password}}\",\n  \"retype_password\": \"{{password}}\"\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/forgot-password/reset/{{endpointToken}}/"
-              }
-            },
-            {
-              "name": "Account (GET)",
-              "request": {
-                "method": "GET",
-                "url": "{{baseUrl}}/api/v1/auth/users/account/"
-              }
-            },
-            {
-              "name": "Status (WhoAmI) (GET)",
-              "request": {
-                "method": "GET",
-                "url": "{{baseUrl}}/api/v1/auth/users/status/"
-              }
-            },
-            {
-              "name": "Profile (GET)",
-              "request": {
-                "method": "GET",
-                "url": "{{baseUrl}}/api/v1/auth/users/profile/"
-              }
-            },
-            {
-              "name": "Profile (POST create-if-missing)",
-              "request": {
-                "method": "POST",
-                "url": "{{baseUrl}}/api/v1/auth/users/profile/"
-              }
-            },
-            {
-              "name": "Profile (PATCH update)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"date_of_birth\": \"1990-01-01\",\n  \"country_code\": \"UK\",\n  \"state_code\": null,\n  \"consent_given\": true\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/profile/"
-              }
-            },
-            {
-              "name": "Profile Avatar (POST upload - multipart/form-data)",
-              "request": {
-                "method": "POST",
-                "body": {
-                  "mode": "formdata",
-                  "formdata": [
-                    { "key": "avatar", "type": "file", "src": "" }
-                  ]
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/profile/avatar/"
-              }
-            },
-            {
-              "name": "Profile Avatar (PATCH compatibility - update nationality fields)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"country_code\": \"UK\",\n  \"state_code\": null\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/profile/avatar/"
-              }
-            },
-            {
-              "name": "Profile Avatar (DELETE remove avatar)",
-              "request": {
-                "method": "DELETE",
-                "url": "{{baseUrl}}/api/v1/auth/users/profile/avatar/"
-              }
-            },
-            {
-              "name": "Avatar (PATCH /users/avatar/)",
-              "request": {
-                "method": "PATCH",
-                "body": {
-                  "mode": "formdata",
-                  "formdata": [
-                    { "key": "avatar", "type": "file", "src": "" }
-                  ]
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/avatar/"
-              }
-            },
-            {
-              "name": "Update Names (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/names/"
-              }
-            },
-            {
-              "name": "Update Password (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"old_password\": \"OldPassword123!\",\n  \"password\": \"{{password}}\"\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/auth/users/password/update/"
-              }
-            },
-            {
-              "name": "Settings (GET)",
-              "request": {
-                "method": "GET",
-                "url": "{{baseUrl}}/api/v1/auth/users/settings/"
-              }
-            },
-            {
-              "name": "Enable 2FA (POST)",
-              "request": {
-                "method": "POST",
-                "url": "{{baseUrl}}/api/v1/auth/users/settings/enable-2fa/"
-              }
-            },
-            {
-              "name": "Toggle Setting (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"value\": true\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/users/settings/{{settingName}}/"
-              },
-              "variable": [{ "key": "settingName", "value": "dark_mode" }]
-            }
-          ]
+            ]
         },
         {
-          "name": "Countries",
-          "item": [
-            {
-              "name": "List Countries (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/countries/" }
-            },
-            {
-              "name": "Create Country (POST) (admin)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"code\": \"UK\",\n  \"name\": \"United Kingdom\",\n  \"has_states\": false,\n  \"is_jurisdiction\": true\n}"
+            "name": "Data Ingestion",
+            "item": [
+                {
+                    "name": "Data Sources",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/data-sources/"
+                            }
+                        },
+                        {
+                            "name": "Create (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"UK Government\",\n  \"base_url\": \"https://www.gov.uk/\",\n  \"jurisdiction\": \"UK\",\n  \"crawl_frequency\": \"daily\",\n  \"is_active\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/data-sources/create/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/data-sources/{{dataSourceId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"crawl_frequency\": \"weekly\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/data-sources/{{dataSourceId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Trigger Ingestion (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"async_task\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/data-sources/{{dataSourceId}}/ingest/"
+                            }
+                        }
+                    ]
                 },
-                "url": "{{baseUrl}}/api/v1/auth/countries/"
-              }
-            },
-            {
-              "name": "Get Country (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/countries/{{countryId}}/" }
-            },
-            {
-              "name": "Update Country (PATCH) (admin)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"name\": \"United Kingdom (Updated)\"\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/countries/{{countryId}}/update/"
-              }
-            },
-            {
-              "name": "Delete Country (DELETE) (admin)",
-              "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/auth/countries/{{countryId}}/delete/" }
-            },
-            {
-              "name": "Jurisdictions (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/countries/jurisdictions/" }
-            },
-            {
-              "name": "Countries With States (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/countries/with-states/" }
-            },
-            {
-              "name": "Search Countries (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/countries/search/?query={{query}}" },
-              "variable": [{ "key": "query", "value": "Uni" }]
-            }
-          ]
+                {
+                    "name": "Source Documents",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/source-documents/?data_source_id={{dataSourceId}}"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/source-documents/{{sourceDocumentId}}/"
+                            }
+                        },
+                        {
+                            "name": "Latest by Data Source (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/source-documents/data-source/{{dataSourceId}}/latest/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Document Versions",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/document-versions/?source_document_id={{sourceDocumentId}}"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/document-versions/{{documentVersionId}}/"
+                            }
+                        },
+                        {
+                            "name": "Latest by Source Document (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/document-versions/source-document/{{sourceDocumentId}}/latest/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Document Diffs",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/document-diffs/?change_type="
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/document-diffs/{{documentDiffId}}/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Parsed Rules",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/parsed-rules/"
+                            }
+                        },
+                        {
+                            "name": "Pending (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/parsed-rules/pending/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/parsed-rules/{{parsedRuleId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"raw_rule_text\": \"...\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/parsed-rules/{{parsedRuleId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Update Status (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"status\": \"approved\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/parsed-rules/{{parsedRuleId}}/status/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Rule Validation Tasks",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/"
+                            }
+                        },
+                        {
+                            "name": "Pending (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/pending/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/{{validationTaskId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reviewer_notes\": \"...\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/{{validationTaskId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Assign Reviewer (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reviewer_id\": \"{{userId}}\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/{{validationTaskId}}/assign/"
+                            }
+                        },
+                        {
+                            "name": "Approve (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reviewer_notes\": \"Looks good\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/{{validationTaskId}}/approve/"
+                            }
+                        },
+                        {
+                            "name": "Reject (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reviewer_notes\": \"Needs changes\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/{{validationTaskId}}/reject/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin (data ingestion)",
+                    "item": [
+                        {
+                            "name": "Data Sources - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/data-sources/"
+                            }
+                        },
+                        {
+                            "name": "Data Sources - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [\"{{dataSourceId}}\"],\n  \"operation\": \"trigger_ingestion\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/data-sources/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Data Sources - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/data-sources/{{dataSourceId}}/"
+                            }
+                        },
+                        {
+                            "name": "Data Sources - Activate/Deactivate (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_active\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/data-sources/{{dataSourceId}}/activate/"
+                            }
+                        },
+                        {
+                            "name": "Data Sources - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/data-sources/{{dataSourceId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Source Documents - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/source-documents/"
+                            }
+                        },
+                        {
+                            "name": "Source Documents - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [\"{{sourceDocumentId}}\"],\n  \"operation\": \"delete\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/source-documents/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Source Documents - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/source-documents/{{sourceDocumentId}}/"
+                            }
+                        },
+                        {
+                            "name": "Source Documents - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/source-documents/{{sourceDocumentId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Document Versions - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-versions/"
+                            }
+                        },
+                        {
+                            "name": "Document Versions - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [\"{{documentVersionId}}\"],\n  \"operation\": \"delete\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-versions/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Document Versions - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-versions/{{documentVersionId}}/"
+                            }
+                        },
+                        {
+                            "name": "Document Versions - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-versions/{{documentVersionId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Document Chunks - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-chunks/?page=1&page_size=50"
+                            }
+                        },
+                        {
+                            "name": "Document Chunks - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [\"{{documentChunkId}}\"],\n  \"operation\": \"delete\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-chunks/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Document Chunks - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-chunks/{{documentChunkId}}/"
+                            }
+                        },
+                        {
+                            "name": "Document Chunks - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-chunks/{{documentChunkId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Document Diffs - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-diffs/"
+                            }
+                        },
+                        {
+                            "name": "Document Diffs - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [\"{{documentDiffId}}\"],\n  \"operation\": \"delete\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-diffs/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Document Diffs - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-diffs/{{documentDiffId}}/"
+                            }
+                        },
+                        {
+                            "name": "Document Diffs - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-diffs/{{documentDiffId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Parsed Rules - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/parsed-rules/"
+                            }
+                        },
+                        {
+                            "name": "Parsed Rules - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [\"{{parsedRuleId}}\"],\n  \"operation\": \"approve\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/parsed-rules/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Parsed Rules - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/parsed-rules/{{parsedRuleId}}/"
+                            }
+                        },
+                        {
+                            "name": "Parsed Rules - Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"status\": \"approved\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/parsed-rules/{{parsedRuleId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Parsed Rules - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/parsed-rules/{{parsedRuleId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Validation Tasks - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/validation-tasks/"
+                            }
+                        },
+                        {
+                            "name": "Validation Tasks - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [\"{{validationTaskId}}\"],\n  \"operation\": \"assign\",\n  \"assigned_to\": \"{{userId}}\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/validation-tasks/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Validation Tasks - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/validation-tasks/{{validationTaskId}}/"
+                            }
+                        },
+                        {
+                            "name": "Validation Tasks - Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"status\": \"approved\",\n  \"reviewer_notes\": \"ok\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/validation-tasks/{{validationTaskId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Validation Tasks - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/validation-tasks/{{validationTaskId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Audit Logs (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/audit-logs/"
+                            }
+                        },
+                        {
+                            "name": "Audit Log Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/audit-logs/{{auditLogId}}/"
+                            }
+                        },
+                        {
+                            "name": "Statistics (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/statistics/"
+                            }
+                        },
+                        {
+                            "name": "Cost Analytics (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/cost-analytics/"
+                            }
+                        }
+                    ]
+                }
+            ]
         },
         {
-          "name": "States/Provinces",
-          "item": [
-            {
-              "name": "List States By Country (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/states/country/{{countryId}}/" }
-            },
-            {
-              "name": "Create State/Province (POST) (admin)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"country_id\": \"{{countryId}}\",\n  \"code\": \"ENG\",\n  \"name\": \"England\",\n  \"has_nomination_program\": false\n}"
+            "name": "Immigration Cases",
+            "item": [
+                {
+                    "name": "Cases",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/cases/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Create (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"jurisdiction\": \"UK\",\n  \"status\": \"draft\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/cases/create/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/cases/{{caseId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"status\": \"evaluated\",\n  \"version\": 1,\n  \"reason\": \"update via API\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/cases/{{caseId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/cases/{{caseId}}/delete/"
+                            }
+                        }
+                    ]
                 },
-                "url": "{{baseUrl}}/api/v1/auth/states/"
-              }
-            },
-            {
-              "name": "Nomination Programs (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/states/nomination-programs/?country_id={{countryId}}" }
-            },
-            {
-              "name": "Get State/Province (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/states/{{stateProvinceId}}/" }
-            },
-            {
-              "name": "Update State/Province (PATCH) (admin)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"name\": \"England (Updated)\"\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/states/{{stateProvinceId}}/update/"
-              }
-            },
-            {
-              "name": "Delete State/Province (DELETE) (admin)",
-              "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/auth/states/{{stateProvinceId}}/delete/" }
-            }
-          ]
+                {
+                    "name": "Eligibility",
+                    "item": [
+                        {
+                            "name": "Run Eligibility Check (POST) (reviewer/admin only)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"visa_type_ids\": [],\n  \"enable_ai_reasoning\": true\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/cases/{{caseId}}/eligibility/"
+                            }
+                        },
+                        {
+                            "name": "Eligibility Explanation (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/cases/{{caseId}}/eligibility/{{eligibilityResultId}}/explanation/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Case Facts",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/case-facts/?case_id={{caseId}}&page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Create (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"case_id\": \"{{caseId}}\",\n  \"fact_key\": \"age\",\n  \"fact_value\": 30,\n  \"source\": \"user\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/case-facts/create/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/case-facts/{{caseFactId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"fact_value\": 31\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/case-facts/{{caseFactId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/case-facts/{{caseFactId}}/delete/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin (immigration cases)",
+                    "item": [
+                        {
+                            "name": "Cases - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/"
+                            }
+                        },
+                        {
+                            "name": "Cases - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [\"{{caseId}}\"],\n  \"operation\": \"archive\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Cases - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/{{caseId}}/"
+                            }
+                        },
+                        {
+                            "name": "Cases - Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"status\": \"closed\",\n  \"version\": 1,\n  \"reason\": \"admin update\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/{{caseId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Cases - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/{{caseId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Case Facts - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/case-facts/?case_id={{caseId}}"
+                            }
+                        },
+                        {
+                            "name": "Case Facts - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"ids\": [\"{{caseFactId}}\"],\n  \"operation\": \"delete\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/case-facts/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Case Facts - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/case-facts/{{caseFactId}}/"
+                            }
+                        },
+                        {
+                            "name": "Case Facts - Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"source\": \"reviewer\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/case-facts/{{caseFactId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Case Facts - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/case-facts/{{caseFactId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Status History - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/{{caseId}}/status-history/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Status History - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/status-history/{{statusHistoryId}}/"
+                            },
+                            "variable": [
+                                {
+                                    "key": "statusHistoryId",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Statistics (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/statistics/"
+                            }
+                        }
+                    ]
+                }
+            ]
         },
         {
-          "name": "Notifications",
-          "item": [
-            {
-              "name": "List Notifications (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/notifications/?unread_only=false" }
-            },
-            {
-              "name": "Unread Count (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/notifications/unread-count/" }
-            },
-            {
-              "name": "Mark Read (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"mark_all\": false,\n  \"notification_id\": \"{{notificationId}}\"\n}"
+            "name": "AI Decisions",
+            "item": [
+                {
+                    "name": "Eligibility Results",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/eligibility-results/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "List by Case (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/eligibility-results/?case_id={{caseId}}&page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/eligibility-results/{{eligibilityResultId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"confidence\": 0.85,\n  \"outcome\": \"requires_review\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/eligibility-results/{{eligibilityResultId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/eligibility-results/{{eligibilityResultId}}/delete/"
+                            }
+                        }
+                    ]
                 },
-                "url": "{{baseUrl}}/api/v1/auth/notifications/mark-read/"
-              }
-            },
-            {
-              "name": "Get Notification (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/notifications/{{notificationId}}/" }
-            }
-          ]
+                {
+                    "name": "AI Reasoning Logs (reviewer/admin)",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/ai-reasoning-logs/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "List by Case (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/ai-reasoning-logs/?case_id={{caseId}}&page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/ai-reasoning-logs/{{aiReasoningLogId}}/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "AI Citations (reviewer/admin)",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/ai-citations/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "List by Reasoning Log (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/ai-citations/?reasoning_log_id={{aiReasoningLogId}}&page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/ai-citations/{{aiCitationId}}/"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin (ai_decisions)",
+                    "item": [
+                        {
+                            "name": "Eligibility Results - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/eligibility-results/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "Eligibility Results - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"result_ids\": [\"{{eligibilityResultId}}\"],\n  \"operation\": \"update_outcome\",\n  \"outcome\": \"eligible\",\n  \"confidence\": 0.9\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/eligibility-results/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Eligibility Results - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/eligibility-results/{{eligibilityResultId}}/"
+                            }
+                        },
+                        {
+                            "name": "Eligibility Results - Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"outcome\": \"requires_review\",\n  \"confidence\": 0.6\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/eligibility-results/{{eligibilityResultId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Eligibility Results - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/eligibility-results/{{eligibilityResultId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "AI Reasoning Logs - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/ai-reasoning-logs/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "AI Reasoning Logs - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"log_ids\": [\"{{aiReasoningLogId}}\"],\n  \"operation\": \"delete\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/ai-reasoning-logs/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "AI Reasoning Logs - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/ai-reasoning-logs/{{aiReasoningLogId}}/"
+                            }
+                        },
+                        {
+                            "name": "AI Reasoning Logs - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/ai-reasoning-logs/{{aiReasoningLogId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "AI Citations - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/ai-citations/?page=1&page_size=20"
+                            }
+                        },
+                        {
+                            "name": "AI Citations - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"citation_ids\": [\"{{aiCitationId}}\"],\n  \"operation\": \"delete\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/ai-citations/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "AI Citations - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/ai-citations/{{aiCitationId}}/"
+                            }
+                        },
+                        {
+                            "name": "AI Citations - Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"relevance_score\": 0.75\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/ai-citations/{{aiCitationId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "AI Citations - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/ai-citations/{{aiCitationId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Statistics (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/statistics/"
+                            }
+                        },
+                        {
+                            "name": "Token Usage (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/token-usage/"
+                            }
+                        },
+                        {
+                            "name": "Citation Quality (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/ai-decisions/admin/citation-quality/"
+                            }
+                        }
+                    ]
+                }
+            ]
         },
         {
-          "name": "Admin",
-          "item": [
-            {
-              "name": "Users - List (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/admin/users/" }
-            },
-            {
-              "name": "Users - Statistics (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/admin/users/statistics/" }
-            },
-            {
-              "name": "Users - Bulk Operation (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"user_ids\": [\"{{userId}}\"],\n  \"operation\": \"deactivate\",\n  \"reason\": \"test\"\n}"
+            "name": "Document Handling",
+            "item": [
+                {
+                    "name": "Case Documents",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-handling/case-documents/?case_id={{caseId}}"
+                            }
+                        },
+                        {
+                            "name": "Create (POST upload - multipart/form-data)",
+                            "request": {
+                                "method": "POST",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "case_id",
+                                            "value": "{{caseId}}",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "document_type_id",
+                                            "value": "{{documentTypeId}}",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": ""
+                                        },
+                                        {
+                                            "key": "file_name",
+                                            "value": "upload.pdf",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file_size",
+                                            "value": "12345",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "mime_type",
+                                            "value": "application/pdf",
+                                            "type": "text"
+                                        }
+                                    ]
+                                },
+                                "url": "{{baseUrl}}/api/v1/document-handling/case-documents/create/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-handling/case-documents/{{caseDocumentId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"file_name\": \"updated.pdf\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/document-handling/case-documents/{{caseDocumentId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/document-handling/case-documents/{{caseDocumentId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Verified by Case (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-handling/case-documents/case/{{caseId}}/verified/"
+                            }
+                        },
+                        {
+                            "name": "Checklist by Case (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-handling/case-documents/case/{{caseId}}/checklist/"
+                            }
+                        }
+                    ]
                 },
-                "url": "{{baseUrl}}/api/v1/auth/admin/users/bulk-operation/"
-              }
-            },
-            {
-              "name": "Users - Detail (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/" }
-            },
-            {
-              "name": "Users - Update (PATCH) (compat on detail path)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"is_active\": true\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/"
-              }
-            },
-            {
-              "name": "Users - Delete/Deactivate (DELETE) (compat on detail path)",
-              "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/" }
-            },
-            {
-              "name": "Users - Activate/Deactivate (POST /activate/)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"is_active\": true\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/activate/"
-              }
-            },
-            {
-              "name": "Users - Deactivate (POST /deactivate/)",
-              "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/deactivate/" }
-            },
-            {
-              "name": "Users - Suspend (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"reason\": \"policy\"\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/suspend/"
-              }
-            },
-            {
-              "name": "Users - Unsuspend (POST)",
-              "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/unsuspend/" }
-            },
-            {
-              "name": "Users - Verify (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"is_verified\": true\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/verify/"
-              }
-            },
-            {
-              "name": "Users - Reset Password (POST) (superadmin)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"new_password\": \"ChangeMe123!\",\n  \"send_email\": false\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/reset-password/"
-              }
-            },
-            {
-              "name": "Users - Role (PATCH) (superadmin)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"role\": \"reviewer\",\n  \"is_staff\": true\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/role/"
-              }
-            },
-            {
-              "name": "Users - Activity (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/admin/users/{{userId}}/activity/" }
-            },
-            {
-              "name": "User Profiles - List (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/admin/user-profiles/" }
-            },
-            {
-              "name": "User Profiles - Detail (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/admin/user-profiles/{{userId}}/" }
-            },
-            {
-              "name": "User Profiles - Update (PATCH) (compat on detail path)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/admin/user-profiles/{{userId}}/"
-              }
-            },
-            {
-              "name": "Countries - Activate (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"is_active\": true\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/admin/countries/{{countryId}}/activate/"
-              }
-            },
-            {
-              "name": "Countries - Set Jurisdiction (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"is_jurisdiction\": true\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/admin/countries/{{countryId}}/set-jurisdiction/"
-              }
-            },
-            {
-              "name": "States - Activate (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"is_active\": true\n}" },
-                "url": "{{baseUrl}}/api/v1/auth/admin/states/{{stateProvinceId}}/activate/"
-              }
-            },
-            {
-              "name": "Admin Notifications - List (GET)",
-              "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/admin/notifications/" }
-            },
-            {
-              "name": "Admin Notifications - Create (POST) (compat on list path)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"notification_type\": \"system\",\n  \"title\": \"Test\",\n  \"message\": \"Hello\",\n  \"priority\": \"medium\"\n}"
+                {
+                    "name": "Document Checks",
+                    "item": [
+                        {
+                            "name": "List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-handling/document-checks/?case_document_id={{caseDocumentId}}"
+                            }
+                        },
+                        {
+                            "name": "Create (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"case_document_id\": \"{{caseDocumentId}}\",\n  \"check_type\": \"ocr\",\n  \"result\": \"passed\",\n  \"details\": {\"note\": \"ok\"},\n  \"performed_by\": \"postman\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/document-handling/document-checks/create/"
+                            }
+                        },
+                        {
+                            "name": "Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-handling/document-checks/{{documentCheckId}}/"
+                            }
+                        },
+                        {
+                            "name": "Update (PATCH)",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"result\": \"warning\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/document-handling/document-checks/{{documentCheckId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/document-handling/document-checks/{{documentCheckId}}/delete/"
+                            }
+                        }
+                    ]
                 },
-                "url": "{{baseUrl}}/api/v1/auth/admin/notifications/"
-              }
-            },
-            {
-              "name": "Admin Notifications - Bulk Create (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"user_ids\": [\"{{userId}}\"],\n  \"notification_type\": \"system\",\n  \"title\": \"Test\",\n  \"message\": \"Hello\",\n  \"priority\": \"medium\"\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/auth/admin/notifications/bulk/"
-              }
-            },
-            {
-              "name": "Admin Notifications - Delete (DELETE)",
-              "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/auth/admin/notifications/{{notificationId}}/delete/" }
-            }
-          ]
+                {
+                    "name": "Admin",
+                    "item": [
+                        {
+                            "name": "Case Documents - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-handling/admin/case-documents/?page=1&page_size=50"
+                            }
+                        },
+                        {
+                            "name": "Case Documents - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-handling/admin/case-documents/{{caseDocumentId}}/"
+                            }
+                        },
+                        {
+                            "name": "Case Documents - Update (PUT via /update/ path) (admin)",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"status\": \"verified\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/document-handling/admin/case-documents/{{caseDocumentId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Case Documents - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/document-handling/admin/case-documents/{{caseDocumentId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Case Documents - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"document_ids\": [\"{{caseDocumentId}}\"],\n  \"operation\": \"update_status\",\n  \"status\": \"verified\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/document-handling/admin/case-documents/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Document Checks - List (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-handling/admin/document-checks/?page=1&page_size=50"
+                            }
+                        },
+                        {
+                            "name": "Document Checks - Detail (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-handling/admin/document-checks/{{documentCheckId}}/"
+                            }
+                        },
+                        {
+                            "name": "Document Checks - Update (PUT via /update/ path) (admin)",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"result\": \"warning\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/document-handling/admin/document-checks/{{documentCheckId}}/update/"
+                            }
+                        },
+                        {
+                            "name": "Document Checks - Delete (DELETE)",
+                            "request": {
+                                "method": "DELETE",
+                                "url": "{{baseUrl}}/api/v1/document-handling/admin/document-checks/{{documentCheckId}}/delete/"
+                            }
+                        },
+                        {
+                            "name": "Document Checks - Bulk Operation (POST)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"check_ids\": [\"{{documentCheckId}}\"],\n  \"operation\": \"delete\"\n}"
+                                },
+                                "url": "{{baseUrl}}/api/v1/document-handling/admin/document-checks/bulk-operation/"
+                            }
+                        },
+                        {
+                            "name": "Statistics (GET)",
+                            "request": {
+                                "method": "GET",
+                                "url": "{{baseUrl}}/api/v1/document-handling/admin/statistics/"
+                            }
+                        }
+                    ]
+                }
+            ]
         }
-      ]
-    },
-    {
-      "name": "data_ingestion (mounted under /api/v1/data-ingestion/)",
-      "item": [
-        {
-          "name": "Data Sources",
-          "item": [
-            { "name": "List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/data-sources/" } },
-            {
-              "name": "Create (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"UK Government\",\n  \"base_url\": \"https://www.gov.uk/\",\n  \"jurisdiction\": \"UK\",\n  \"crawl_frequency\": \"daily\",\n  \"is_active\": true\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/data-sources/create/"
-              }
-            },
-            { "name": "Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/data-sources/{{dataSourceId}}/" } },
-            {
-              "name": "Update (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"crawl_frequency\": \"weekly\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/data-sources/{{dataSourceId}}/update/"
-              }
-            },
-            {
-              "name": "Trigger Ingestion (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"async_task\": true\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/data-sources/{{dataSourceId}}/ingest/"
-              }
-            }
-          ]
-        },
-        {
-          "name": "Source Documents",
-          "item": [
-            { "name": "List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/source-documents/?data_source_id={{dataSourceId}}" } },
-            { "name": "Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/source-documents/{{sourceDocumentId}}/" } },
-            { "name": "Latest by Data Source (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/source-documents/data-source/{{dataSourceId}}/latest/" } }
-          ]
-        },
-        {
-          "name": "Document Versions",
-          "item": [
-            { "name": "List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/document-versions/?source_document_id={{sourceDocumentId}}" } },
-            { "name": "Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/document-versions/{{documentVersionId}}/" } },
-            { "name": "Latest by Source Document (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/document-versions/source-document/{{sourceDocumentId}}/latest/" } }
-          ]
-        },
-        {
-          "name": "Document Diffs",
-          "item": [
-            { "name": "List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/document-diffs/?change_type=" } },
-            { "name": "Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/document-diffs/{{documentDiffId}}/" } }
-          ]
-        },
-        {
-          "name": "Parsed Rules",
-          "item": [
-            { "name": "List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/parsed-rules/" } },
-            { "name": "Pending (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/parsed-rules/pending/" } },
-            { "name": "Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/parsed-rules/{{parsedRuleId}}/" } },
-            {
-              "name": "Update (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"raw_rule_text\": \"...\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/parsed-rules/{{parsedRuleId}}/update/"
-              }
-            },
-            {
-              "name": "Update Status (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"status\": \"approved\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/parsed-rules/{{parsedRuleId}}/status/"
-              }
-            }
-          ]
-        },
-        {
-          "name": "Rule Validation Tasks",
-          "item": [
-            { "name": "List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/" } },
-            { "name": "Pending (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/pending/" } },
-            { "name": "Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/{{validationTaskId}}/" } },
-            {
-              "name": "Update (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"reviewer_notes\": \"...\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/{{validationTaskId}}/update/"
-              }
-            },
-            {
-              "name": "Assign Reviewer (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"reviewer_id\": \"{{userId}}\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/{{validationTaskId}}/assign/"
-              }
-            },
-            {
-              "name": "Approve (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"reviewer_notes\": \"Looks good\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/{{validationTaskId}}/approve/"
-              }
-            },
-            {
-              "name": "Reject (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"reviewer_notes\": \"Needs changes\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/validation-tasks/{{validationTaskId}}/reject/"
-              }
-            }
-          ]
-        },
-        {
-          "name": "Admin (data ingestion)",
-          "item": [
-            { "name": "Data Sources - List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/data-sources/" } },
-            {
-              "name": "Data Sources - Bulk Operation (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"ids\": [\"{{dataSourceId}}\"],\n  \"operation\": \"trigger_ingestion\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/data-sources/bulk-operation/"
-              }
-            },
-            { "name": "Data Sources - Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/data-sources/{{dataSourceId}}/" } },
-            {
-              "name": "Data Sources - Activate/Deactivate (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"is_active\": true\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/data-sources/{{dataSourceId}}/activate/"
-              }
-            },
-            { "name": "Data Sources - Delete (DELETE)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/data-sources/{{dataSourceId}}/delete/" } },
-
-            { "name": "Source Documents - List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/source-documents/" } },
-            {
-              "name": "Source Documents - Bulk Operation (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"ids\": [\"{{sourceDocumentId}}\"],\n  \"operation\": \"delete\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/source-documents/bulk-operation/"
-              }
-            },
-            { "name": "Source Documents - Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/source-documents/{{sourceDocumentId}}/" } },
-            { "name": "Source Documents - Delete (DELETE)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/source-documents/{{sourceDocumentId}}/delete/" } },
-
-            { "name": "Document Versions - List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-versions/" } },
-            {
-              "name": "Document Versions - Bulk Operation (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"ids\": [\"{{documentVersionId}}\"],\n  \"operation\": \"delete\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-versions/bulk-operation/"
-              }
-            },
-            { "name": "Document Versions - Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-versions/{{documentVersionId}}/" } },
-            { "name": "Document Versions - Delete (DELETE)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-versions/{{documentVersionId}}/delete/" } },
-
-            { "name": "Document Chunks - List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-chunks/?page=1&page_size=50" } },
-            {
-              "name": "Document Chunks - Bulk Operation (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"ids\": [\"{{documentChunkId}}\"],\n  \"operation\": \"delete\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-chunks/bulk-operation/"
-              }
-            },
-            { "name": "Document Chunks - Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-chunks/{{documentChunkId}}/" } },
-            { "name": "Document Chunks - Delete (DELETE)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-chunks/{{documentChunkId}}/delete/" } },
-
-            { "name": "Document Diffs - List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-diffs/" } },
-            {
-              "name": "Document Diffs - Bulk Operation (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"ids\": [\"{{documentDiffId}}\"],\n  \"operation\": \"delete\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-diffs/bulk-operation/"
-              }
-            },
-            { "name": "Document Diffs - Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-diffs/{{documentDiffId}}/" } },
-            { "name": "Document Diffs - Delete (DELETE)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/document-diffs/{{documentDiffId}}/delete/" } },
-
-            { "name": "Parsed Rules - List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/parsed-rules/" } },
-            {
-              "name": "Parsed Rules - Bulk Operation (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"ids\": [\"{{parsedRuleId}}\"],\n  \"operation\": \"approve\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/parsed-rules/bulk-operation/"
-              }
-            },
-            { "name": "Parsed Rules - Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/parsed-rules/{{parsedRuleId}}/" } },
-            {
-              "name": "Parsed Rules - Update (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"status\": \"approved\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/parsed-rules/{{parsedRuleId}}/update/"
-              }
-            },
-            { "name": "Parsed Rules - Delete (DELETE)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/parsed-rules/{{parsedRuleId}}/delete/" } },
-
-            { "name": "Validation Tasks - List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/validation-tasks/" } },
-            {
-              "name": "Validation Tasks - Bulk Operation (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"ids\": [\"{{validationTaskId}}\"],\n  \"operation\": \"assign\",\n  \"assigned_to\": \"{{userId}}\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/validation-tasks/bulk-operation/"
-              }
-            },
-            { "name": "Validation Tasks - Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/validation-tasks/{{validationTaskId}}/" } },
-            {
-              "name": "Validation Tasks - Update (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"status\": \"approved\",\n  \"reviewer_notes\": \"ok\"\n}" },
-                "url": "{{baseUrl}}/api/v1/data-ingestion/admin/validation-tasks/{{validationTaskId}}/update/"
-              }
-            },
-            { "name": "Validation Tasks - Delete (DELETE)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/validation-tasks/{{validationTaskId}}/delete/" } },
-
-            { "name": "Audit Logs (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/audit-logs/" } },
-            { "name": "Audit Log Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/audit-logs/{{auditLogId}}/" } },
-
-            { "name": "Statistics (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/statistics/" } },
-            { "name": "Cost Analytics (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/data-ingestion/admin/cost-analytics/" } }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "immigration_cases (mounted under /api/v1/imigration-cases/)",
-      "item": [
-        {
-          "name": "Cases",
-          "item": [
-            { "name": "List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/imigration-cases/cases/?page=1&page_size=20" } },
-            {
-              "name": "Create (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"jurisdiction\": \"UK\",\n  \"status\": \"draft\"\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/imigration-cases/cases/create/"
-              }
-            },
-            { "name": "Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/imigration-cases/cases/{{caseId}}/" } },
-            {
-              "name": "Update (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"status\": \"evaluated\",\n  \"version\": 1,\n  \"reason\": \"update via API\"\n}" },
-                "url": "{{baseUrl}}/api/v1/imigration-cases/cases/{{caseId}}/update/"
-              }
-            },
-            { "name": "Delete (DELETE)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/imigration-cases/cases/{{caseId}}/delete/" } }
-          ]
-        },
-        {
-          "name": "Eligibility",
-          "item": [
-            {
-              "name": "Run Eligibility Check (POST) (reviewer/admin only)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"visa_type_ids\": [],\n  \"enable_ai_reasoning\": true\n}" },
-                "url": "{{baseUrl}}/api/v1/imigration-cases/cases/{{caseId}}/eligibility/"
-              }
-            },
-            {
-              "name": "Eligibility Explanation (GET)",
-              "request": {
-                "method": "GET",
-                "url": "{{baseUrl}}/api/v1/imigration-cases/cases/{{caseId}}/eligibility/{{eligibilityResultId}}/explanation/"
-              }
-            }
-          ]
-        },
-        {
-          "name": "Case Facts",
-          "item": [
-            { "name": "List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/imigration-cases/case-facts/?case_id={{caseId}}&page=1&page_size=20" } },
-            {
-              "name": "Create (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"case_id\": \"{{caseId}}\",\n  \"fact_key\": \"age\",\n  \"fact_value\": 30,\n  \"source\": \"user\"\n}"
-                },
-                "url": "{{baseUrl}}/api/v1/imigration-cases/case-facts/create/"
-              }
-            },
-            { "name": "Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/imigration-cases/case-facts/{{caseFactId}}/" } },
-            {
-              "name": "Update (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"fact_value\": 31\n}" },
-                "url": "{{baseUrl}}/api/v1/imigration-cases/case-facts/{{caseFactId}}/update/"
-              }
-            },
-            { "name": "Delete (DELETE)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/imigration-cases/case-facts/{{caseFactId}}/delete/" } }
-          ]
-        },
-        {
-          "name": "Admin (immigration cases)",
-          "item": [
-            { "name": "Cases - List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/" } },
-            {
-              "name": "Cases - Bulk Operation (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"ids\": [\"{{caseId}}\"],\n  \"operation\": \"archive\"\n}" },
-                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/bulk-operation/"
-              }
-            },
-            { "name": "Cases - Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/{{caseId}}/" } },
-            {
-              "name": "Cases - Update (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"status\": \"closed\",\n  \"version\": 1,\n  \"reason\": \"admin update\"\n}" },
-                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/{{caseId}}/update/"
-              }
-            },
-            { "name": "Cases - Delete (DELETE)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/{{caseId}}/delete/" } },
-            { "name": "Case Facts - List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/imigration-cases/admin/case-facts/?case_id={{caseId}}" } },
-            {
-              "name": "Case Facts - Bulk Operation (POST)",
-              "request": {
-                "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"ids\": [\"{{caseFactId}}\"],\n  \"operation\": \"delete\"\n}" },
-                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/case-facts/bulk-operation/"
-              }
-            },
-            { "name": "Case Facts - Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/imigration-cases/admin/case-facts/{{caseFactId}}/" } },
-            {
-              "name": "Case Facts - Update (PATCH)",
-              "request": {
-                "method": "PATCH",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"source\": \"reviewer\"\n}" },
-                "url": "{{baseUrl}}/api/v1/imigration-cases/admin/case-facts/{{caseFactId}}/update/"
-              }
-            },
-            { "name": "Case Facts - Delete (DELETE)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/imigration-cases/admin/case-facts/{{caseFactId}}/delete/" } },
-            { "name": "Status History - List (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/imigration-cases/admin/cases/{{caseId}}/status-history/?page=1&page_size=20" } },
-            { "name": "Status History - Detail (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/imigration-cases/admin/status-history/{{statusHistoryId}}/" }, "variable": [{ "key": "statusHistoryId", "value": "" }] },
-            { "name": "Statistics (GET)", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/imigration-cases/admin/statistics/" } }
-          ]
-        }
-      ]
-    }
-  ]
+    ]
 }
-
