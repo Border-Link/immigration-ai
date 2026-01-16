@@ -16,7 +16,11 @@ class LoggingSetup:
             if connection.connection is None:
                 connection.ensure_connection()
 
-            if "audit_log_auditlog" in connection.introspection.table_names():
+            # Use the actual db table name from the model to avoid drift.
+            from compliance.models.audit_log import AuditLog
+            audit_log_table = AuditLog._meta.db_table
+
+            if audit_log_table in connection.introspection.table_names():
                 handler = DatabaseLogHandler()
                 for logger_name in ["django", "celery"]:
                     logger = logging.getLogger(logger_name)
