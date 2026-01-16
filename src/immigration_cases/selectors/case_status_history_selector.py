@@ -39,3 +39,8 @@ class CaseStatusHistorySelector:
             'case__user',
             'changed_by'
         ).filter(case_id=case_id).order_by('-created_at')
+
+    @staticmethod
+    def get_none():
+        """Return an empty queryset."""
+        return CaseStatusHistory.objects.none()
