@@ -33,7 +33,7 @@ show_urls:
 	python manage.py show_urls
 
 test:
-	@echo "Enter the module you want to run (leave empty to run all tests):"; \
+	@echo "Enter the module you want to run (leave empty to run all tests, then hit enter):"; \
 	read module; \
 	if [ -z "$$module" ]; then \
 		pytest -vv; \
