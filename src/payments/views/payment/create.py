@@ -23,6 +23,8 @@ class PaymentCreateAPI(AuthAPI):
             status=serializer.validated_data.get('status', 'pending'),
             payment_provider=serializer.validated_data.get('payment_provider'),
             provider_transaction_id=serializer.validated_data.get('provider_transaction_id'),
+            purpose=serializer.validated_data.get('purpose', 'case_fee'),
+            plan=serializer.validated_data.get('plan'),
             changed_by=request.user
         )
 

@@ -56,6 +56,7 @@ class TestAdminCaseEndpoints:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_bulk_001",
+            plan="basic",
             changed_by=other_user,
         )
         payment_service.update_payment(payment_id=str(p_paid.id), status="processing", changed_by=other_user, reason="processing")
@@ -71,6 +72,7 @@ class TestAdminCaseEndpoints:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_bulk_002",
+            plan="basic",
             changed_by=case_owner,
         )
         payment_service.update_payment(payment_id=str(p_unpaid.id), status="processing", changed_by=case_owner, reason="processing")

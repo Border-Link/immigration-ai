@@ -40,6 +40,7 @@ class TestCaseFactEndpoints:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_test_other",
+            plan="basic",
             changed_by=other_user,
         )
         payment_service.update_payment(payment_id=str(p.id), status="processing", changed_by=other_user, reason="processing")
@@ -80,6 +81,7 @@ class TestCaseFactEndpoints:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_test_other2",
+            plan="basic",
             changed_by=other_user,
         )
         payment_service.update_payment(payment_id=str(p.id), status="processing", changed_by=other_user, reason="processing")

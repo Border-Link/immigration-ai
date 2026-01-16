@@ -29,6 +29,8 @@ class PaymentSerializer(serializers.ModelSerializer):
             'currency',
             'status',
             'payment_provider',
+            'purpose',
+            'plan',
             'provider_transaction_id',
             'version',
             'created_at',
@@ -43,6 +45,8 @@ class PaymentSerializer(serializers.ModelSerializer):
             'currency',
             'status',
             'payment_provider',
+            'purpose',
+            'plan',
             'provider_transaction_id',
             'version',
             'created_at',
@@ -67,6 +71,8 @@ class PaymentListSerializer(serializers.ModelSerializer):
             'currency',
             'status',
             'payment_provider',
+            'purpose',
+            'plan',
             'created_at',
         ]
         read_only_fields = (
@@ -76,6 +82,8 @@ class PaymentListSerializer(serializers.ModelSerializer):
             'currency',
             'status',
             'payment_provider',
+            'purpose',
+            'plan',
             'created_at',
         )
 

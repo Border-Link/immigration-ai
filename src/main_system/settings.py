@@ -159,6 +159,8 @@ REDACT_PII_BEFORE_LLM = env.bool('REDACT_PII_BEFORE_LLM', default=True)
 # Payment History
 PAYMENT_HISTORY_RETENTION_YEARS = env.int('PAYMENT_HISTORY_RETENTION_YEARS', default=2)
 
+# Payment plan / add-on pricing is configured via admin APIs (DB-backed pricing catalog).
+
 # Payment Gateways - Stripe
 STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default=None)
 STRIPE_PUBLIC_KEY = env('STRIPE_PUBLIC_KEY', default=None)

@@ -117,3 +117,8 @@ class ReviewSelector:
             queryset = queryset.filter(completed_at__lte=completed_date_to)
         
         return queryset.order_by('-created_at')
+
+    @staticmethod
+    def get_none():
+        """Return an empty queryset."""
+        return Review.objects.none()

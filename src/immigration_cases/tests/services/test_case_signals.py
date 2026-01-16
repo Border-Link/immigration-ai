@@ -26,6 +26,7 @@ class TestCaseSignals:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_signal_001",
+            plan="basic",
             changed_by=case_owner,
         )
         payment_service.update_payment(payment_id=str(p.id), status="processing", changed_by=case_owner, reason="processing")

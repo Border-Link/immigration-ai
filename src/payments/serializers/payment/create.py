@@ -45,6 +45,19 @@ class PaymentCreateSerializer(serializers.Serializer):
         required=True,
         help_text="Payment gateway provider (stripe, paypal, or adyen)"
     )
+    purpose = serializers.ChoiceField(
+        choices=Payment.PURPOSE_CHOICES,
+        required=False,
+        default='case_fee',
+        help_text="What this payment is for (case_fee or reviewer_addon). Defaults to case_fee."
+    )
+    plan = serializers.ChoiceField(
+        choices=Payment.PLAN_CHOICES,
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="Plan for case fee payments (basic/special/big). Only applicable when purpose=case_fee.",
+    )
     provider_transaction_id = serializers.CharField(required=False, max_length=255, allow_null=True, allow_blank=True)
 
     def validate_case_id(self, value):
@@ -81,6 +94,24 @@ class PaymentCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError({
                 "non_field_errors": "Exactly one of case_id or user_id is required."
             })
+
+        purpose = attrs.get("purpose", "case_fee")
+        # Add-ons must be attached to an existing case (cannot be a pre-case payment)
+        if purpose in ("reviewer_addon", "ai_calls_addon") and not case_id:
+            raise serializers.ValidationError({
+                "purpose": f"{purpose} payments require case_id (cannot be created with user_id)."
+            })
+
+        plan = attrs.get("plan")
+        if purpose == "case_fee":
+            if not plan:
+                raise serializers.ValidationError({
+                    "plan": "Plan is required for case_fee payments."
+                })
+            attrs["plan"] = plan
+        else:
+            # Add-ons do not carry a plan (plan is determined by base case fee payment).
+            attrs["plan"] = None
 
         amount = attrs.get('amount')
         currency = attrs.get('currency', Payment.DEFAULT_CURRENCY)

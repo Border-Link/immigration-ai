@@ -1,6 +1,7 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from human_reviews.models.review import Review
+from human_reviews.selectors.review_selector import ReviewSelector
 from users_access.services.notification_service import NotificationService
 from users_access.tasks.email_tasks import send_review_assignment_email_task, send_review_completed_email_task
 import logging
@@ -15,7 +16,7 @@ def store_previous_review_state(sender, instance, **kwargs):
     """
     if instance.pk:
         try:
-            previous_instance = Review.objects.get(pk=instance.pk)
+            previous_instance = ReviewSelector.get_by_id(str(instance.pk))
             instance._previous_status = previous_instance.status
             instance._previous_reviewer = previous_instance.reviewer
         except Review.DoesNotExist:

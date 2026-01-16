@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist
 from main_system.utils.cache_utils import cache_result, invalidate_cache
-from ai_calls.models.call_session import CallSession
 from ai_calls.repositories.call_session_repository import CallSessionRepository
 from ai_calls.selectors.call_session_selector import CallSessionSelector
 from immigration_cases.selectors.case_selector import CaseSelector
 from users_access.selectors.user_selector import UserSelector
+
+if TYPE_CHECKING:
+    from ai_calls.models.call_session import CallSession
 
 logger = logging.getLogger('django')
 
@@ -55,6 +60,13 @@ class CallSessionService:
             # Validate case belongs to user
             if str(case.user_id) != str(user_id):
                 logger.warning(f"Case {case_id} does not belong to user {user_id}")
+                return None
+
+            # Enforce plan entitlement: AI calls are available only on Special/Big plans.
+            from payments.helpers.payment_validator import PaymentValidator
+            is_entitled, ent_err = PaymentValidator.validate_case_has_ai_calls_entitlement(case, operation_name="AI calls")
+            if not is_entitled:
+                logger.warning(f"AI calls entitlement blocked for case {case_id}: {ent_err}")
                 return None
             
             # Validate case is not closed
@@ -479,17 +491,7 @@ class CallSessionService:
             if call_session.status != 'in_progress':
                 return call_session
             
-            # Update heartbeat (no version check needed for heartbeat)
-            from django.db.models import F
-            from django.db import transaction
-            
-            with transaction.atomic():
-                CallSession.objects.filter(id=call_session.id).update(
-                    last_heartbeat_at=timezone.now()
-                )
-                call_session.refresh_from_db()
-            
-            return call_session
+            return CallSessionRepository.update_heartbeat(call_session)
             
         except Exception as e:
             logger.error(f"Error updating heartbeat for session {session_id}: {e}")
@@ -501,7 +503,7 @@ class CallSessionService:
         """Get call session by ID."""
         try:
             return CallSessionSelector.get_by_id(session_id)
-        except CallSession.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.warning(f"Call session {session_id} not found")
             return None
         except Exception as e:

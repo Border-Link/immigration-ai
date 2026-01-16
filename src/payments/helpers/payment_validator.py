@@ -8,6 +8,7 @@ import logging
 from typing import Tuple, Optional
 from payments.models.payment import Payment
 from payments.selectors.payment_selector import PaymentSelector
+from payments.selectors.pricing_selector import PricingSelector
 from immigration_cases.models.case import Case
 from main_system.utils.cache_utils import (
     bump_namespace,
@@ -66,9 +67,10 @@ class PaymentValidator:
                     has_payment, payment_id = cached_result
                     if has_payment:
                         try:
-                            payment = Payment.objects.get(id=payment_id, status='completed', is_deleted=False)
-                            return True, payment
-                        except Payment.DoesNotExist:
+                            payment = PaymentSelector.get_completed_case_fee_by_id(payment_id)
+                            if payment:
+                                return True, payment
+                        except Exception:
                             # Cache invalid, bump namespace to invalidate this case's cached result.
                             bump_namespace(PaymentValidator._case_payment_validation_namespace(str(case.id)))
                     else:
@@ -76,7 +78,7 @@ class PaymentValidator:
         
         # Query database
         payments = PaymentSelector.get_by_case(case)
-        completed_payment = payments.filter(status='completed', is_deleted=False).first()
+        completed_payment = payments.filter(status='completed', is_deleted=False, purpose='case_fee').first()
         
         # Cache result
         if use_cache:
@@ -89,6 +91,54 @@ class PaymentValidator:
         if completed_payment:
             return True, completed_payment
         return False, None
+
+    @staticmethod
+    def get_case_fee_plan_for_case(case: Case) -> Optional[str]:
+        """
+        Return the plan associated with the completed case fee payment for this case.
+
+        Returns:
+            'basic' | 'special' | 'big' | None (if no completed case fee payment)
+        """
+        ok, payment = PaymentValidator.has_completed_payment_for_case(case, use_cache=True)
+        if not ok or not payment:
+            return None
+        return payment.plan
+
+    @staticmethod
+    def validate_case_has_ai_calls_entitlement(case: Case, operation_name: str = "AI calls") -> Tuple[bool, Optional[str]]:
+        """
+        AI calls entitlement:
+        - requires a completed case fee payment, AND
+        - plan includes_ai_calls (admin-configured), OR
+        - ai_calls_addon payment is completed for the case.
+        """
+        # Always require base case payment for any entitlement.
+        has_payment, _payment = PaymentValidator.has_completed_payment_for_case(case, use_cache=True)
+        if not has_payment:
+            return False, f"Case requires a completed payment before {operation_name} can be performed."
+
+        plan = PaymentValidator.get_case_fee_plan_for_case(case)
+        if plan:
+            try:
+                item = PricingSelector.get_items(kind="plan", is_active=True).filter(code=plan).first()
+                if item and item.includes_ai_calls:
+                    return True, None
+            except Exception:
+                pass
+
+        # Allow AI calls via add-on
+        try:
+            payments = PaymentSelector.get_by_case(case)
+            addon = payments.filter(status="completed", is_deleted=False, purpose="ai_calls_addon").first()
+            if addon:
+                return True, None
+        except Exception:
+            pass
+        return (
+            False,
+            f"Case does not have AI calls entitlement. Purchase AI calls add-on or a plan with AI calls before {operation_name} can be performed.",
+        )
     
     @staticmethod
     def has_completed_payment_for_user(user_id: str) -> Tuple[bool, Optional[Payment]]:
@@ -207,45 +257,109 @@ class PaymentValidator:
         return True, None
     
     @staticmethod
-    def ensure_one_payment_per_case(case: Case) -> Tuple[bool, Optional[str]]:
+    def ensure_one_payment_per_case(case: Case, purpose: str = 'case_fee') -> Tuple[bool, Optional[str]]:
         """
-        Ensure only one active payment per case.
-        
-        Production-ready validation with comprehensive checks.
-        
-        Args:
-            case: Case instance
-            
-        Returns:
-            Tuple of (is_valid, error_message)
+        Ensure only one active payment per case for the given purpose.
+
+        - For `case_fee`: enforce exactly one completed payment per case (the base case payment).
+        - For `reviewer_addon`: allow at most one completed add-on per case (and prevent multiple concurrent pending add-ons).
         """
-        # For pre-case payments, case can be None (handled elsewhere).
         if not case:
             return True, None
-        
-        payments = PaymentSelector.get_by_case(case)
-        
-        # Count non-deleted, non-refunded payments
+
+        payments = PaymentSelector.get_by_case(case).filter(purpose=purpose)
+
+        # Count non-deleted, non-refunded payments for this purpose
         active_payments = payments.exclude(status='refunded').exclude(is_deleted=True)
         completed_payments = active_payments.filter(status='completed')
-        
-        # If there's already a completed payment, don't allow another
+
         if completed_payments.exists():
             completed_count = completed_payments.count()
-            logger.warning(f"Attempt to create duplicate payment for case {case.id}. Existing completed payments: {completed_count}")
-            return False, "Case already has a completed payment. Only one payment per case is allowed. If you need to make another payment, please contact support."
-        
-        # Allow pending/processing payments (user might be retrying)
-        # But prevent multiple pending payments
+            logger.warning(
+                f"Attempt to create duplicate payment for case {case.id} (purpose={purpose}). "
+                f"Existing completed payments: {completed_count}"
+            )
+            if purpose == 'case_fee':
+                return (
+                    False,
+                    "Case already has a completed case fee payment. Only one case fee payment per case is allowed.",
+                )
+            return (
+                False,
+                "Case already has a completed reviewer add-on payment. Only one reviewer add-on per case is allowed.",
+            )
+
         pending_payments = active_payments.filter(status__in=['pending', 'processing'])
-        pending_count = pending_payments.count()
-        
-        if pending_count > 1:
-            logger.warning(f"Multiple pending payments detected for case {case.id}. Count: {pending_count}")
-            return False, "Multiple pending payments detected. Please complete or cancel your existing payment before creating a new one."
-        
-        # Allow one pending/processing payment (for retry scenarios)
+        if pending_payments.count() > 1:
+            logger.warning(
+                f"Multiple pending payments detected for case {case.id} (purpose={purpose}). "
+                f"Count: {pending_payments.count()}"
+            )
+            return (
+                False,
+                "Multiple pending payments detected for this case. Please complete or cancel your existing payment before creating a new one.",
+            )
+
         return True, None
+
+    @staticmethod
+    def has_completed_reviewer_addon_for_case(case: Case) -> Tuple[bool, Optional[Payment]]:
+        """Check if case has a completed reviewer add-on payment."""
+        if not case:
+            return False, None
+        payments = PaymentSelector.get_by_case(case)
+        addon = payments.filter(status='completed', is_deleted=False, purpose='reviewer_addon').first()
+        if addon:
+            return True, addon
+        return False, None
+
+    @staticmethod
+    def validate_case_has_human_review_entitlement(case: Case, operation_name: str = "operation") -> Tuple[bool, Optional[str]]:
+        """
+        Human review entitlement:
+        - requires a completed case fee payment, AND
+        - plan includes_human_review (admin-configured), OR
+        - reviewer_addon payment is completed for the case.
+        """
+        if not case:
+            error = "Invalid case provided for human review entitlement validation."
+            logger.error(f"Reviewer add-on payment validation failed: {error}")
+            return False, error
+
+        has_payment, _payment = PaymentValidator.has_completed_payment_for_case(case, use_cache=True)
+        if not has_payment:
+            return False, f"Case requires a completed payment before {operation_name} can be performed."
+
+        plan = PaymentValidator.get_case_fee_plan_for_case(case)
+        if plan:
+            try:
+                item = PricingSelector.get_items(kind="plan", is_active=True).filter(code=plan).first()
+                if item and item.includes_human_review:
+                    return True, None
+            except Exception:
+                pass
+
+        ok, addon_payment = PaymentValidator.has_completed_reviewer_addon_for_case(case)
+        if not ok or not addon_payment:
+            return (
+                False,
+                f"Case does not have human review entitlement. Purchase reviewer add-on or a plan with human review before {operation_name} can be performed.",
+            )
+        if addon_payment.is_deleted or addon_payment.status != 'completed':
+            return (
+                False,
+                f"Reviewer add-on payment must be completed before {operation_name} can be performed.",
+            )
+        return True, None
+
+    @staticmethod
+    def validate_case_has_reviewer_addon(case: Case, operation_name: str = "operation") -> Tuple[bool, Optional[str]]:
+        """
+        Backwards-compatible alias.
+
+        Prefer `validate_case_has_human_review_entitlement`.
+        """
+        return PaymentValidator.validate_case_has_human_review_entitlement(case, operation_name=operation_name)
     
     @staticmethod
     def invalidate_payment_cache(case_id: str) -> None:

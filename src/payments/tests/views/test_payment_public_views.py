@@ -13,8 +13,8 @@ class TestPaymentPublicViews:
 
     def test_list_returns_only_own_payments_for_regular_user(self, api_client, payment_service, payment_owner, other_user):
         # Create payments for two users
-        p1 = payment_service.create_payment(user_id=str(payment_owner.id), amount=10, currency="USD", payment_provider="stripe", changed_by=payment_owner)
-        p2 = payment_service.create_payment(user_id=str(other_user.id), amount=20, currency="USD", payment_provider="stripe", changed_by=other_user)
+        p1 = payment_service.create_payment(user_id=str(payment_owner.id), amount=10, currency="USD", payment_provider="stripe", plan="basic", changed_by=payment_owner)
+        p2 = payment_service.create_payment(user_id=str(other_user.id), amount=20, currency="USD", payment_provider="stripe", plan="basic", changed_by=other_user)
         assert p1 and p2
 
         api_client.force_authenticate(user=payment_owner)
@@ -25,7 +25,7 @@ class TestPaymentPublicViews:
         assert str(p2.id) not in ids
 
     def test_list_staff_sees_all(self, api_client, payment_service, admin_user, payment_owner):
-        p1 = payment_service.create_payment(user_id=str(payment_owner.id), amount=10, currency="USD", payment_provider="stripe", changed_by=payment_owner)
+        p1 = payment_service.create_payment(user_id=str(payment_owner.id), amount=10, currency="USD", payment_provider="stripe", plan="basic", changed_by=payment_owner)
         assert p1
         api_client.force_authenticate(user=admin_user)
         resp = api_client.get(f"{BASE}/")
@@ -34,7 +34,7 @@ class TestPaymentPublicViews:
 
     def test_create_payment_success(self, api_client, payment_owner):
         api_client.force_authenticate(user=payment_owner)
-        payload = {"user_id": str(payment_owner.id), "amount": "50.00", "currency": "USD", "payment_provider": "stripe"}
+        payload = {"user_id": str(payment_owner.id), "amount": "50.00", "currency": "USD", "payment_provider": "stripe", "plan": "basic"}
         resp = api_client.post(f"{BASE}/create/", payload, format="json")
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data["data"]["status"] == "pending"
@@ -46,7 +46,7 @@ class TestPaymentPublicViews:
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_detail_enforces_object_permission(self, api_client, payment_service, payment_owner, other_user):
-        payment = payment_service.create_payment(user_id=str(payment_owner.id), amount=10, currency="USD", payment_provider="stripe", changed_by=payment_owner)
+        payment = payment_service.create_payment(user_id=str(payment_owner.id), amount=10, currency="USD", payment_provider="stripe", plan="basic", changed_by=payment_owner)
         assert payment
         api_client.force_authenticate(user=other_user)
         resp = api_client.get(f"{BASE}/{payment.id}/")

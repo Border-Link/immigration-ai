@@ -17,6 +17,7 @@ from rest_framework.test import APIClient
 
 from users_access.services import UserService
 from payments.services import PaymentService
+from payments.services.pricing_service import PricingService
 from immigration_cases.services import CaseService
 
 from ai_calls.services.call_session_service import CallSessionService
@@ -36,6 +37,11 @@ def user_service():
 @pytest.fixture
 def payment_service():
     return PaymentService
+
+
+@pytest.fixture
+def pricing_service():
+    return PricingService
 
 
 @pytest.fixture
@@ -77,7 +83,7 @@ def admin_user(user_service):
 
 
 @pytest.fixture
-def paid_case(case_service, payment_service, case_owner) -> Tuple[object, object]:
+def paid_case(case_service, payment_service, pricing_service, case_owner) -> Tuple[object, object]:
     """
     Returns: (case, payment)
 
@@ -90,6 +96,7 @@ def paid_case(case_service, payment_service, case_owner) -> Tuple[object, object
         status="pending",
         payment_provider="stripe",
         provider_transaction_id="txn_ai_calls_case_001",
+        plan="special",
         changed_by=case_owner,
     )
     assert payment is not None
@@ -110,6 +117,20 @@ def paid_case(case_service, payment_service, case_owner) -> Tuple[object, object
 
     case = case_service.create_case(user_id=str(case_owner.id), jurisdiction="US", status="draft")
     assert case is not None
+
+    # Configure plan entitlements for tests: "special" includes AI calls.
+    # (Entitlements are DB-driven via PricingItem now.)
+    item = pricing_service.create_item(
+        kind="plan",
+        code="special",
+        name="Special Plan",
+        description="",
+        is_active=True,
+        includes_ai_calls=True,
+        includes_human_review=False,
+    )
+    assert item is not None
+
     return case, payment
 
 

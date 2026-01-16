@@ -28,6 +28,7 @@ class TestCaseService:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_case_create_001",
+            plan="basic",
             changed_by=case_owner,
         )
         assert payment is not None
@@ -86,6 +87,7 @@ class TestCaseService:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_filter_001",
+            plan="basic",
             changed_by=case_owner,
         )
         PaymentService.update_payment(payment_id=str(p1.id), status="processing", changed_by=case_owner, reason="processing")
@@ -97,6 +99,7 @@ class TestCaseService:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_filter_002",
+            plan="basic",
             changed_by=other,
         )
         PaymentService.update_payment(payment_id=str(p2.id), status="processing", changed_by=other, reason="processing")
@@ -254,6 +257,7 @@ class TestCaseService:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_attach_001",
+            plan="basic",
             changed_by=case_owner,
         )
         payment_service.update_payment(payment_id=str(p1.id), status="processing", changed_by=case_owner, reason="processing")
@@ -266,6 +270,7 @@ class TestCaseService:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_attach_002",
+            plan="basic",
             changed_by=case_owner,
         )
         payment_service.update_payment(payment_id=str(p2.id), status="processing", changed_by=case_owner, reason="processing")
@@ -287,6 +292,7 @@ class TestCaseService:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_once_001",
+            plan="basic",
             changed_by=case_owner,
         )
         payment_service.update_payment(payment_id=str(p.id), status="processing", changed_by=case_owner, reason="processing")

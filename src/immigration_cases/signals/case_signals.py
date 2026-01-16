@@ -1,6 +1,7 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from immigration_cases.models.case import Case
+from immigration_cases.selectors.case_selector import CaseSelector
 from users_access.services.notification_service import NotificationService
 from users_access.tasks.email_tasks import send_case_status_update_email_task
 
@@ -67,7 +68,7 @@ def store_previous_status(sender, instance, **kwargs):
     """
     if instance.pk:
         try:
-            previous_instance = Case.objects.get(pk=instance.pk)
+            previous_instance = CaseSelector.get_any_by_id(instance.pk)
             instance._previous_status = previous_instance.status
         except Case.DoesNotExist:
             instance._previous_status = None

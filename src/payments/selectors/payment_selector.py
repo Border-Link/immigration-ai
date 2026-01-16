@@ -80,6 +80,26 @@ class PaymentSelector:
         ).filter(is_deleted=False).get(id=payment_id)
 
     @staticmethod
+    def get_completed_case_fee_by_id(payment_id) -> Payment:
+        """
+        Get a completed, non-deleted case_fee payment by id.
+
+        Returns None if not found.
+        """
+        return Payment.objects.select_related(
+            "user",
+            "user__profile",
+            "case",
+            "case__user",
+            "case__user__profile",
+        ).filter(
+            id=payment_id,
+            status="completed",
+            is_deleted=False,
+            purpose="case_fee",
+        ).first()
+
+    @staticmethod
     def get_deleted_by_id(payment_id) -> Payment:
         """Get deleted payment by ID (for restore operations)."""
         return Payment.objects.select_related(
@@ -108,6 +128,7 @@ class PaymentSelector:
             user=user,
             case__isnull=True,
             status='completed',
+            purpose='case_fee',
             is_deleted=False
         ).order_by('-created_at')
 

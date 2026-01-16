@@ -24,7 +24,9 @@ class PaymentRepository:
         currency: str = Payment.DEFAULT_CURRENCY,
         status: str = 'pending',
         payment_provider: str = None,
-        provider_transaction_id: str = None
+        provider_transaction_id: str = None,
+        purpose: str = 'case_fee',
+        plan: str = None,
     ) -> Payment:
         """
         Create a new payment.
@@ -47,10 +49,13 @@ class PaymentRepository:
         if currency not in [code for code, _ in Payment.SUPPORTED_CURRENCIES]:
             currency = Payment.DEFAULT_CURRENCY
         
-        # Ensure one payment per case (prevent multiple completed payments)
-        is_valid, error = PaymentValidator.ensure_one_payment_per_case(case)
+        # Ensure one payment per case for the given purpose (prevents duplicate base payments)
+        is_valid, error = PaymentValidator.ensure_one_payment_per_case(case, purpose=purpose)
         if not is_valid:
             raise ValidationError(error)
+
+        if purpose == "case_fee" and not plan:
+            raise ValidationError("Plan is required for case_fee payments.")
         
         with transaction.atomic():
             payment = Payment.objects.create(
@@ -60,7 +65,9 @@ class PaymentRepository:
                 currency=currency,
                 status=status,
                 payment_provider=payment_provider,
-                provider_transaction_id=provider_transaction_id
+                provider_transaction_id=provider_transaction_id,
+                purpose=purpose,
+                plan=plan if purpose == 'case_fee' else None,
             )
             payment.full_clean()
             payment.save()
@@ -74,6 +81,8 @@ class PaymentRepository:
         status: str = 'pending',
         payment_provider: str = None,
         provider_transaction_id: str = None,
+        purpose: str = 'case_fee',
+        plan: str = None,
     ) -> Payment:
         """
         Create a pre-case payment for a user (case is nullable).
@@ -81,6 +90,12 @@ class PaymentRepository:
         # Validate currency
         if currency not in [code for code, _ in Payment.SUPPORTED_CURRENCIES]:
             currency = Payment.DEFAULT_CURRENCY
+
+        # Only base case fee payments are allowed as "pre-case" payments (case must be attached later).
+        if purpose != 'case_fee':
+            raise ValidationError("Only case_fee payments can be created without a case.")
+        if not plan:
+            raise ValidationError("Plan is required for case_fee payments.")
 
         with transaction.atomic():
             payment = Payment.objects.create(
@@ -91,6 +106,8 @@ class PaymentRepository:
                 status=status,
                 payment_provider=payment_provider,
                 provider_transaction_id=provider_transaction_id,
+                purpose=purpose,
+                plan=plan if purpose == 'case_fee' else None,
             )
             payment.full_clean()
             payment.save()

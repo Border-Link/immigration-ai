@@ -92,3 +92,14 @@ class CallSessionRepository:
         """Hard delete a call session."""
         with transaction.atomic():
             call_session.delete()
+
+    @staticmethod
+    def update_heartbeat(call_session: CallSession):
+        """
+        Update heartbeat timestamp for an active call session.
+        Note: This is intentionally a lightweight write (no optimistic-lock requirement).
+        """
+        with transaction.atomic():
+            CallSession.objects.filter(id=call_session.id).update(last_heartbeat_at=timezone.now())
+            call_session.refresh_from_db()
+            return call_session
