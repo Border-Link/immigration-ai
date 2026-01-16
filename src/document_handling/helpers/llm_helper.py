@@ -23,7 +23,7 @@ logger = logging.getLogger('django')
 def call_llm_for_document_processing(
     system_message: str,
     user_prompt: str,
-    model: str = "gpt-4o-mini",
+    model: str = "gpt-5.2",
     temperature: float = 0.1,
     max_tokens: int = 500,
     response_format: Optional[Dict] = None
@@ -37,7 +37,7 @@ def call_llm_for_document_processing(
     Args:
         system_message: System message for LLM
         user_prompt: User prompt with task instructions
-        model: Model to use (default: gpt-4o-mini)
+        model: Model to use (default: gpt-5.2)
         temperature: Temperature setting (default: 0.1 for consistency)
         max_tokens: Maximum tokens in response (default: 500)
         response_format: Optional response format dict (e.g., {"type": "json_object"})
