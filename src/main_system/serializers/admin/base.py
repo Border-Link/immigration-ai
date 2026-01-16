@@ -72,6 +72,11 @@ class BaseAdminListQuerySerializer(DateRangeMixin, PaginationMixin, serializers.
     """
     date_from = serializers.DateTimeField(required=False, allow_null=True)
     date_to = serializers.DateTimeField(required=False, allow_null=True)
+    # NOTE: DRF only registers fields declared on Serializer classes (or bases with
+    # `_declared_fields`). Fields on plain mixins are not picked up. Declare pagination
+    # fields here to ensure query params work across all admin list endpoints.
+    page = serializers.IntegerField(required=False, min_value=1, default=1)
+    page_size = serializers.IntegerField(required=False, min_value=1, max_value=100, default=20)
     
     def validate(self, attrs):
         """Validate date ranges."""
