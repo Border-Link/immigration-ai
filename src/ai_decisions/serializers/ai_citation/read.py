@@ -24,7 +24,14 @@ class AICitationSerializer(serializers.ModelSerializer):
             'relevance_score',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'reasoning_log',
+            'document_version',
+            'excerpt',
+            'relevance_score',
+            'created_at',
+        )
 
 
 class AICitationListSerializer(serializers.ModelSerializer):
@@ -39,4 +46,10 @@ class AICitationListSerializer(serializers.ModelSerializer):
             'relevance_score',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'reasoning_log',
+            'document_version',
+            'relevance_score',
+            'created_at',
+        )
