@@ -47,3 +47,26 @@ class TestAdminAICitationViews:
         assert resp.status_code == status.HTTP_200_OK
         assert ai_citation_service.get_by_id(str(citation.id)) is None
 
+    def test_admin_bulk_invalid_operation_is_reported_not_500(self, api_client, admin_user, citation):
+        api_client.force_authenticate(user=admin_user)
+        resp = api_client.post(
+            f"{API_PREFIX}/admin/ai-citations/bulk-operation/",
+            {"citation_ids": [str(citation.id)], "operation": "not-a-real-op"},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_200_OK
+        assert "failed" in resp.data["data"]
+        assert len(resp.data["data"]["failed"]) == 1
+
+    def test_admin_delete_endpoint_success(self, api_client, admin_user, citation, ai_citation_service):
+        api_client.force_authenticate(user=admin_user)
+        resp = api_client.delete(f"{API_PREFIX}/admin/ai-citations/{citation.id}/delete/")
+        assert resp.status_code == status.HTTP_200_OK
+        assert ai_citation_service.get_by_id(str(citation.id)) is None
+
+    def test_admin_delete_endpoint_not_found(self, api_client, admin_user):
+        import uuid
+
+        api_client.force_authenticate(user=admin_user)
+        resp = api_client.delete(f"{API_PREFIX}/admin/ai-citations/{uuid.uuid4()}/delete/")
+        assert resp.status_code == status.HTTP_404_NOT_FOUND
