@@ -39,17 +39,19 @@ class PaymentPermission(BaseModulePermission, CaseOwnershipMixin):
         """Object-level permission: Based on case ownership."""
         user = request.user
         
-        # Get case from payment
-        case = obj.case if hasattr(obj, 'case') else None
-        if not case:
-            return False
-        
         # Superadmin/Staff can access all payments
         if RoleChecker.is_superadmin(user) or RoleChecker.is_staff(user):
             return True
-        
-        # User can access payments for own cases
-        if self.has_case_access(user, case):
+
+        # Get case from payment (case-attached payments)
+        case = obj.case if hasattr(obj, 'case') else None
+        if case:
+            # User can access payments for own cases
+            return self.has_case_access(user, case)
+
+        # Pre-case payments: allow access to the owning user
+        payment_user = getattr(obj, "user", None)
+        if payment_user and getattr(payment_user, "id", None) == getattr(user, "id", None):
             return True
         
         return False
