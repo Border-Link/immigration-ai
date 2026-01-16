@@ -7,7 +7,9 @@ from typing import Tuple, Optional
 
 # Valid payment status transitions
 VALID_PAYMENT_TRANSITIONS = {
-    'pending': ['processing', 'failed'],
+    # NOTE: Gateways can report a direct success from the initial pending state
+    # (e.g., fast-confirmation flows). We allow pending -> completed to support this.
+    'pending': ['processing', 'failed', 'completed'],
     'processing': ['completed', 'failed'],
     'completed': ['refunded'],
     'failed': ['pending'],  # Via retry

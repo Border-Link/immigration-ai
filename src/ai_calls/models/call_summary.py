@@ -22,21 +22,25 @@ class CallSummary(models.Model):
     
     key_questions = models.JSONField(
         default=list,
+        blank=True,
         help_text="List of key questions asked during the call"
     )
     
     action_items = models.JSONField(
         default=list,
+        blank=True,
         help_text="List of action items identified"
     )
     
     missing_documents = models.JSONField(
         default=list,
+        blank=True,
         help_text="List of missing documents identified"
     )
     
     suggested_next_steps = models.JSONField(
         default=list,
+        blank=True,
         help_text="List of suggested next steps (non-binding)"
     )
     
@@ -45,6 +49,7 @@ class CallSummary(models.Model):
     total_duration_seconds = models.IntegerField(help_text="Total call duration in seconds")
     topics_discussed = models.JSONField(
         default=list,
+        blank=True,
         help_text="List of topics discussed"
     )
     

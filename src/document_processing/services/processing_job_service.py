@@ -288,6 +288,8 @@ class ProcessingJobService:
     ) -> Optional[ProcessingJob]:
         """Update cost tracking for a processing job."""
         try:
+            from decimal import Decimal, ROUND_HALF_UP
+
             job = ProcessingJobSelector.get_by_id(job_id)
             if not job:
                 return None
@@ -301,12 +303,15 @@ class ProcessingJobService:
                 update_fields['ocr_cost_usd'] = ocr_cost_usd
             
             # Calculate total cost
-            total_cost = 0.0
+            # Use Decimal arithmetic to avoid float precision causing validation errors
+            # (model fields are DecimalField with 6 decimal places).
+            total_cost = Decimal("0")
             if llm_cost_usd is not None:
-                total_cost += float(llm_cost_usd)
+                total_cost += Decimal(str(llm_cost_usd))
             if ocr_cost_usd is not None:
-                total_cost += float(ocr_cost_usd)
+                total_cost += Decimal(str(ocr_cost_usd))
             if total_cost > 0:
+                total_cost = total_cost.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
                 update_fields['total_cost_usd'] = total_cost
             
             if update_fields:

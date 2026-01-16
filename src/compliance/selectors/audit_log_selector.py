@@ -30,10 +30,19 @@ class AuditLogSelector:
         return AuditLog.objects.all().order_by('-timestamp')[:limit]
 
     @staticmethod
-    def get_by_date_range(start_date, end_date):
-        """Get audit logs within a date range."""
-        return AuditLog.objects.filter(
-            timestamp__gte=start_date,
-            timestamp__lte=end_date
-        ).order_by('-timestamp')
+    def get_by_date_range(start_date=None, end_date=None):
+        """
+        Get audit logs within a date range.
+
+        Supports open-ended ranges:
+        - start_date only: all logs from start_date onwards
+        - end_date only: all logs up to end_date
+        - neither: all logs
+        """
+        qs = AuditLog.objects.all()
+        if start_date is not None:
+            qs = qs.filter(timestamp__gte=start_date)
+        if end_date is not None:
+            qs = qs.filter(timestamp__lte=end_date)
+        return qs.order_by('-timestamp')
 

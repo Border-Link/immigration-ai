@@ -56,12 +56,12 @@ def get_rule_extraction_system_message(jurisdiction_name: str) -> str:
 JSON Logic uses operators as keys and arrays as operands. Here are the essential operators:
 
 ### Comparison Operators:
-- `{{">=": [{{"var": "salary"}, 38700]}}` - salary >= 38700
-- `{{"<=": [{{"var": "age"}, 65]}}` - age <= 65
-- `{{"==": [{{"var": "has_sponsor"}, true]}}` - has_sponsor == true
-- `{{"!=": [{{"var": "nationality"}, "UK"]}}` - nationality != "UK"
-- `{{">": [{{"var": "years_experience"}, 5]}}` - years_experience > 5
-- `{{"<": [{{"var": "age"}, 18]}}` - age < 18
+- `{{">=": [{{"var": "salary"}}, 38700]}}` - salary >= 38700
+- `{{"<=": [{{"var": "age"}}, 65]}}` - age <= 65
+- `{{"==": [{{"var": "has_sponsor"}}, true]}}` - has_sponsor == true
+- `{{"!=": [{{"var": "nationality"}}, "UK"]}}` - nationality != "UK"
+- `{{">": [{{"var": "years_experience"}}, 5]}}` - years_experience > 5
+- `{{"<": [{{"var": "age"}}, 18]}}` - age < 18
 
 ### Logical Operators:
 - `{{"and": [condition1, condition2]}}` - Both conditions must be true
@@ -76,15 +76,15 @@ JSON Logic uses operators as keys and arrays as operands. Here are the essential
 
 **Simple Salary Threshold:**
 ```json
-{{">=": [{{"var": "salary"}, 38700]}}
+{{">=": [{{"var": "salary"}}, 38700]}}
 ```
 Meaning: salary >= 38700
 
 **Age Range:**
 ```json
 {{"and": [
-  {{">=": [{{"var": "age"}, 18]}},
-  {{"<=": [{{"var": "age"}, 65]}}
+  {{">=": [{{"var": "age"}}, 18]}},
+  {{"<=": [{{"var": "age"}}, 65]}}
 ]}}
 ```
 Meaning: age >= 18 AND age <= 65
@@ -92,11 +92,11 @@ Meaning: age >= 18 AND age <= 65
 **Complex Condition (Salary OR Sponsor):**
 ```json
 {{"or": [
-  {{">=": [{{"var": "salary"}, 50000]}},
+  {{">=": [{{"var": "salary"}}, 50000]}},
   {{
     "and": [
-      {{">=": [{{"var": "salary"}, 38700]}},
-      {{"==": [{{"var": "has_sponsor"}, true]}}
+      {{">=": [{{"var": "salary"}}, 38700]}},
+      {{"==": [{{"var": "has_sponsor"}}, true]}}
     ]
   }}
 ]}}
@@ -105,7 +105,7 @@ Meaning: salary >= 50000 OR (salary >= 38700 AND has_sponsor == true)
 
 **String Matching:**
 ```json
-{{"==": [{{"var": "visa_type"}, "SKILLED_WORKER"]}}
+{{"==": [{{"var": "visa_type"}}, "SKILLED_WORKER"]}}
 ```
 Meaning: visa_type == "SKILLED_WORKER"
 
@@ -245,7 +245,7 @@ Extract as:
 {{
   "requirement_code": "MIN_SALARY",
   "description": "Minimum annual salary requirement",
-  "condition_expression": {{">=": [{{"var": "salary"}, 38700]}},
+  "condition_expression": {{">=": [{{"var": "salary"}}, 38700]}},
   "source_excerpt": "Applicants must earn at least {example_currency}{example_amount} per year"
 }}
 
@@ -257,8 +257,8 @@ Extract as:
   "description": "Age must be between 18 and 65 years",
   "condition_expression": {{
     "and": [
-      {{">=": [{{"var": "age"}, 18]}},
-      {{"<=": [{{"var": "age"}, 65]}}
+      {{">=": [{{"var": "age"}}, 18]}},
+      {{"<=": [{{"var": "age"}}, 65]}}
     ]
   }},
   "source_excerpt": "Applicants must be between 18 and 65 years old"
@@ -270,7 +270,7 @@ Extract as:
 {{
   "requirement_code": "DOCUMENT_PASSPORT",
   "description": "Valid passport required",
-  "condition_expression": {{"==": [{{"var": "has_passport"}, true]}},
+  "condition_expression": {{"==": [{{"var": "has_passport"}}, true]}},
   "source_excerpt": "A valid passport is required"
 }}
 
@@ -280,7 +280,7 @@ Extract as:
 {{
   "requirement_code": "FEE_APPLICATION",
   "description": "Application fee amount",
-  "condition_expression": {{"==": [{{"var": "application_fee"}, 38700]}},
+  "condition_expression": {{"==": [{{"var": "application_fee"}}, 38700]}},
   "source_excerpt": "The application fee is {example_currency}{example_amount}"
 }}
 

@@ -16,7 +16,13 @@ class ReviewNoteSerializer(serializers.ModelSerializer):
             'is_internal',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'review_id',
+            'note',
+            'is_internal',
+            'created_at',
+        )
 
 
 class ReviewNoteListSerializer(serializers.ModelSerializer):
@@ -30,5 +36,10 @@ class ReviewNoteListSerializer(serializers.ModelSerializer):
             'is_internal',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'note',
+            'is_internal',
+            'created_at',
+        )
 

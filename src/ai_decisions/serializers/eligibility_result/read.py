@@ -12,6 +12,8 @@ class EligibilityResultListQuerySerializer(serializers.Serializer):
 
 class EligibilityResultSerializer(serializers.ModelSerializer):
     """Serializer for EligibilityResult model."""
+
+    requires_human_review = serializers.SerializerMethodField()
     
     class Meta:
         model = EligibilityResult
@@ -24,16 +26,34 @@ class EligibilityResultSerializer(serializers.ModelSerializer):
             'confidence',
             'reasoning_summary',
             'missing_facts',
-            'ai_reasoning_available',
             'requires_human_review',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = '__all__'
+
+        read_only_fields = (
+            'id',
+            'case',
+            'visa_type',
+            'rule_version',
+            'outcome',
+            'confidence',
+            'reasoning_summary',
+            'missing_facts',
+            'requires_human_review',
+            'created_at',
+            'updated_at',
+        )
+
+    def get_requires_human_review(self, obj) -> bool:
+        # Conservative: outcomes requiring review/missing facts are review-worthy.
+        return obj.outcome in {'requires_review', 'missing_facts'}
 
 
 class EligibilityResultListSerializer(serializers.ModelSerializer):
     """Simplified serializer for listing eligibility results."""
+
+    requires_human_review = serializers.SerializerMethodField()
     
     class Meta:
         model = EligibilityResult
@@ -46,4 +66,15 @@ class EligibilityResultListSerializer(serializers.ModelSerializer):
             'requires_human_review',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'case',
+            'visa_type',
+            'outcome',
+            'confidence',
+            'requires_human_review',
+            'created_at',
+        )
+
+    def get_requires_human_review(self, obj) -> bool:
+        return obj.outcome in {'requires_review', 'missing_facts'}

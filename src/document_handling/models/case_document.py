@@ -14,6 +14,8 @@ class CaseDocument(models.Model):
         ('processing', 'Processing'),
         ('verified', 'Verified'),
         ('rejected', 'Rejected'),
+        # Used by async processing pipeline when document requires reviewer/user attention
+        ('needs_attention', 'Needs Attention'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)

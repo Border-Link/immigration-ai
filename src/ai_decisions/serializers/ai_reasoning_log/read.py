@@ -25,7 +25,15 @@ class AIReasoningLogSerializer(serializers.ModelSerializer):
             'tokens_used',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'case',
+            'model_name',
+            'prompt',
+            'response',
+            'tokens_used',
+            'created_at',
+        )
 
 
 class AIReasoningLogListSerializer(serializers.ModelSerializer):
@@ -40,4 +48,10 @@ class AIReasoningLogListSerializer(serializers.ModelSerializer):
             'tokens_used',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'case',
+            'model_name',
+            'tokens_used',
+            'created_at',
+        )

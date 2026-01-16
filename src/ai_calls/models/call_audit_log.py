@@ -12,6 +12,7 @@ class CallAuditLog(models.Model):
         ('refusal', 'Refusal'),
         ('warning', 'Warning'),
         ('escalation', 'Escalation'),
+        ('system_error', 'System Error'),
         ('timebox_warning', 'Timebox Warning'),
         ('auto_termination', 'Auto Termination'),
         ('manual_termination', 'Manual Termination'),

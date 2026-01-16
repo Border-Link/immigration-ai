@@ -45,7 +45,7 @@ def handle_document_check_result(sender, instance, created, **kwargs):
         document = instance.case_document
         
         # If check failed, notify user
-        if instance.result == 'fail':
+        if instance.result == 'failed':
             NotificationService.create_notification(
                 user_id=str(document.case.user.id),
                 notification_type='document_failed',

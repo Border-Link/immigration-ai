@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from datetime import date, datetime
 from django.utils import timezone
 from django.db.models import Q
-import json_logic
+from main_system.utils import json_logic
 from rules_knowledge.helpers.metrics import (
     rule_engine_evaluations_total,
     rule_engine_evaluation_duration_seconds,

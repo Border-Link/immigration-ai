@@ -40,7 +40,7 @@ up:
 
 down:
 	@echo "🛑 Stopping production services..."
-	docker compose down --volumes --remove-orphans
+	docker compose down --remove-orphans
 
 restart:
 	make down
@@ -72,7 +72,7 @@ dev:
 	docker compose -f docker-compose.dev.yml up -d --remove-orphans
 
 dev-down:
-	docker compose -f docker-compose.dev.yml down --volumes --remove-orphans
+	docker compose -f docker-compose.dev.yml down --remove-orphans
 
 dev-restart:
 	make dev-down

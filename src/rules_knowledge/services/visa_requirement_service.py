@@ -171,7 +171,16 @@ class VisaRequirementService:
 
     @staticmethod
     def update_visa_requirement(requirement_id: str, **fields) -> Optional[VisaRequirement]:
-        """Update visa requirement (alias for update_requirement)."""
+        """
+        Update visa requirement (wrapper for views).
+        
+        API uses `is_active`; model uses `is_mandatory`.
+        """
+        if 'is_active' in fields and 'is_mandatory' not in fields:
+            fields['is_mandatory'] = fields.pop('is_active')
+        else:
+            # Drop unknown alias if both provided to avoid silent no-op
+            fields.pop('is_active', None)
         return VisaRequirementService.update_requirement(requirement_id, **fields)
 
     @staticmethod

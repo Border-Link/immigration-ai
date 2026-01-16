@@ -90,6 +90,8 @@ class CallSessionStatisticsAPI(AuthAPI):
             .order_by('-count')
             .values_list('case_id', 'count')[:10]  # Top 10 cases
         )
+        # JSON-safe keys (UUID -> str)
+        sessions_by_case = {str(k): v for k, v in sessions_by_case.items()}
         
         statistics = {
             'total_sessions': total_sessions,

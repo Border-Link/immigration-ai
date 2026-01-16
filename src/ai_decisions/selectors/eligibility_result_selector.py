@@ -51,6 +51,17 @@ class EligibilityResultSelector:
         ).get(id=result_id)
 
     @staticmethod
+    def get_by_rule_version(rule_version_id: str):
+        """Get eligibility results by rule version ID."""
+        return EligibilityResult.objects.select_related(
+            'case',
+            'case__user',
+            'visa_type',
+            'rule_version',
+            'rule_version__visa_type'
+        ).filter(rule_version_id=rule_version_id).order_by('-created_at')
+
+    @staticmethod
     def get_none():
         """Get empty queryset."""
         return EligibilityResult.objects.none()

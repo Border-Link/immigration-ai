@@ -78,9 +78,10 @@ EXPOSE 8000
 # Default command
 # --------------------------
 # If PRODUCTION=true, run Gunicorn, else default to Django dev server
+# If PRODUCTION=true, run Gunicorn, else default to Django dev server
 ARG PRODUCTION=false
 CMD if [ "${PRODUCTION}" = "true" ]; then \
-        gunicorn --bind 0.0.0.0:8000 main_system.wsgi:application; \
+        gunicorn --workers ${GUNICORN_WORKERS:-4} --timeout ${GUNICORN_TIMEOUT:-120} --graceful-timeout ${GUNICORN_GRACEFUL_TIMEOUT:-30} --keep-alive ${GUNICORN_KEEPALIVE:-5} --bind 0.0.0.0:8000 main_system.wsgi:application; \
     else \
         python manage.py runserver 0.0.0.0:8000; \
     fi

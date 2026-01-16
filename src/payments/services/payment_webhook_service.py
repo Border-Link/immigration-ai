@@ -21,6 +21,27 @@ logger = logging.getLogger('django')
 
 class PaymentWebhookService:
     """Service for Payment Webhook business logic."""
+
+    @staticmethod
+    def _json_safe(value):
+        """
+        Convert nested structures into JSON-serializable types.
+
+        Webhook payloads and derived dicts may contain Decimals/datetimes which
+        are not JSONField-safe by default.
+        """
+        from decimal import Decimal
+        from datetime import datetime, date
+
+        if isinstance(value, Decimal):
+            return str(value)
+        if isinstance(value, (datetime, date)):
+            return value.isoformat()
+        if isinstance(value, dict):
+            return {k: PaymentWebhookService._json_safe(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [PaymentWebhookService._json_safe(v) for v in value]
+        return value
     
     @staticmethod
     def process_webhook(
@@ -103,6 +124,9 @@ class PaymentWebhookService:
             new_status = webhook_result.get('status')
             event_type = webhook_result.get('event_type')
             event_id = webhook_result.get('event_id')  # Gateway event ID
+
+            # Keep a JSONField-safe copy for persistence (events/history metadata)
+            safe_webhook_result = PaymentWebhookService._json_safe(webhook_result)
             
             if not reference:
                 logger.warning(f"No reference in webhook result: {webhook_result}")
@@ -134,7 +158,7 @@ class PaymentWebhookService:
                         event_id=event_id,
                         provider=provider,
                         event_type=event_type or 'unknown',
-                        payload=webhook_result
+                        payload=safe_webhook_result
                     )
                 except ValueError as e:
                     # Event already exists (shouldn't happen due to check above, but handle gracefully)
@@ -147,7 +171,7 @@ class PaymentWebhookService:
                 message=f"Webhook received: {event_type}",
                 previous_status=payment.status,
                 new_status=new_status,
-                metadata={'webhook_result': webhook_result},
+                metadata={'webhook_result': safe_webhook_result},
             )
             
             # Step 5: Update provider transaction ID if not set

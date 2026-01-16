@@ -22,7 +22,18 @@ class ReviewSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'case',
+            'reviewer',
+            'reviewer_email',
+            'case_user_email',
+            'status',
+            'assigned_at',
+            'completed_at',
+            'created_at',
+            'updated_at',
+        )
 
 
 class ReviewListSerializer(serializers.ModelSerializer):
@@ -42,5 +53,13 @@ class ReviewListSerializer(serializers.ModelSerializer):
             'completed_at',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'case_id',
+            'reviewer_email',
+            'status',
+            'assigned_at',
+            'completed_at',
+            'created_at',
+        )
 

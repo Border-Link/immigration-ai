@@ -43,21 +43,19 @@ class RuleVersionRollbackService:
         """
         try:
             with transaction.atomic():
-                # Get versions
-                current_version = VisaRuleVersionSelector.get_by_id(current_version_id, include_deleted=True)
-                previous_version = VisaRuleVersionSelector.get_by_id(rollback_to_version_id, include_deleted=True)
+                # Get versions (selectors raise DoesNotExist; normalize to clean "not found" errors)
+                try:
+                    current_version = VisaRuleVersionSelector.get_by_id(current_version_id, include_deleted=True)
+                except VisaRuleVersion.DoesNotExist:
+                    return {'success': False, 'error': f"Current version {current_version_id} not found"}
+
+                try:
+                    previous_version = VisaRuleVersionSelector.get_by_id(rollback_to_version_id, include_deleted=True)
+                except VisaRuleVersion.DoesNotExist:
+                    return {'success': False, 'error': f"Previous version {rollback_to_version_id} not found"}
                 
-                if not current_version:
-                    return {
-                        'success': False,
-                        'error': f"Current version {current_version_id} not found"
-                    }
-                
-                if not previous_version:
-                    return {
-                        'success': False,
-                        'error': f"Previous version {rollback_to_version_id} not found"
-                    }
+                # Use a single timestamp to avoid boundary overlaps
+                now = timezone.now()
                 
                 # Verify they're for the same visa type
                 if current_version.visa_type_id != previous_version.visa_type_id:
@@ -75,12 +73,12 @@ class RuleVersionRollbackService:
                 
                 # Close current version
                 current_closed = False
-                if current_version.is_published and (not current_version.effective_to or current_version.effective_to > timezone.now()):
-                    # Set effective_to to now
+                if current_version.is_published and (not current_version.effective_to or current_version.effective_to > now):
+                    # Set effective_to to just before "now" so the reopened version can start at "now"
                     VisaRuleVersionRepository.update_rule_version(
                         current_version,
                         updated_by=rollback_by,
-                        effective_to=timezone.now()
+                        effective_to=now - timezone.timedelta(microseconds=1)
                     )
                     current_closed = True
                 
@@ -102,10 +100,13 @@ class RuleVersionRollbackService:
                     previous_reopened = True
                 
                 # Set effective_to to None to make it current
-                if previous_version.effective_to:
+                # Important: avoid overlaps by making the reopened version effective from "now"
+                # (this is a rollback action, not historical rewriting of past periods).
+                if previous_version.effective_to is not None or previous_version.effective_from != now:
                     VisaRuleVersionRepository.update_rule_version(
                         previous_version,
                         updated_by=rollback_by,
+                        effective_from=now,
                         effective_to=None
                     )
                     previous_reopened = True

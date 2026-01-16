@@ -20,6 +20,10 @@ class ProcessingHistoryAdminListQuerySerializer(BaseAdminListQuerySerializer):
 
     def to_internal_value(self, data):
         """Parse string dates to datetime objects and integer values."""
+        # DRF passes `request.query_params` (a QueryDict) for GETs; it is immutable.
+        # Make a mutable copy before normalizing values.
+        if hasattr(data, "copy"):
+            data = data.copy()
         # Parse integer strings before calling super
         if 'limit' in data and data.get('limit'):
             if isinstance(data['limit'], str):
@@ -53,7 +57,7 @@ class ProcessingHistoryAdminListSerializer(serializers.ModelSerializer):
             'user_email',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = fields
 
 
 class ProcessingHistoryAdminDetailSerializer(serializers.ModelSerializer):
@@ -84,7 +88,7 @@ class ProcessingHistoryAdminDetailSerializer(serializers.ModelSerializer):
             'user_email',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = fields
 
 
 class BulkProcessingHistoryOperationSerializer(serializers.Serializer):

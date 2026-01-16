@@ -11,7 +11,7 @@ from users_access.selectors.user_selector import UserSelector
 
 logger = logging.getLogger('django')
 
-def namespace(*args, **kwargs) -> str:
+def call_sessions_cache_namespace(*args, **kwargs) -> str:
     return "call_sessions"
 
 
@@ -22,7 +22,7 @@ class CallSessionService:
         return f"call_sessions:user:{user_id}"
 
     @staticmethod
-    @invalidate_cache(namespace, predicate=lambda cs: cs is not None)
+    @invalidate_cache(call_sessions_cache_namespace, predicate=lambda cs: cs is not None)
     def create_call_session(case_id: str, user_id: str, parent_session_id: Optional[str] = None) -> Optional[CallSession]:
         """
         Create a new call session.
@@ -53,7 +53,7 @@ class CallSessionService:
                 return None
             
             # Validate case belongs to user
-            if case.user_id != user_id:
+            if str(case.user_id) != str(user_id):
                 logger.warning(f"Case {case_id} does not belong to user {user_id}")
                 return None
             
@@ -74,7 +74,7 @@ class CallSessionService:
             if parent_session_id:
                 # This is a retry - check parent session
                 parent_session = CallSessionSelector.get_by_id(parent_session_id)
-                if not parent_session or parent_session.case_id != case_id:
+                if not parent_session or str(parent_session.case_id) != str(case_id):
                     logger.warning(f"Invalid parent session {parent_session_id} for case {case_id}")
                     return None
                 
@@ -109,7 +109,6 @@ class CallSessionService:
             call_session = CallSessionRepository.create_call_session(
                 case=case,
                 user=user,
-                status='created',
                 parent_session=parent_session,
                 retry_count=retry_count
             )
@@ -122,7 +121,7 @@ class CallSessionService:
             return None
 
     @staticmethod
-    @invalidate_cache(namespace, predicate=lambda cs: cs is not None)
+    @invalidate_cache(call_sessions_cache_namespace, predicate=lambda cs: cs is not None)
     def prepare_call_session(session_id: str) -> Optional[CallSession]:
         """
         Prepare call session by building context bundle.
@@ -201,7 +200,7 @@ class CallSessionService:
             return None
 
     @staticmethod
-    @invalidate_cache(namespace, predicate=lambda cs: cs is not None)
+    @invalidate_cache(call_sessions_cache_namespace, predicate=lambda cs: cs is not None)
     def start_call(session_id: str) -> Optional[CallSession]:
         """
         Start the call.
@@ -265,7 +264,7 @@ class CallSessionService:
             return None
 
     @staticmethod
-    @invalidate_cache(namespace, predicate=lambda cs: cs is not None)
+    @invalidate_cache(call_sessions_cache_namespace, predicate=lambda cs: cs is not None)
     def end_call(session_id: str, reason: str = 'completed') -> Optional[CallSession]:
         """
         End the call normally.
@@ -335,7 +334,7 @@ class CallSessionService:
             return None
 
     @staticmethod
-    @invalidate_cache(namespace, predicate=lambda cs: cs is not None)
+    @invalidate_cache(call_sessions_cache_namespace, predicate=lambda cs: cs is not None)
     def terminate_call(session_id: str, reason: str, terminated_by_user_id: str) -> Optional[CallSession]:
         """
         Manually terminate call (user or admin).
@@ -407,7 +406,7 @@ class CallSessionService:
             return None
 
     @staticmethod
-    @invalidate_cache(namespace, predicate=lambda cs: cs is not None)
+    @invalidate_cache(call_sessions_cache_namespace, predicate=lambda cs: cs is not None)
     def fail_call_session(session_id: str, reason: str, error_details: Optional[Dict] = None) -> Optional[CallSession]:
         """
         Mark call session as failed due to system error.
@@ -497,7 +496,7 @@ class CallSessionService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=['session_id'], namespace=namespace, user_scope="global")
+    @cache_result(timeout=300, keys=['session_id'], namespace=call_sessions_cache_namespace, user_scope="global")
     def get_call_session(session_id: str) -> Optional[CallSession]:
         """Get call session by ID."""
         try:
@@ -510,7 +509,7 @@ class CallSessionService:
             return None
 
     @staticmethod
-    @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")
+    @cache_result(timeout=300, keys=['case_id'], namespace=call_sessions_cache_namespace, user_scope="global")
     def get_active_call_for_case(case_id: str) -> Optional[CallSession]:
         """Get active call session for a case (if exists)."""
         try:

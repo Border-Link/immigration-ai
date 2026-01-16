@@ -43,7 +43,10 @@ class ReviewStatusHistoryDetailAPI(AuthAPI):
     permission_classes = [ReviewPermission]
     
     def get(self, request, id):
-        history = ReviewStatusHistorySelector.get_by_id(id)
+        try:
+            history = ReviewStatusHistorySelector.get_by_id(id)
+        except Exception:
+            history = None
         if not history:
             return self.api_response(
                 message=f"Status history entry with ID '{id}' not found.",
