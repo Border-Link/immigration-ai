@@ -8,7 +8,7 @@ Access restricted to reviewers (who review AI decisions) and staff/superusers.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.ai_reasoning_permission import AIReasoningPermission
+from ai_decisions.permissions.ai_citation_permissions import CanViewAICitation
 from ai_decisions.services.ai_citation_service import AICitationService
 from ai_decisions.serializers.ai_citation.read import (
     AICitationListQuerySerializer,
@@ -30,7 +30,7 @@ class AICitationListAPI(AuthAPI):
         - reasoning_log_id: Filter by reasoning log ID
         - document_version_id: Filter by document version ID
     """
-    permission_classes = [AIReasoningPermission]
+    permission_classes = [CanViewAICitation]
     
     def get(self, request):
         # Validate query parameters
@@ -70,7 +70,7 @@ class AICitationDetailAPI(AuthAPI):
     Endpoint: GET /api/v1/ai-decisions/ai-citations/<id>/
     Auth: Required (reviewer or admin/staff - for auditing AI citations)
     """
-    permission_classes = [AIReasoningPermission]
+    permission_classes = [CanViewAICitation]
     
     def get(self, request, id):
         citation = AICitationService.get_by_id(id)
