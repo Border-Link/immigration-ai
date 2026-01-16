@@ -249,7 +249,10 @@ class StripeGateway(BasePaymentGateway):
                 if isinstance(charges, dict) and charges.get('data'):
                     charge = charges['data'][0]
                     if charge.get('paid') and charge.get('created'):
-                        paid_at = timezone.datetime.fromtimestamp(charge['created'], tz=timezone.utc)
+                        # django.utils.timezone doesn't expose a UTC tzinfo; use stdlib
+                        from datetime import timezone as dt_timezone
+
+                        paid_at = timezone.datetime.fromtimestamp(charge['created'], tz=dt_timezone.utc)
                 elif response.get('latest_charge'):
                     # PaymentIntent might have latest_charge reference
                     charge_id = response['latest_charge']
