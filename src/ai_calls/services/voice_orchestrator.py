@@ -445,7 +445,7 @@ class VoiceOrchestrator:
             
             # Call LLM with appropriate settings for voice conversations
             response = llm_client.client.chat.completions.create(
-                model=getattr(settings, 'AI_CALLS_LLM_MODEL', 'gpt-4o-mini'),
+                model=getattr(settings, 'AI_CALLS_LLM_MODEL', 'gpt-5.2'),
                 messages=messages,
                 temperature=0.3,  # Lower temperature for more consistent responses
                 max_tokens=500,  # Shorter responses for voice
@@ -457,7 +457,7 @@ class VoiceOrchestrator:
             
             return {
                 'content': content,
-                'model': getattr(settings, 'AI_CALLS_LLM_MODEL', 'gpt-4o-mini'),
+                'model': getattr(settings, 'AI_CALLS_LLM_MODEL', 'gpt-5.2'),
                 'usage': {
                     'prompt_tokens': usage.prompt_tokens if usage else 0,
                     'completion_tokens': usage.completion_tokens if usage else 0,
