@@ -15,7 +15,13 @@ import time
 import uuid
 from typing import Dict, Any, Optional, List
 from celery import shared_task
-from celery.exceptions import Retry, MaxRetriesExceeded
+from celery.exceptions import Retry
+try:
+    # Older Celery versions
+    from celery.exceptions import MaxRetriesExceeded
+except ImportError:  # pragma: no cover
+    # Celery 5+: renamed
+    from celery.exceptions import MaxRetriesExceededError as MaxRetriesExceeded
 from django.utils import timezone
 from main_system.utils.tasks_base import BaseTaskWithMeta
 from ai_decisions.services.eligibility_check_service import EligibilityCheckService, EligibilityCheckResult
