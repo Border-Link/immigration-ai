@@ -13,6 +13,7 @@ STATUS_CHOICES = [
     ('completed', 'Completed'),
     ('expired', 'Expired'),
     ('terminated', 'Terminated'),
+    ('failed', 'Failed'),
 ]
 
 
@@ -55,6 +56,12 @@ class CallSession(models.Model):
     started_at = models.DateTimeField(null=True, blank=True, help_text="When call actually started")
     ended_at = models.DateTimeField(null=True, blank=True, help_text="When call ended")
     duration_seconds = models.IntegerField(null=True, blank=True, help_text="Actual call duration in seconds")
+    last_heartbeat_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Last time the client sent a heartbeat (liveness tracking)"
+    )
     
     # Context (sealed, read-only)
     context_bundle = models.JSONField(
