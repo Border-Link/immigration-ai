@@ -34,7 +34,20 @@ class PaymentSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'user_email',
+            'case_id',
+            'case_user_email',
+            'amount',
+            'currency',
+            'status',
+            'payment_provider',
+            'provider_transaction_id',
+            'version',
+            'created_at',
+            'updated_at',
+        )
 
 
 class PaymentListSerializer(serializers.ModelSerializer):
@@ -56,5 +69,13 @@ class PaymentListSerializer(serializers.ModelSerializer):
             'payment_provider',
             'created_at',
         ]
-        read_only_fields = '__all__'
+        read_only_fields = (
+            'id',
+            'case_id',
+            'amount',
+            'currency',
+            'status',
+            'payment_provider',
+            'created_at',
+        )
 
