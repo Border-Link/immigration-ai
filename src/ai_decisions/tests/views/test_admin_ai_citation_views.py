@@ -54,9 +54,8 @@ class TestAdminAICitationViews:
             {"citation_ids": [str(citation.id)], "operation": "not-a-real-op"},
             format="json",
         )
-        assert resp.status_code == status.HTTP_200_OK
-        assert "failed" in resp.data["data"]
-        assert len(resp.data["data"]["failed"]) == 1
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert "operation" in resp.data
 
     def test_admin_delete_endpoint_success(self, api_client, admin_user, citation, ai_citation_service):
         api_client.force_authenticate(user=admin_user)
