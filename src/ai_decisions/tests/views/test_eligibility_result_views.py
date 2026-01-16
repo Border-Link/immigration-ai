@@ -90,3 +90,21 @@ class TestEligibilityResultViews:
         resp = api_client.delete(f"{API_PREFIX}/eligibility-results/{eligibility_result.id}/delete/")
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
+
+    def test_update_not_found(self, api_client, case_owner):
+        import uuid
+
+        api_client.force_authenticate(user=case_owner)
+        resp = api_client.patch(
+            f"{API_PREFIX}/eligibility-results/{uuid.uuid4()}/update/",
+            {"confidence": 0.5},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_delete_not_found(self, api_client, case_owner):
+        import uuid
+
+        api_client.force_authenticate(user=case_owner)
+        resp = api_client.delete(f"{API_PREFIX}/eligibility-results/{uuid.uuid4()}/delete/")
+        assert resp.status_code == status.HTTP_404_NOT_FOUND
