@@ -1,5 +1,4 @@
 from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from rules_knowledge.models.visa_rule_version import VisaRuleVersion
@@ -141,8 +140,9 @@ class VisaRuleVersionRepository:
                 if hasattr(rule_version, key):
                     setattr(rule_version, key, value)
             
-            # Increment version atomically using F() expression
-            rule_version.version = F('version') + 1
+            # Increment version (integer) after any optimistic-lock checks.
+            # Note: expected_version path uses select_for_update above, which prevents concurrent writes.
+            rule_version.version = int(rule_version.version) + 1
             rule_version.full_clean()
             rule_version.save()
             
@@ -185,8 +185,8 @@ class VisaRuleVersionRepository:
             if published_by:
                 rule_version.published_by = published_by
             
-            # Increment version atomically
-            rule_version.version = F('version') + 1
+            # Increment version (integer) after any optimistic-lock checks.
+            rule_version.version = int(rule_version.version) + 1
             rule_version.full_clean()
             rule_version.save()
             
