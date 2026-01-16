@@ -8,7 +8,7 @@ Access restricted to reviewers (who review AI decisions) and staff/superusers.
 import logging
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
-from main_system.permissions.ai_reasoning_permission import AIReasoningPermission
+from ai_decisions.permissions.ai_reasoning_log_permissions import CanViewAIReasoningLog
 from ai_decisions.services.ai_reasoning_log_service import AIReasoningLogService
 from ai_decisions.serializers.ai_reasoning_log.read import (
     AIReasoningLogListQuerySerializer,
@@ -30,7 +30,7 @@ class AIReasoningLogListAPI(AuthAPI):
         - case_id: Filter by case ID
         - model_name: Filter by model name
     """
-    permission_classes = [AIReasoningPermission]
+    permission_classes = [CanViewAIReasoningLog]
     
     def get(self, request):
         # Validate query parameters
@@ -70,7 +70,7 @@ class AIReasoningLogDetailAPI(AuthAPI):
     Endpoint: GET /api/v1/ai-decisions/ai-reasoning-logs/<id>/
     Auth: Required (reviewer or admin/staff - for auditing AI decisions)
     """
-    permission_classes = [AIReasoningPermission]
+    permission_classes = [CanViewAIReasoningLog]
     
     def get(self, request, id):
         log = AIReasoningLogService.get_by_id(id)
