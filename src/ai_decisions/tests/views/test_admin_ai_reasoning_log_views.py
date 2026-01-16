@@ -39,7 +39,7 @@ class TestAdminAIReasoningLogViews:
 
     def test_admin_bulk_invalid_operation_is_reported_not_500(self, api_client, admin_user, reasoning_log):
         """
-        BaseBulkOperationAPI reports per-entity failures and still returns 200.
+            Invalid operation should be rejected by serializer validation (400), not 500.
         The key requirement is that we don't 500 on invalid operation.
         """
         api_client.force_authenticate(user=admin_user)
@@ -48,9 +48,8 @@ class TestAdminAIReasoningLogViews:
             {"log_ids": [str(reasoning_log.id)], "operation": "not-a-real-op"},
             format="json",
         )
-        assert resp.status_code == status.HTTP_200_OK
-        assert "failed" in resp.data["data"]
-        assert len(resp.data["data"]["failed"]) == 1
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert "operation" in resp.data
 
     def test_admin_delete_endpoint_success(self, api_client, admin_user, reasoning_log, ai_reasoning_log_service):
         api_client.force_authenticate(user=admin_user)
