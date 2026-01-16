@@ -89,3 +89,16 @@ class CaseSelector:
             queryset = queryset.filter(updated_at__lte=updated_date_to)
         
         return queryset.order_by('-created_at')
+
+    @staticmethod
+    def get_none():
+        """Return an empty queryset."""
+        return Case.objects.none()
+
+    @staticmethod
+    def get_any_by_id(case_id):
+        """
+        Get case by ID, including soft-deleted ones.
+        Used for admin/restore flows and signals.
+        """
+        return Case.objects.select_related('user', 'user__profile').get(id=case_id)
