@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 import logging
 from typing import Optional
 from django.db import transaction
+from django.core.exceptions import ObjectDoesNotExist
 from main_system.utils.cache_utils import cache_result, invalidate_cache
-from human_reviews.models.decision_override import DecisionOverride
 from human_reviews.repositories.decision_override_repository import DecisionOverrideRepository
 from human_reviews.selectors.decision_override_selector import DecisionOverrideSelector
 from human_reviews.selectors.review_selector import ReviewSelector
 from immigration_cases.selectors.case_selector import CaseSelector
 from ai_decisions.selectors.eligibility_result_selector import EligibilityResultSelector
-from ai_decisions.models.eligibility_result import EligibilityResult
 from immigration_cases.services.case_service import CaseService
 from human_reviews.services.review_note_service import ReviewNoteService
 from compliance.services.audit_log_service import AuditLogService
@@ -52,8 +53,11 @@ class DecisionOverrideService:
                     logger.error(f"Case {case_id} not found")
                     return None
                 
-                # Validate payment requirement
-                is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="decision override creation")
+                # Validate reviewer add-on payment requirement (human reviews are an add-on)
+                is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(
+                    case,
+                    operation_name="decision override creation",
+                )
                 if not is_valid:
                     logger.warning(f"Decision override creation blocked for case {case_id}: {error}")
                     raise ValidationError(error)
@@ -65,8 +69,9 @@ class DecisionOverrideService:
                     return None
                 
                 # Validate outcome
-                valid_outcomes = [choice[0] for choice in EligibilityResult.OUTCOME_CHOICES]
-                if overridden_outcome not in valid_outcomes:
+                # Keep this service free of model imports; validate against allowed outcomes inline.
+                # Mirrors `EligibilityResult.OUTCOME_CHOICES`.
+                if overridden_outcome not in ("eligible", "not_eligible", "requires_review", "missing_facts"):
                     logger.error(f"Invalid overridden_outcome: {overridden_outcome}")
                     return None
                 
@@ -108,7 +113,14 @@ class DecisionOverrideService:
                         logger.warning(f"Error adding review note or updating review: {e}")
                 
                 # Step 5: Update case status
-                CaseService.update_case(case_id, status='reviewed')
+                # Best-effort: do not fail the override if case status transition is not allowed
+                # (e.g., draft -> reviewed). Status transitions are enforced in `CaseService`.
+                try:
+                    _case, err, _status_code = CaseService.update_case(str(case_id), status='reviewed')
+                    if err:
+                        logger.warning(f"Case {case_id} status not updated to reviewed: {err}")
+                except Exception as e:
+                    logger.warning(f"Failed to update case {case_id} status to reviewed: {e}")
                 
                 # Step 6: Log audit event
                 try:
@@ -139,7 +151,7 @@ class DecisionOverrideService:
             return DecisionOverrideSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all decision overrides: {e}")
-            return DecisionOverride.objects.none()
+            return DecisionOverrideSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache overrides by case
@@ -150,7 +162,7 @@ class DecisionOverrideService:
             return DecisionOverrideSelector.get_by_case(case)
         except Exception as e:
             logger.error(f"Error fetching overrides for case {case_id}: {e}")
-            return DecisionOverride.objects.none()
+            return DecisionOverrideSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=300, keys=['original_result_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache overrides by result
@@ -161,7 +173,7 @@ class DecisionOverrideService:
             return DecisionOverrideSelector.get_by_original_result(original_result)
         except Exception as e:
             logger.error(f"Error fetching overrides for result {original_result_id}: {e}")
-            return DecisionOverride.objects.none()
+            return DecisionOverrideSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=300, keys=['original_result_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache latest override by result
@@ -170,7 +182,7 @@ class DecisionOverrideService:
         try:
             original_result = EligibilityResultSelector.get_by_id(original_result_id)
             return DecisionOverrideSelector.get_latest_by_original_result(original_result)
-        except EligibilityResult.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Eligibility result {original_result_id} not found")
             return None
         except Exception as e:
@@ -187,7 +199,7 @@ class DecisionOverrideService:
             return DecisionOverrideSelector.get_by_reviewer(reviewer)
         except Exception as e:
             logger.error(f"Error fetching overrides for reviewer {reviewer_id}: {e}")
-            return DecisionOverride.objects.none()
+            return DecisionOverrideSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=600, keys=['override_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache override by ID
@@ -195,7 +207,7 @@ class DecisionOverrideService:
         """Get decision override by ID."""
         try:
             return DecisionOverrideSelector.get_by_id(override_id)
-        except DecisionOverride.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Decision override {override_id} not found")
             return None
         except Exception as e:
@@ -219,8 +231,8 @@ class DecisionOverrideService:
                 logger.error(f"Decision override {override_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(
                 override.case, 
                 operation_name="decision override update"
             )
@@ -229,7 +241,7 @@ class DecisionOverrideService:
                 raise ValidationError(error)
             
             return DecisionOverrideRepository.update_decision_override(override, **fields)
-        except DecisionOverride.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Decision override {override_id} not found")
             return None
         except Exception as e:
@@ -254,8 +266,8 @@ class DecisionOverrideService:
                 logger.error(f"Decision override {override_id} not found")
                 return False
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(
                 override.case, 
                 operation_name="decision override deletion"
             )
@@ -265,7 +277,7 @@ class DecisionOverrideService:
             
             DecisionOverrideRepository.delete_decision_override(override)
             return True
-        except DecisionOverride.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Decision override {override_id} not found")
             return False
         except Exception as e:
@@ -286,4 +298,4 @@ class DecisionOverrideService:
             )
         except Exception as e:
             logger.error(f"Error filtering decision overrides: {e}")
-            return DecisionOverride.objects.none()
+            return DecisionOverrideSelector.get_none()
