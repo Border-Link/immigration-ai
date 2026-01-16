@@ -5,6 +5,11 @@ class CallAuditLogSelector:
     """Selector for CallAuditLog read operations."""
 
     @staticmethod
+    def get_all():
+        """Get all audit logs."""
+        return CallAuditLog.objects.select_related('call_session').all().order_by('-created_at')
+
+    @staticmethod
     def get_by_call_session(call_session):
         """Get audit logs for call session."""
         return CallAuditLog.objects.filter(
