@@ -26,6 +26,8 @@ class TokenUsageAnalyticsQuerySerializer(serializers.Serializer):
     
     def to_internal_value(self, data):
         """Parse date strings to datetime objects."""
+        # `request.query_params` is a (immutable) QueryDict; copy before mutation.
+        data = data.copy()
         if 'date_from' in data and isinstance(data['date_from'], str):
             data['date_from'] = parse_datetime(data['date_from'])
         if 'date_to' in data and isinstance(data['date_to'], str):
@@ -52,6 +54,8 @@ class CitationQualityAnalyticsQuerySerializer(serializers.Serializer):
     
     def to_internal_value(self, data):
         """Parse date strings to datetime objects."""
+        # `request.query_params` is a (immutable) QueryDict; copy before mutation.
+        data = data.copy()
         if 'date_from' in data and isinstance(data['date_from'], str):
             data['date_from'] = parse_datetime(data['date_from'])
         if 'date_to' in data and isinstance(data['date_to'], str):
