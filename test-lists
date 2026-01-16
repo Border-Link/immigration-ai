@@ -1,11 +1,11 @@
-- ai_calls:
+- ai_calls: Completed
 - ai_decisions: Completed
-- complaince:
+- complaince: Complited
 - data_ingestion: Completed
 - document_handling:Completed
 - document_processing: Completed
-- human_reviews:
+- human_reviews: Completed
 - immigration_cases: Completed
-- payments:
-- rules_knowledge:
+- payments: Completed
+- rules_knowledge: Completed
 - users_access: Completed
