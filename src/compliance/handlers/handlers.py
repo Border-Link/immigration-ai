@@ -14,7 +14,8 @@ class DatabaseLogHandler(logging.Handler):
             except Exception:
                 return
 
-            if "audit_log_auditlog" in table_names:  # Ensure DB table exists
+            audit_log_table = AuditLog._meta.db_table
+            if audit_log_table in table_names:  # Ensure DB table exists
                 AuditLog.objects.create(
                     level=record.levelname,
                     logger_name=record.name,
