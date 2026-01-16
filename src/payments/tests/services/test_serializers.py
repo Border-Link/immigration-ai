@@ -32,12 +32,24 @@ class TestPaymentSerializers:
 
     def test_payment_create_amount_limits_enforced(self, payment_owner):
         s = PaymentCreateSerializer(
-            data={"user_id": str(payment_owner.id), "amount": "0.00", "currency": "USD", "payment_provider": "stripe"}
+            data={
+                "user_id": str(payment_owner.id),
+                "amount": "0.00",
+                "currency": "USD",
+                "payment_provider": "stripe",
+                "plan": "basic",
+            }
         )
         assert s.is_valid() is False
 
         s2 = PaymentCreateSerializer(
-            data={"user_id": str(payment_owner.id), "amount": "1000000.00", "currency": "USD", "payment_provider": "stripe"}
+            data={
+                "user_id": str(payment_owner.id),
+                "amount": "1000000.00",
+                "currency": "USD",
+                "payment_provider": "stripe",
+                "plan": "basic",
+            }
         )
         assert s2.is_valid() is False
         assert "amount" in s2.errors
