@@ -112,7 +112,7 @@ UK_GOV_API_BASE_URL = env('UK_GOV_API_BASE_URL')
 
 # AI/LLM Services
 OPENAI_API_KEY = env('OPENAI_API_KEY', default=None)
-AI_CALLS_LLM_MODEL = env('AI_CALLS_LLM_MODEL', default='gpt-4o-mini')
+AI_CALLS_LLM_MODEL = env('AI_CALLS_LLM_MODEL', default='gpt-5.2')
 
 # Speech Services
 SPEECH_TO_TEXT_PROVIDER = env('SPEECH_TO_TEXT_PROVIDER', default='google')
