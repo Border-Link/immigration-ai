@@ -7,8 +7,10 @@ from typing import Tuple, Optional
 
 # Valid status transitions
 VALID_TRANSITIONS = {
-    'pending': ['queued', 'cancelled'],
-    'queued': ['processing', 'cancelled'],
+    # Note: failures can occur before a job fully enters the worker pool (e.g., queueing issues,
+    # validation failures), so we allow transitioning to 'failed' from 'pending'/'queued'.
+    'pending': ['queued', 'cancelled', 'failed'],
+    'queued': ['processing', 'cancelled', 'failed'],
     'processing': ['completed', 'failed', 'cancelled'],
     'completed': [],  # Terminal state
     'failed': ['pending'],  # Can retry
