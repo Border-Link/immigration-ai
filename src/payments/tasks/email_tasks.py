@@ -86,12 +86,14 @@ def send_payment_status_email_task(
                 'status': payment.status,
             }
         
-        # Send email
-        SendEmailService.send_email(
-            to_email=user.email,
+        # Send email via the configured email service interface
+        # `SendEmailService` exposes `send_mail(subject, recipient_list, context, template_name, attachments=None)`.
+        SendEmailService().send_mail(
             subject=subject,
-            template=template,
-            context=context
+            recipient_list=[user.email],
+            context=context,
+            template_name=template,
+            attachments=None,
         )
         
         logger.info(f"Payment status email sent to {user.email} for payment {payment_id}")
