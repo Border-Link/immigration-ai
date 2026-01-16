@@ -16,6 +16,17 @@ class PaymentUpdateAPI(AuthAPI):
         serializer.is_valid(raise_exception=True)
 
         version = serializer.validated_data.pop('version', None)
+
+        # Enforce object-level access control
+        existing = PaymentService.get_by_id(str(id))
+        if not existing:
+            return self.api_response(
+                message=f"Payment with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        self.check_object_permissions(request, existing)
+
         payment = PaymentService.update_payment(
             payment_id=str(id),
             version=version,
@@ -42,6 +53,16 @@ class PaymentDeleteAPI(AuthAPI):
     permission_classes = [PaymentPermission]
 
     def delete(self, request, id):
+        # Enforce object-level access control
+        existing = PaymentService.get_by_id(str(id))
+        if not existing:
+            return self.api_response(
+                message=f"Payment with ID '{id}' not found.",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        self.check_object_permissions(request, existing)
+
         success = PaymentService.delete_payment(
             payment_id=str(id),
             changed_by=request.user,
