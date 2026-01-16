@@ -43,6 +43,7 @@ class TestDecisionOverrideService:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id=f"txn_hr_other_{uuid.uuid4().hex[:6]}",
+            plan="basic",
             changed_by=other_owner,
         )
         assert pre is not None

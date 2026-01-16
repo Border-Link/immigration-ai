@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from django.conf import settings
 from immigration_cases.models.case import Case
+from django.db.models import Q
 
 
 class Payment(models.Model):
@@ -22,6 +23,18 @@ class Payment(models.Model):
         ('paypal', 'PayPal'),
         ('adyen', 'Adyen'),
         ('bank_transfer', 'Bank Transfer'),
+    ]
+
+    PURPOSE_CHOICES = [
+        ('case_fee', 'Case Fee'),
+        ('reviewer_addon', 'Reviewer Add-on'),
+        ('ai_calls_addon', 'AI Calls Add-on'),
+    ]
+
+    PLAN_CHOICES = [
+        ('basic', 'Basic Plan'),
+        ('special', 'Special Plan'),
+        ('big', 'Big Plan'),
     ]
 
     # Supported currencies
@@ -109,6 +122,23 @@ class Payment(models.Model):
         blank=True,
         help_text="Payment provider used"
     )
+
+    purpose = models.CharField(
+        max_length=50,
+        choices=PURPOSE_CHOICES,
+        default='case_fee',
+        db_index=True,
+        help_text="What this payment is for (case fee vs add-ons like reviewer)"
+    )
+
+    plan = models.CharField(
+        max_length=20,
+        choices=PLAN_CHOICES,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Plan purchased with the case fee payment (basic/special/big). Only applicable when purpose=case_fee.",
+    )
     
     provider_transaction_id = models.CharField(
         max_length=255,
@@ -134,6 +164,14 @@ class Payment(models.Model):
         indexes = [
             models.Index(fields=['case', 'status']),
             models.Index(fields=['status', '-created_at']),
+            models.Index(fields=['case', 'purpose', 'status']),
+            models.Index(fields=['case', 'purpose', 'plan', 'status']),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                name="payments_case_fee_requires_plan",
+                condition=~Q(purpose="case_fee") | (~Q(plan__isnull=True) & ~Q(plan="")),
+            ),
         ]
         verbose_name_plural = 'Payments'
 

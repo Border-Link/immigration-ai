@@ -161,6 +161,7 @@ def paid_case(case_service, payment_service, case_owner) -> Tuple[object, object
         status="pending",
         payment_provider="stripe",
         provider_transaction_id=f"txn_hr_{uuid.uuid4().hex[:8]}",
+        plan="basic",
         changed_by=case_owner,
     )
     assert payment is not None
@@ -197,6 +198,35 @@ def paid_case(case_service, payment_service, case_owner) -> Tuple[object, object
     from payments.helpers.payment_validator import PaymentValidator
 
     PaymentValidator.invalidate_payment_cache(str(case.id))
+
+    # Human reviews are an add-on in this system: create and complete a reviewer add-on payment
+    # so human_reviews tests can exercise review flows.
+    reviewer_addon_payment = payment_service.create_payment(
+        case_id=str(case.id),
+        amount=Decimal("50.00"),
+        currency="USD",
+        status="pending",
+        payment_provider="stripe",
+        provider_transaction_id=f"txn_hr_addon_{uuid.uuid4().hex[:8]}",
+        purpose="reviewer_addon",
+        changed_by=case_owner,
+    )
+    assert reviewer_addon_payment is not None
+    reviewer_addon_payment = payment_service.update_payment(
+        payment_id=str(reviewer_addon_payment.id),
+        status="processing",
+        changed_by=case_owner,
+        reason="test reviewer add-on processing",
+    )
+    assert reviewer_addon_payment is not None
+    reviewer_addon_payment = payment_service.update_payment(
+        payment_id=str(reviewer_addon_payment.id),
+        status="completed",
+        changed_by=case_owner,
+        reason="test reviewer add-on completion",
+    )
+    assert reviewer_addon_payment is not None
+
     return case, payment
 
 

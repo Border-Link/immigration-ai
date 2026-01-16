@@ -228,7 +228,7 @@ AWS_ACCESS_KEY_ID = "..."  # Optional (fallback)
 AWS_SECRET_ACCESS_KEY = "..."  # Optional (fallback)
 SPEECH_TO_TEXT_PROVIDER = "google"  # or "aws"
 TEXT_TO_SPEECH_PROVIDER = "google"  # or "aws"
-AI_CALLS_LLM_MODEL = "gpt-4o-mini"  # Default
+AI_CALLS_LLM_MODEL = "gpt-5.2"  # Default
 ```
 
 ### Dependencies

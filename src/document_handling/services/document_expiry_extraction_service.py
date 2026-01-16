@@ -7,6 +7,7 @@ Analyzes OCR text to find and extract expiry dates (passport, visa, etc.).
 import logging
 from typing import Tuple, Optional, Dict
 from datetime import date, timedelta
+from django.conf import settings
 from dateutil import parser as date_parser
 from document_handling.helpers.prompts import (
     build_expiry_date_extraction_prompt,
@@ -125,7 +126,7 @@ class DocumentExpiryExtractionService:
             response = call_llm_for_document_processing(
                 system_message=system_message,
                 user_prompt=prompt,
-                model="gpt-4o-mini",
+                model=getattr(settings, "AI_CALLS_LLM_MODEL", "gpt-5.2"),
                 temperature=0.1,
                 max_tokens=300,
                 response_format={"type": "json_object"}
@@ -154,7 +155,7 @@ class DocumentExpiryExtractionService:
                 'confidence': float(confidence),
                 'metadata': {
                     'reasoning': result.get('reasoning', ''),
-                    'model': response.get('model', 'gpt-4o-mini'),
+                    'model': response.get('model', 'gpt-5.2'),
                     'extracted_text': result.get('extracted_text', ''),
                     'date_format_detected': result.get('date_format_detected'),
                     'alternative_dates_found': result.get('alternative_dates_found', []),

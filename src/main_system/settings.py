@@ -112,7 +112,7 @@ UK_GOV_API_BASE_URL = env('UK_GOV_API_BASE_URL')
 
 # AI/LLM Services
 OPENAI_API_KEY = env('OPENAI_API_KEY', default=None)
-AI_CALLS_LLM_MODEL = env('AI_CALLS_LLM_MODEL', default='gpt-4o-mini')
+AI_CALLS_LLM_MODEL = env('AI_CALLS_LLM_MODEL', default='gpt-5.2')
 
 # Speech Services
 SPEECH_TO_TEXT_PROVIDER = env('SPEECH_TO_TEXT_PROVIDER', default='google')
@@ -158,6 +158,8 @@ REDACT_PII_BEFORE_LLM = env.bool('REDACT_PII_BEFORE_LLM', default=True)
 
 # Payment History
 PAYMENT_HISTORY_RETENTION_YEARS = env.int('PAYMENT_HISTORY_RETENTION_YEARS', default=2)
+
+# Payment plan / add-on pricing is configured via admin APIs (DB-backed pricing catalog).
 
 # Payment Gateways - Stripe
 STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default=None)

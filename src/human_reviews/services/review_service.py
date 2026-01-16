@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import logging
 import time
 from typing import Optional
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 from main_system.utils.cache_utils import cache_result, invalidate_cache
-from human_reviews.models.review import Review
 from human_reviews.repositories.review_repository import ReviewRepository
 from human_reviews.selectors.review_selector import ReviewSelector
 from immigration_cases.selectors.case_selector import CaseSelector
@@ -50,8 +52,8 @@ class ReviewService:
                 logger.error(f"Case {case_id} not found when creating review")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(case, operation_name="review creation")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(case, operation_name="review creation")
             if not is_valid:
                 logger.warning(f"Review creation blocked for case {case_id}: {error}")
                 raise ValidationError(error)
@@ -110,7 +112,7 @@ class ReviewService:
             return ReviewSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all reviews: {e}")
-            return Review.objects.none()
+            return ReviewSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache reviews by case
@@ -121,7 +123,7 @@ class ReviewService:
             return ReviewSelector.get_by_case(case)
         except Exception as e:
             logger.error(f"Error fetching reviews for case {case_id}: {e}")
-            return Review.objects.none()
+            return ReviewSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=300, keys=['status'], namespace=namespace, user_scope="global")  # 5 minutes - cache reviews by status
@@ -131,7 +133,7 @@ class ReviewService:
             return ReviewSelector.get_by_status(status)
         except Exception as e:
             logger.error(f"Error fetching reviews by status {status}: {e}")
-            return Review.objects.none()
+            return ReviewSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=300, keys=['reviewer_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache reviews by reviewer
@@ -142,7 +144,7 @@ class ReviewService:
             return ReviewSelector.get_by_reviewer(reviewer)
         except Exception as e:
             logger.error(f"Error fetching reviews for reviewer {reviewer_id}: {e}")
-            return Review.objects.none()
+            return ReviewSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=180, keys=['reviewer_id'], namespace=namespace, user_scope="global")  # 3 minutes - pending reviews change frequently
@@ -153,7 +155,7 @@ class ReviewService:
             return ReviewSelector.get_pending_by_reviewer(reviewer)
         except Exception as e:
             logger.error(f"Error fetching pending reviews for reviewer {reviewer_id}: {e}")
-            return Review.objects.none()
+            return ReviewSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=180, keys=[], namespace=namespace, user_scope="global")  # 3 minutes - pending reviews change frequently
@@ -163,7 +165,7 @@ class ReviewService:
             return ReviewSelector.get_pending()
         except Exception as e:
             logger.error(f"Error fetching pending reviews: {e}")
-            return Review.objects.none()
+            return ReviewSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=600, keys=['review_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache review by ID
@@ -171,7 +173,7 @@ class ReviewService:
         """Get review by ID."""
         try:
             return ReviewSelector.get_by_id(review_id)
-        except Review.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return None
         except Exception as e:
@@ -195,8 +197,8 @@ class ReviewService:
                 logger.error(f"Review {review_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review assignment")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(review.case, operation_name="review assignment")
             if not is_valid:
                 logger.warning(f"Review assignment blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
@@ -248,7 +250,7 @@ class ReviewService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return updated_review
-        except Review.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return None
         except Exception as e:
@@ -271,8 +273,8 @@ class ReviewService:
                 logger.error(f"Review {review_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review completion")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(review.case, operation_name="review completion")
             if not is_valid:
                 logger.warning(f"Review completion blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
@@ -300,7 +302,7 @@ class ReviewService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return updated_review
-        except Review.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return None
         except Exception as e:
@@ -323,8 +325,8 @@ class ReviewService:
                 logger.error(f"Review {review_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review cancellation")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(review.case, operation_name="review cancellation")
             if not is_valid:
                 logger.warning(f"Review cancellation blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
@@ -352,7 +354,7 @@ class ReviewService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return updated_review
-        except Review.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return None
         except Exception as e:
@@ -376,8 +378,8 @@ class ReviewService:
                 logger.error(f"Review {review_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review update")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(review.case, operation_name="review update")
             if not is_valid:
                 logger.warning(f"Review update blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
@@ -403,7 +405,7 @@ class ReviewService:
                 )
             
             return updated_review
-        except Review.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return None
         except ValidationError as e:
@@ -434,8 +436,8 @@ class ReviewService:
                 logger.error(f"Review {review_id} not found")
                 return False
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review deletion")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(review.case, operation_name="review deletion")
             if not is_valid:
                 logger.warning(f"Review deletion blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
@@ -454,7 +456,7 @@ class ReviewService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return True
-        except Review.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return False
         except Exception as e:
@@ -478,7 +480,7 @@ class ReviewService:
             )
         except Exception as e:
             logger.error(f"Error filtering reviews: {e}")
-            return Review.objects.none()
+            return ReviewSelector.get_none()
 
     @staticmethod
     def reassign_reviewer(review_id: str, new_reviewer_id: str, changed_by_id: str = None, reason: str = None) -> Optional[Review]:
@@ -496,8 +498,8 @@ class ReviewService:
                 logger.error(f"Review {review_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review reassignment")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(review.case, operation_name="review reassignment")
             if not is_valid:
                 logger.warning(f"Review reassignment blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
@@ -535,7 +537,7 @@ class ReviewService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return updated_review
-        except Review.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return None
         except Exception as e:
@@ -558,8 +560,8 @@ class ReviewService:
                 logger.error(f"Review {review_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review escalation")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(review.case, operation_name="review escalation")
             if not is_valid:
                 logger.warning(f"Review escalation blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
@@ -588,7 +590,7 @@ class ReviewService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return updated_review
-        except Review.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return None
         except Exception as e:
@@ -611,8 +613,8 @@ class ReviewService:
                 logger.error(f"Review {review_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review approval")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(review.case, operation_name="review approval")
             if not is_valid:
                 logger.warning(f"Review approval blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
@@ -641,7 +643,7 @@ class ReviewService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return updated_review
-        except Review.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return None
         except Exception as e:
@@ -664,8 +666,8 @@ class ReviewService:
                 logger.error(f"Review {review_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review rejection")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(review.case, operation_name="review rejection")
             if not is_valid:
                 logger.warning(f"Review rejection blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
@@ -695,7 +697,7 @@ class ReviewService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return updated_review
-        except Review.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return None
         except Exception as e:
@@ -718,8 +720,8 @@ class ReviewService:
                 logger.error(f"Review {review_id} not found")
                 return None
             
-            # Validate payment requirement
-            is_valid, error = PaymentValidator.validate_case_has_payment(review.case, operation_name="review change request")
+            # Validate reviewer add-on payment requirement (human reviews are an add-on)
+            is_valid, error = PaymentValidator.validate_case_has_reviewer_addon(review.case, operation_name="review change request")
             if not is_valid:
                 logger.warning(f"Review change request blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
@@ -750,7 +752,7 @@ class ReviewService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return updated_review
-        except Review.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return None
         except Exception as e:

@@ -45,6 +45,8 @@ class PaymentService:
         status: str = 'pending',
         payment_provider: str = None,
         provider_transaction_id: str = None,
+        purpose: str = 'case_fee',
+        plan: str = None,
         changed_by=None
     ) -> Optional[Payment]:
         """
@@ -96,7 +98,9 @@ class PaymentService:
                     currency=currency,
                     status=status,
                     payment_provider=payment_provider,
-                    provider_transaction_id=provider_transaction_id
+                    provider_transaction_id=provider_transaction_id,
+                    purpose=purpose,
+                    plan=plan,
                 )
             else:
                 payment = PaymentRepository.create_user_payment(
@@ -105,7 +109,9 @@ class PaymentService:
                     currency=currency,
                     status=status,
                     payment_provider=payment_provider,
-                    provider_transaction_id=provider_transaction_id
+                    provider_transaction_id=provider_transaction_id,
+                    purpose=purpose,
+                    plan=plan,
                 )
             
             # Track metrics

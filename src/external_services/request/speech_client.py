@@ -138,7 +138,8 @@ class ExternalSpeechToTextClient:
             
             # Configure recognition
             config = speech.RecognitionConfig(
-                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+                # NOTE: Some type stubs incorrectly type this field as dict; protobuf accepts the enum int value.
+                encoding=int(speech.RecognitionConfig.AudioEncoding.LINEAR16),
                 sample_rate_hertz=sample_rate,
                 language_code=language_code,
                 enable_automatic_punctuation=True,

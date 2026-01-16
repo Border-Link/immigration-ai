@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import time
 from typing import Optional, Tuple
+from django.core.exceptions import ObjectDoesNotExist
 from main_system.utils.cache_utils import cache_result, invalidate_cache
-from immigration_cases.models.case import Case
 from immigration_cases.repositories.case_repository import CaseRepository
 from immigration_cases.selectors.case_selector import CaseSelector
 from users_access.selectors.user_selector import UserSelector
@@ -91,7 +93,7 @@ class CaseService:
             return CaseSelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all cases: {e}")
-            return Case.objects.none()
+            return CaseSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=300, keys=['user_id'], namespace=namespace)  # 5 minutes - cache cases by user
@@ -102,7 +104,7 @@ class CaseService:
             return CaseSelector.get_by_user(user)
         except Exception as e:
             logger.error(f"Error fetching cases for user {user_id}: {e}")
-            return Case.objects.none()
+            return CaseSelector.get_none()
 
     @staticmethod
     @cache_result(timeout=600, keys=['case_id'], namespace=namespace)  # 10 minutes - cache case by ID
@@ -110,7 +112,7 @@ class CaseService:
         """Get case by ID."""
         try:
             return CaseSelector.get_by_id(case_id)
-        except Case.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.warning(f"Case {case_id} not found")
             return None
         except ValueError as e:
@@ -217,7 +219,7 @@ class CaseService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return updated_case, None, None
-        except Case.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Case {case_id} not found")
             return None, f"Case with ID '{case_id}' not found.", 404
         except ValidationError as e:
@@ -280,7 +282,7 @@ class CaseService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return True
-        except Case.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Case {case_id} not found")
             return False
         except Exception as e:
@@ -302,7 +304,7 @@ class CaseService:
         
         try:
             # Get case including soft-deleted ones
-            case = Case.objects.select_related('user', 'user__profile').get(id=case_id)
+            case = CaseSelector.get_any_by_id(case_id)
             
             if not case.is_deleted:
                 logger.warning(f"Case {case_id} is not soft-deleted, no restoration needed.")
@@ -334,7 +336,7 @@ class CaseService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return restored_case
-        except Case.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Case {case_id} not found")
             return None
         except Exception as e:
@@ -356,4 +358,4 @@ class CaseService:
             )
         except Exception as e:
             logger.error(f"Error filtering cases: {e}", exc_info=True)
-            return Case.objects.none()
+            return CaseSelector.get_none()

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 from typing import Optional
+from django.core.exceptions import ObjectDoesNotExist
 from main_system.utils.cache_utils import cache_result
-from immigration_cases.models.case_status_history import CaseStatusHistory
 from immigration_cases.selectors.case_status_history_selector import CaseStatusHistorySelector
 from immigration_cases.selectors.case_selector import CaseSelector
 
@@ -22,7 +24,7 @@ class CaseStatusHistoryService:
             return CaseStatusHistorySelector.get_all()
         except Exception as e:
             logger.error(f"Error fetching all case status histories: {e}")
-            return CaseStatusHistory.objects.none()
+            return CaseStatusHistorySelector.get_none()
 
     @staticmethod
     @cache_result(timeout=300, keys=['case_id'], namespace=namespace, user_scope="global")  # 5 minutes - cache history by case
@@ -32,7 +34,7 @@ class CaseStatusHistoryService:
             return CaseStatusHistorySelector.get_by_case_id(case_id)
         except Exception as e:
             logger.error(f"Error fetching status histories for case {case_id}: {e}")
-            return CaseStatusHistory.objects.none()
+            return CaseStatusHistorySelector.get_none()
 
     @staticmethod
     @cache_result(timeout=600, keys=['history_id'], namespace=namespace, user_scope="global")  # 10 minutes - cache history entry by ID
@@ -40,7 +42,7 @@ class CaseStatusHistoryService:
         """Get case status history by ID."""
         try:
             return CaseStatusHistorySelector.get_by_id(history_id)
-        except CaseStatusHistory.DoesNotExist:
+        except ObjectDoesNotExist:
             logger.error(f"Case status history {history_id} not found")
             return None
         except Exception as e:

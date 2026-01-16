@@ -181,7 +181,7 @@ class PostCallSummaryService:
                 {"role": "user", "content": user_prompt}
             ]
             
-            model = model or getattr(settings, 'AI_CALLS_LLM_MODEL', 'gpt-4o-mini')
+            model = model or getattr(settings, 'AI_CALLS_LLM_MODEL', 'gpt-5.2')
             
             response = _call_llm_with_retry(
                 client=llm_client.client,

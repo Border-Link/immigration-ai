@@ -25,6 +25,7 @@ class TestPaymentServiceCore:
             amount=Decimal("10.00"),
             currency="USD",
             payment_provider="stripe",
+            plan="basic",
         )
         assert p is None
 
@@ -36,6 +37,7 @@ class TestPaymentServiceCore:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_001",
+            plan="basic",
             changed_by=payment_owner,
         )
         assert p is not None
@@ -52,6 +54,7 @@ class TestPaymentServiceCore:
             currency="XXX",
             status="pending",
             payment_provider="stripe",
+            plan="basic",
             changed_by=payment_owner,
         )
         assert p is not None

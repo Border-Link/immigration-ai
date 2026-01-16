@@ -109,6 +109,7 @@ class TestProcessingHistoryAdminDeleteAPI:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_dp_hist_001",
+            plan="basic",
             changed_by=owner,
         )
         assert payment is not None

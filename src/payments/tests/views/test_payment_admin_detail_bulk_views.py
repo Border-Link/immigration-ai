@@ -24,6 +24,7 @@ class TestPaymentAdminDetailBulkViews:
             status="pending",
             payment_provider="stripe",
             provider_transaction_id="txn_admin_001",
+            plan="basic",
             changed_by=payment_owner,
         )
         assert payment is not None

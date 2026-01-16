@@ -70,6 +70,7 @@ def pre_case_payment_pending(payment_service, payment_owner):
         status="pending",
         payment_provider="stripe",
         provider_transaction_id=None,
+        plan="basic",
         changed_by=payment_owner,
     )
 
@@ -83,6 +84,7 @@ def pre_case_payment_with_txn_pending(payment_service, payment_owner):
         status="pending",
         payment_provider="stripe",
         provider_transaction_id="txn_pre_case_001",
+        plan="basic",
         changed_by=payment_owner,
     )
 
@@ -96,6 +98,7 @@ def pre_case_payment_completed(payment_service, payment_owner):
         status="pending",
         payment_provider="stripe",
         provider_transaction_id="txn_completed_001",
+        plan="basic",
         changed_by=payment_owner,
     )
     assert payment is not None
@@ -125,6 +128,7 @@ def pre_case_payment_failed(payment_service, payment_owner):
         status="pending",
         payment_provider="stripe",
         provider_transaction_id="txn_failed_001",
+        plan="basic",
         changed_by=payment_owner,
     )
     assert payment is not None
@@ -152,6 +156,7 @@ def paid_case(case_service, payment_service, payment_owner):
         status="pending",
         payment_provider="stripe",
         provider_transaction_id="txn_case_attach_001",
+        plan="basic",
         changed_by=payment_owner,
     )
     assert pre_payment is not None

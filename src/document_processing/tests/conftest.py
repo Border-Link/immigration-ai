@@ -101,6 +101,7 @@ def paid_case(case_service, payment_service, case_owner) -> Tuple[object, object
         status="pending",
         payment_provider="stripe",
         provider_transaction_id="txn_dp_test_001",
+        plan="basic",
         changed_by=case_owner,
     )
     assert payment is not None

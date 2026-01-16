@@ -1,7 +1,7 @@
 {
     "info": {
         "_postman_id": "d4e8c1f0-6a51-4c77-9f0e-4e4f6ad9b2a4",
-        "name": "Borderlink Immigration Backend (api/v1) - users_access, compliance, data_ingestion, immigration_cases, ai_decisions, rules_knowledge, human_reviews, ai_calls, payments",
+        "name": "Borderlink Immigration Backend",
         "description": "Generated from Django URLConfs:\n- users_access mounted at /api/v1/auth/\n- compliance mounted at /api/v1/compliances/\n- data_ingestion mounted at /api/v1/data-ingestion/\n- immigration_cases mounted at /api/v1/imigration-cases/ (note spelling)\n- ai_calls mounted at /api/v1/ai-calls/\n- ai_decisions mounted at /api/v1/ai-decisions/\n- rules_knowledge mounted at /api/v1/rules-knowledge/\n- human_reviews mounted at /api/v1/human-reviews/\n\nAuth model:\n- Login returns an endpoint_token in JSON\n- Login verify sets Secure cookies (access_token, fingerprint, sessionid, etc.) used by the backend's CookieAccessOnlyTokenAuthentication\n\nPostman tips:\n- Use https base URL if you want Secure cookies to be sent.\n- Ensure Postman Cookie Jar is enabled.\n\nCollection variables you’ll likely set:\n- baseUrl (default: https://localhost:8000)\n- endpointToken (set automatically after Login)\n- caseId, caseFactId, dataSourceId, parsedRuleId, validationTaskId, etc.\n",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },

@@ -6,6 +6,7 @@ Checks if document details (names, dates, numbers) match case facts.
 """
 import logging
 from typing import Tuple, Optional, Dict
+from django.conf import settings
 from immigration_cases.selectors.case_fact_selector import CaseFactSelector
 from document_handling.helpers.prompts import (
     build_content_validation_prompt,
@@ -138,7 +139,7 @@ class DocumentContentValidationService:
             response = call_llm_for_document_processing(
                 system_message=system_message,
                 user_prompt=prompt,
-                model="gpt-4o-mini",
+                model=getattr(settings, "AI_CALLS_LLM_MODEL", "gpt-5.2"),
                 temperature=0.1,
                 max_tokens=800,
                 response_format={"type": "json_object"}
@@ -163,7 +164,7 @@ class DocumentContentValidationService:
                 'details': result.get('details', {}),
                 'metadata': {
                     'reasoning': result.get('reasoning', ''),
-                    'model': response.get('model', 'gpt-4o-mini'),
+                    'model': response.get('model', 'gpt-5.2'),
                     'usage': response.get('usage', {}),
                     'processing_time_ms': response.get('processing_time_ms', 0)
                 }
