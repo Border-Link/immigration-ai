@@ -115,7 +115,7 @@ prompt = build_document_classification_prompt(
 )
 
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model="gpt-5.2",
     messages=[
         {"role": "system", "content": get_system_message()},
         {"role": "user", "content": prompt}
