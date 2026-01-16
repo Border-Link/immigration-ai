@@ -89,6 +89,7 @@ def draft_case(case_service, case_owner):
         status="pending",
         payment_provider="stripe",
         provider_transaction_id="txn_pre_case_001",
+        plan="basic",
         changed_by=case_owner,
     )
     assert pre_payment is not None
@@ -125,6 +126,7 @@ def paid_case(case_service, payment_service, case_owner) -> Tuple[object, object
         status="pending",
         payment_provider="stripe",
         provider_transaction_id="txn_test_001",
+        plan="basic",
         changed_by=case_owner,
     )
     assert payment is not None
