@@ -72,3 +72,8 @@ class CaseFactSelector:
             queryset = queryset.filter(created_at__lte=date_to)
         
         return queryset.order_by('-created_at')
+
+    @staticmethod
+    def get_none():
+        """Return an empty queryset."""
+        return CaseFact.objects.none()
