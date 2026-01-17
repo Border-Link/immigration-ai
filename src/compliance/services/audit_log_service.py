@@ -43,10 +43,11 @@ class AuditLogService:
     def get_by_id(log_id: str) -> Optional[AuditLog]:
         """Get audit log by ID."""
         try:
-            return AuditLogSelector.get_by_id(log_id)
-        except AuditLog.DoesNotExist:
-            logger.error(f"Audit log {log_id} not found")
-            return None
+            log = AuditLogSelector.get_by_id(log_id)
+            if not log:
+                logger.error(f"Audit log {log_id} not found")
+                return None
+            return log
         except Exception as e:
             logger.error(f"Error fetching audit log {log_id}: {e}")
             return None
@@ -116,3 +117,30 @@ class AuditLogService:
         except Exception as e:
             logger.error(f"Error creating audit log: {e}", exc_info=True)
             return None
+
+    @staticmethod
+    def update_audit_log(log_id: str, version: int = None, **fields) -> Optional[AuditLog]:
+        """Update audit log fields with optimistic locking."""
+        try:
+            log = AuditLogSelector.get_by_id(log_id)
+            if not log:
+                logger.error(f"Audit log {log_id} not found")
+                return None
+            return AuditLogRepository.update_audit_log(log, version=version, **fields)
+        except Exception as e:
+            logger.error(f"Error updating audit log {log_id}: {e}")
+            return None
+
+    @staticmethod
+    def delete_audit_log(log_id: str, version: int = None) -> bool:
+        """Soft delete an audit log entry with optimistic locking."""
+        try:
+            log = AuditLogSelector.get_by_id(log_id)
+            if not log:
+                logger.error(f"Audit log {log_id} not found")
+                return False
+            AuditLogRepository.delete_audit_log(log, version=version)
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting audit log {log_id}: {e}")
+            return False
