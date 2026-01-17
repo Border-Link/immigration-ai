@@ -15,7 +15,7 @@ from document_processing.selectors.processing_history_selector import Processing
 from document_processing.services.processing_job_service import ProcessingJobService
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestProcessingJobOptimisticLocking:
     """Tests for optimistic locking in ProcessingJob."""
 
@@ -42,11 +42,11 @@ class TestProcessingJobOptimisticLocking:
         updated = ProcessingJobRepository.update_processing_job(
             job,
             version=initial_version,
-            status="processing"
+            status="queued"
         )
         
         assert updated.version == initial_version + 1
-        assert updated.status == "processing"
+        assert updated.status == "queued"
 
     def test_update_processing_job_version_conflict_raises_error(self, processing_job_service, case_document):
         """Updating with wrong version should raise ValidationError."""
@@ -61,7 +61,7 @@ class TestProcessingJobOptimisticLocking:
         ProcessingJobRepository.update_processing_job(
             job,
             version=initial_version,
-            status="processing"
+            status="queued"
         )
         
         # Second update with stale version should fail
@@ -69,7 +69,7 @@ class TestProcessingJobOptimisticLocking:
             ProcessingJobRepository.update_processing_job(
                 job,
                 version=initial_version,  # Stale version
-                status="completed"
+                status="failed"
             )
         
         assert "modified by another user" in str(exc_info.value).lower()
@@ -92,7 +92,7 @@ class TestProcessingJobOptimisticLocking:
                 updated = ProcessingJobRepository.update_processing_job(
                     job,
                     version=initial_version,
-                    status="processing" if thread_id == 1 else "completed"
+                    status="queued" if thread_id == 1 else "failed"
                 )
                 results.append((thread_id, updated.version))
             except ValidationError as e:
