@@ -2,6 +2,9 @@
 Repository for ProcessingHistory write operations.
 """
 from django.db import transaction
+from django.db.models import F
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 from document_processing.models.processing_history import ProcessingHistory
 from document_handling.models.case_document import CaseDocument
 
@@ -41,8 +44,89 @@ class ProcessingHistoryRepository:
             return history
 
     @staticmethod
-    def delete_history_entry(history):
-        """Delete a processing history entry."""
+    def soft_delete_history_entry(history, version: int = None, deleted_by=None) -> ProcessingHistory:
+        """
+        Soft delete a processing history entry with optimistic locking.
+        
+        Args:
+            history: ProcessingHistory instance to soft delete
+            version: Expected version number for optimistic locking
+            deleted_by: User performing the deletion
+            
+        Returns:
+            Soft-deleted ProcessingHistory instance
+        """
         with transaction.atomic():
-            history.delete()
-            return True
+            expected_version = version if version is not None else getattr(history, "version", None)
+            if expected_version is None:
+                raise ValidationError("Missing version for optimistic locking.")
+
+            now_ts = timezone.now()
+            updated_count = ProcessingHistory.objects.filter(
+                id=history.id,
+                version=expected_version,
+                is_deleted=False,
+            ).update(
+                is_deleted=True,
+                deleted_at=now_ts,
+                version=F("version") + 1,
+            )
+
+            if updated_count != 1:
+                current_version = ProcessingHistory.objects.filter(id=history.id).values_list("version", flat=True).first()
+                if current_version is None:
+                    raise ValidationError("Processing history entry not found.")
+                raise ValidationError(
+                    f"Processing history entry was modified by another user. Expected version {expected_version}, got {current_version}."
+                )
+
+            return ProcessingHistory.objects.get(id=history.id)
+    
+    @staticmethod
+    def delete_history_entry(history, version: int = None, deleted_by=None):
+        """
+        Delete a processing history entry (soft delete).
+        
+        CRITICAL: Deletion must be soft-delete to preserve auditability.
+        """
+        ProcessingHistoryRepository.soft_delete_history_entry(history, version=version, deleted_by=deleted_by)
+        return True
+    
+    @staticmethod
+    def restore_history_entry(history, version: int = None, restored_by=None) -> ProcessingHistory:
+        """
+        Restore a soft-deleted processing history entry with optimistic locking.
+        
+        Args:
+            history: ProcessingHistory instance to restore
+            version: Expected version number for optimistic locking
+            restored_by: User performing the restoration
+            
+        Returns:
+            Restored ProcessingHistory instance
+        """
+        with transaction.atomic():
+            expected_version = version if version is not None else getattr(history, "version", None)
+            if expected_version is None:
+                raise ValidationError("Missing version for optimistic locking.")
+
+            now_ts = timezone.now()
+            updated_count = ProcessingHistory.objects.filter(
+                id=history.id,
+                version=expected_version,
+                is_deleted=True,
+            ).update(
+                is_deleted=False,
+                deleted_at=None,
+                version=F("version") + 1,
+            )
+
+            if updated_count != 1:
+                current_version = ProcessingHistory.objects.filter(id=history.id).values_list("version", flat=True).first()
+                if current_version is None:
+                    raise ValidationError("Processing history entry not found.")
+                raise ValidationError(
+                    f"Processing history entry was modified by another user. Expected version {expected_version}, got {current_version}."
+                )
+
+            return ProcessingHistory.objects.get(id=history.id)
