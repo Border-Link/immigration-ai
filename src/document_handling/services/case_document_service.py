@@ -121,11 +121,16 @@ class CaseDocumentService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=lambda doc: doc is not None)
-    def update_case_document(document_id: str, **fields) -> Optional[CaseDocument]:
+    def update_case_document(document_id: str, version: int = None, **fields) -> Optional[CaseDocument]:
         """
-        Update case document.
+        Update case document with optimistic locking.
         
         Requires: Case must have a completed payment before documents can be updated.
+        
+        Args:
+            document_id: ID of the document to update
+            version: Expected version number for optimistic locking (required)
+            **fields: Fields to update
         """
         from django.core.exceptions import ValidationError
         from payments.helpers.payment_validator import PaymentValidator
@@ -152,7 +157,13 @@ class CaseDocumentService:
                 else:
                     logger.warning(f"Document type {document_type_id} not found, skipping update")
             
-            return CaseDocumentRepository.update_case_document(case_document, **fields)
+            # Use version from parameter or from the document
+            update_version = version if version is not None else case_document.version
+            
+            return CaseDocumentRepository.update_case_document(case_document, version=update_version, **fields)
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error updating case document {document_id}: {e}")
+            raise
         except CaseDocument.DoesNotExist:
             logger.error(f"Case document {document_id} not found")
             return None
@@ -162,14 +173,20 @@ class CaseDocumentService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=lambda doc: doc is not None)
-    def update_status(document_id: str, status: str) -> Optional[CaseDocument]:
+    def update_status(document_id: str, status: str, version: int = None) -> Optional[CaseDocument]:
         """
-        Update document status.
+        Update document status with optimistic locking.
         
         Requires: Case must have a completed payment before document status can be updated.
         Note: Internal status updates during processing may bypass this if payment was already validated,
         but user-initiated status updates require payment.
+        
+        Args:
+            document_id: ID of the document to update
+            status: New status
+            version: Expected version number for optimistic locking (required)
         """
+        from django.core.exceptions import ValidationError
         from payments.helpers.payment_validator import PaymentValidator
         
         try:
@@ -188,7 +205,13 @@ class CaseDocumentService:
                 # For now, we block all status updates without payment for consistency
                 return None
             
-            return CaseDocumentRepository.update_status(case_document, status)
+            # Use version from parameter or from the document
+            update_version = version if version is not None else case_document.version
+            
+            return CaseDocumentRepository.update_status(case_document, status, version=update_version)
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error updating document status {document_id}: {e}")
+            raise
         except CaseDocument.DoesNotExist:
             logger.error(f"Case document {document_id} not found")
             return None
@@ -198,12 +221,17 @@ class CaseDocumentService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=bool)
-    def delete_case_document(document_id: str) -> bool:
+    def delete_case_document(document_id: str, version: int = None, deleted_by=None) -> bool:
         """
-        Delete case document and its stored file.
+        Soft delete case document and its stored file.
         
         Requires: Case must have a completed payment before documents can be deleted.
         This prevents abuse and ensures only paid cases can manage their documents.
+        
+        Args:
+            document_id: ID of the document to delete
+            version: Expected version number for optimistic locking (required)
+            deleted_by: User performing the deletion
         """
         from django.core.exceptions import ValidationError
         from payments.helpers.payment_validator import PaymentValidator
@@ -225,15 +253,53 @@ class CaseDocumentService:
                 from document_handling.services.file_storage_service import FileStorageService
                 FileStorageService.delete_file(case_document.file_path)
             
-            # Delete the database record
-            CaseDocumentRepository.delete_case_document(case_document)
+            # Use version from parameter or from the document
+            delete_version = version if version is not None else case_document.version
+            
+            # Soft delete the database record
+            CaseDocumentRepository.delete_case_document(case_document, version=delete_version, deleted_by=deleted_by)
             return True
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error deleting case document {document_id}: {e}")
+            raise
         except CaseDocument.DoesNotExist:
             logger.error(f"Case document {document_id} not found")
             return False
         except Exception as e:
             logger.error(f"Error deleting case document {document_id}: {e}")
             return False
+    
+    @staticmethod
+    @invalidate_cache(namespace, predicate=bool)
+    def restore_case_document(document_id: str, version: int = None, restored_by=None) -> Optional[CaseDocument]:
+        """
+        Restore a soft-deleted case document.
+        
+        Args:
+            document_id: ID of the document to restore
+            version: Expected version number for optimistic locking (required)
+            restored_by: User performing the restoration
+        """
+        from django.core.exceptions import ValidationError
+        
+        try:
+            # Get the document including soft-deleted ones (bypass selector filter)
+            from document_handling.models.case_document import CaseDocument
+            case_document = CaseDocument.objects.get(id=document_id, is_deleted=True)
+            
+            # Use version from parameter or from the document
+            restore_version = version if version is not None else case_document.version
+            
+            return CaseDocumentRepository.restore_case_document(case_document, version=restore_version, restored_by=restored_by)
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error restoring case document {document_id}: {e}")
+            raise
+        except CaseDocument.DoesNotExist:
+            logger.error(f"Case document {document_id} not found or not soft-deleted")
+            return None
+        except Exception as e:
+            logger.error(f"Error restoring case document {document_id}: {e}")
+            return None
     
     @staticmethod
     def get_file_url(document_id: str) -> Optional[str]:
