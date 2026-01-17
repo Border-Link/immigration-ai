@@ -38,10 +38,10 @@ def ingest_uk_sources_weekly_task(self):
         Dict with results for UK sources
     """
     try:
-        from data_ingestion.selectors.data_source_selector import DataSourceSelector
+        from data_ingestion.services.data_source_service import DataSourceService
         
         logger.info("Starting weekly UK ingestion task")
-        uk_sources = DataSourceSelector.get_by_jurisdiction('UK').filter(is_active=True)
+        uk_sources = DataSourceService.get_by_jurisdiction('UK').filter(is_active=True)
         
         results = {
             'jurisdiction': 'UK',
@@ -105,10 +105,10 @@ def ingest_all_active_sources_task(self):
         Dict with results for all sources
     """
     try:
-        from data_ingestion.selectors.data_source_selector import DataSourceSelector
+        from data_ingestion.services.data_source_service import DataSourceService
         
         logger.info("Starting ingestion task for all active data sources")
-        active_sources = DataSourceSelector.get_active()
+        active_sources = DataSourceService.get_active()
         
         results = {
             'total_sources': active_sources.count(),
