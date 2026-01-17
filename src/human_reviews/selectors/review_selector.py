@@ -14,7 +14,7 @@ class ReviewSelector:
             'case__user',
             'reviewer',
             'reviewer__profile'
-        ).all().order_by('-created_at')
+        ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_case(case: Case):
@@ -24,7 +24,7 @@ class ReviewSelector:
             'case__user',
             'reviewer',
             'reviewer__profile'
-        ).filter(case=case).order_by('-created_at')
+        ).filter(case=case, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_status(status: str):
@@ -34,7 +34,7 @@ class ReviewSelector:
             'case__user',
             'reviewer',
             'reviewer__profile'
-        ).filter(status=status).order_by('-created_at')
+        ).filter(status=status, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_reviewer(reviewer):
@@ -44,7 +44,7 @@ class ReviewSelector:
             'case__user',
             'reviewer',
             'reviewer__profile'
-        ).filter(reviewer=reviewer).order_by('-created_at')
+        ).filter(reviewer=reviewer, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_pending_by_reviewer(reviewer):
@@ -56,7 +56,8 @@ class ReviewSelector:
             'reviewer__profile'
         ).filter(
             reviewer=reviewer,
-            status__in=['pending', 'in_progress']
+            status__in=['pending', 'in_progress'],
+            is_deleted=False
         ).order_by('-created_at')
 
     @staticmethod
@@ -67,7 +68,7 @@ class ReviewSelector:
             'case__user',
             'reviewer',
             'reviewer__profile'
-        ).get(id=review_id)
+        ).filter(is_deleted=False).get(id=review_id)
 
     @staticmethod
     def get_pending():
@@ -77,7 +78,7 @@ class ReviewSelector:
             'case__user',
             'reviewer',
             'reviewer__profile'
-        ).filter(status='pending', reviewer__isnull=True).order_by('-created_at')
+        ).filter(status='pending', reviewer__isnull=True, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_filters(case_id=None, reviewer_id=None, status=None, date_from=None, date_to=None, assigned_date_from=None, assigned_date_to=None, completed_date_from=None, completed_date_to=None):
