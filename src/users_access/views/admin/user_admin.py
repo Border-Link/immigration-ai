@@ -4,7 +4,9 @@ Admin API Views for User Management
 Admin-only endpoints for managing users.
 Access restricted to staff/superusers using IsAdminOrStaff permission.
 """
-from rest_framework import status
+import secrets
+import string
+from rest_framework import status, serializers
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.base import (
@@ -19,7 +21,9 @@ from users_access.serializers.users.admin import (
     UserAdminListSerializer,
     UserAdminDetailSerializer,
     UserAdminUpdateSerializer,
+    AdminUserCreateSerializer,
 )
+from users_access.serializers.users.password_validation import PasswordValidation
 
 
 class UserAdminListAPI(AuthAPI):
@@ -57,6 +61,100 @@ class UserAdminListAPI(AuthAPI):
             data=UserAdminListSerializer(users, many=True).data,
             status_code=status.HTTP_200_OK
         )
+
+
+class UserAdminCreateAPI(AuthAPI):
+    """
+    Admin: Create staff or reviewer users.
+    
+    Endpoint: POST /api/v1/auth/admin/users/create/
+    Auth: Required (staff/superuser only)
+    
+    Request body:
+    {
+        "email": "user@example.com",
+        "password": "SecurePassword123!",
+        "first_name": "First",
+        "last_name": "Last",
+        "role": "reviewer|admin|staff"
+    }
+    """
+    permission_classes = [AdminPermission]
+    
+    def post(self, request):
+        serializer = AdminUserCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        role = serializer.validated_data['role']
+        if role == 'admin' and not request.user.is_superuser:
+            return self.api_response(
+                message="Only superusers can create staff accounts.",
+                data=None,
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+        temp_password = self._generate_temporary_password(serializer.validated_data['email'])
+        user = UserService.create_user_with_role(
+            email=serializer.validated_data['email'],
+            password=temp_password,
+            first_name=serializer.validated_data['first_name'],
+            last_name=serializer.validated_data['last_name'],
+            role=role,
+            is_staff=True,
+            is_superuser=False,
+            must_change_password=True
+        )
+        
+        if not user:
+            return self.api_response(
+                message="Error creating user.",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        
+        self._send_welcome_email(user=user, temp_password=temp_password, created_by=request.user.email, role=role)
+        
+        return self.api_response(
+            message="User created successfully.",
+            data=UserAdminDetailSerializer(user).data,
+            status_code=status.HTTP_201_CREATED
+        )
+
+    def _generate_temporary_password(self, email, length=14):
+        lower = string.ascii_lowercase
+        upper = string.ascii_uppercase
+        digits = string.digits
+        special = "!@#$%^&*()-_=+"
+        all_chars = lower + upper + digits + special
+        randomizer = secrets.SystemRandom()
+        for _ in range(10):
+            password_chars = [
+                randomizer.choice(lower),
+                randomizer.choice(upper),
+                randomizer.choice(digits),
+                randomizer.choice(special),
+            ]
+            password_chars += [randomizer.choice(all_chars) for _ in range(max(0, length - 4))]
+            randomizer.shuffle(password_chars)
+            password = "".join(password_chars)
+            try:
+                return PasswordValidation(password, email).validate()
+            except serializers.ValidationError:
+                continue
+        raise ValueError("Failed to generate a valid temporary password.")
+
+    def _send_welcome_email(self, user, temp_password, created_by, role):
+        try:
+            from users_access.tasks.email_tasks import send_staff_reviewer_welcome_email_task
+            send_staff_reviewer_welcome_email_task.delay(
+                user_id=str(user.id),
+                temp_password=temp_password,
+                created_by=created_by,
+                role=role
+            )
+        except Exception:
+            import logging
+            logger = logging.getLogger('django')
+            logger.exception("Failed to queue staff/reviewer welcome email.")
 
 
 class UserAdminDetailAPI(BaseAdminDetailAPI):
