@@ -7,19 +7,20 @@ class DocumentChunkSelector:
     @staticmethod
     def get_all():
         """Get all document chunks."""
-        return DocumentChunk.objects.select_related('document_version').all()
+        return DocumentChunk.objects.select_related('document_version').filter(is_deleted=False)
 
     @staticmethod
     def get_by_document_version(document_version_id: str):
         """Get document chunks by document version ID."""
         return DocumentChunk.objects.select_related('document_version').filter(
-            document_version_id=document_version_id
+            document_version_id=document_version_id,
+            is_deleted=False,
         ).order_by('chunk_index')
 
     @staticmethod
     def get_by_id(chunk_id):
         """Get document chunk by ID."""
-        return DocumentChunk.objects.select_related('document_version').get(id=chunk_id)
+        return DocumentChunk.objects.select_related('document_version').filter(id=chunk_id, is_deleted=False).first()
 
     @staticmethod
     def get_none():
@@ -46,7 +47,7 @@ class DocumentChunkSelector:
     @staticmethod
     def get_statistics():
         """Get document chunk statistics."""
-        queryset = DocumentChunk.objects.all()
+        queryset = DocumentChunk.objects.filter(is_deleted=False)
         
         total_chunks = queryset.count()
         chunks_with_embeddings = queryset.exclude(embedding__isnull=True).count()
