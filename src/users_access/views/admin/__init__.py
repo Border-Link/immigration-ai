@@ -1,5 +1,6 @@
 from .user_admin import (
     UserAdminListAPI,
+    UserAdminCreateAPI,
     UserAdminDetailAPI,
     UserAdminUpdateAPI,
     UserAdminDeleteAPI,
@@ -37,6 +38,7 @@ from .user_analytics import (
 
 __all__ = [
     'UserAdminListAPI',
+    'UserAdminCreateAPI',
     'UserAdminDetailAPI',
     'UserAdminUpdateAPI',
     'UserAdminDeleteAPI',

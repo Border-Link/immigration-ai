@@ -36,6 +36,16 @@ class TwoFactorVerificationAPIView(KnoxLoginView):
         if not user:
             return self._invalid_response()
 
+        if getattr(user, 'must_change_password', False):
+            return Response(
+                {
+                    "access_granted": False,
+                    "password_change_required": True,
+                    "email": user.email,
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         self._update_user_login_info(user)
 
         # Create access token

@@ -48,6 +48,7 @@ from .views.notification import (
 )
 from .views.admin import (
     UserAdminListAPI,
+    UserAdminCreateAPI,
     UserAdminDetailAPI,
     UserAdminActivateAPI,
     UserAdminDeactivateAPI,
@@ -122,6 +123,7 @@ urlpatterns = [
     # Admin endpoints (staff/superuser only)
     # User Management
     path("admin/users/", UserAdminListAPI.as_view(), name="admin-users-list"),
+    path("admin/users/create/", UserAdminCreateAPI.as_view(), name="admin-users-create"),
     path("admin/users/statistics/", UserStatisticsAPI.as_view(), name="admin-users-statistics"),
     path("admin/users/bulk-operation/", BulkUserOperationAPI.as_view(), name="admin-users-bulk-operation"),
     path("admin/users/<uuid:id>/", UserAdminDetailAPI.as_view(), name="admin-users-detail"),

@@ -58,6 +58,40 @@ class UserService:
 
     @staticmethod
     @invalidate_cache(namespace)
+    def create_user_with_role(
+        email,
+        password,
+        role,
+        first_name=None,
+        last_name=None,
+        is_staff=False,
+        is_superuser=False,
+        must_change_password=False
+    ):
+        """
+        Create a user with a specific role and permissions.
+        Intended for admin-created staff/reviewer accounts.
+        """
+        try:
+            user = UserRepository.create_user_with_role(
+                email=email,
+                password=password,
+                role=role,
+                is_staff=is_staff,
+                is_superuser=is_superuser,
+                is_verified=True,
+                must_change_password=must_change_password
+            )
+            if user:
+                from users_access.services.user_profile_service import UserProfileService
+                UserProfileService.update_names(user, first_name, last_name)
+            return user
+        except Exception as e:
+            logger.error(f"Error creating user {email} with role {role}: {e}")
+            return None
+
+    @staticmethod
+    @invalidate_cache(namespace)
     def update_user(user, **fields):
         try:
             return UserRepository.update_user(user, **fields)

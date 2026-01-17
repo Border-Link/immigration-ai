@@ -6,6 +6,7 @@ import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
 from users_access.services.user_service import UserService
+from unittest.mock import patch
 
 
 API_PREFIX = "/api/v1/auth"
@@ -45,6 +46,86 @@ class TestUserAdminListAPI:
         client.force_authenticate(user=admin_user)
         response = client.get(url, {"role": "reviewer"})
         assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+class TestUserAdminCreateAPI:
+    """Tests for UserAdminCreateAPI."""
+
+    @pytest.fixture
+    def client(self):
+        """Fixture for API client."""
+        return APIClient()
+
+    @pytest.fixture
+    def url(self):
+        """Fixture for admin users create URL."""
+        return f"{API_PREFIX}/admin/users/create/"
+
+    @patch('users_access.tasks.email_tasks.send_staff_reviewer_welcome_email_task')
+    def test_create_reviewer_as_staff(self, mock_email_task, client, url, user_service):
+        """Staff can create reviewer accounts."""
+        staff_user = user_service.create_user("staff@example.com", "StaffPass123!")
+        user_service.update_user(staff_user, role='admin', is_staff=True)
+        client.force_authenticate(user=staff_user)
+        data = {
+            "email": "reviewer.new@example.com",
+            "first_name": "New",
+            "last_name": "Reviewer",
+            "role": "reviewer"
+        }
+        response = client.post(url, data, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        created = user_service.get_by_email("reviewer.new@example.com")
+        assert created.role == "reviewer"
+        assert created.is_staff is True
+        assert created.must_change_password is True
+        assert mock_email_task.delay.called
+
+    def test_create_staff_requires_superuser(self, client, url, user_service):
+        """Staff cannot create staff accounts."""
+        staff_user = user_service.create_user("staff2@example.com", "StaffPass123!")
+        user_service.update_user(staff_user, role='admin', is_staff=True)
+        client.force_authenticate(user=staff_user)
+        data = {
+            "email": "staff.new@example.com",
+            "first_name": "New",
+            "last_name": "Staff",
+            "role": "staff"
+        }
+        response = client.post(url, data, format='json')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @patch('users_access.tasks.email_tasks.send_staff_reviewer_welcome_email_task')
+    def test_create_staff_as_superuser(self, mock_email_task, client, url, admin_user, user_service):
+        """Superuser can create staff accounts."""
+        client.force_authenticate(user=admin_user)
+        data = {
+            "email": "staff.super@example.com",
+            "first_name": "Super",
+            "last_name": "Staff",
+            "role": "staff"
+        }
+        response = client.post(url, data, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        created = user_service.get_by_email("staff.super@example.com")
+        assert created.role == "admin"
+        assert created.is_staff is True
+        assert created.is_superuser is False
+        assert created.must_change_password is True
+        assert mock_email_task.delay.called
+
+    def test_create_user_requires_admin(self, client, url, test_user):
+        """Non-admin users cannot create staff/reviewer."""
+        client.force_authenticate(user=test_user)
+        data = {
+            "email": "blocked@example.com",
+            "first_name": "Blocked",
+            "last_name": "User",
+            "role": "reviewer"
+        }
+        response = client.post(url, data, format='json')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db

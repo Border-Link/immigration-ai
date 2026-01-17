@@ -36,6 +36,7 @@ class TestUserAccountAPI:
         assert "account" in response.data["data"]
         assert "settings" in response.data["data"]
         assert "security" in response.data["data"]
+        assert "must_change_password" in response.data["data"]["account"]
 
     def test_get_user_account_unauthenticated(self, client, url):
         """Test getting user account without authentication."""

@@ -45,6 +45,7 @@ class UserAdminListSerializer(serializers.ModelSerializer):
             'is_verified',
             'is_staff',
             'is_superuser',
+            'must_change_password',
             'login_count',
             'last_assigned_at',
             'created_at',
@@ -59,6 +60,7 @@ class UserAdminListSerializer(serializers.ModelSerializer):
             'is_verified',
             'is_staff',
             'is_superuser',
+            'must_change_password',
             'login_count',
             'last_assigned_at',
             'created_at',
@@ -95,6 +97,7 @@ class UserAdminDetailSerializer(serializers.ModelSerializer):
             'is_verified',
             'is_staff',
             'is_superuser',
+            'must_change_password',
             'login_count',
             'last_assigned_at',
             'created_at',
@@ -109,6 +112,7 @@ class UserAdminDetailSerializer(serializers.ModelSerializer):
             'is_verified',
             'is_staff',
             'is_superuser',
+            'must_change_password',
             'login_count',
             'last_assigned_at',
             'created_at',
@@ -143,6 +147,35 @@ class UserAdminUpdateSerializer(serializers.Serializer):
     is_verified = serializers.BooleanField(required=False)
     is_staff = serializers.BooleanField(required=False)
     is_superuser = serializers.BooleanField(required=False)
+
+
+class AdminUserCreateSerializer(serializers.Serializer):
+    """Serializer for creating staff or reviewer users in admin."""
+    email = serializers.EmailField(required=True)
+    first_name = serializers.CharField(required=True, max_length=255, allow_blank=False)
+    last_name = serializers.CharField(required=True, max_length=255, allow_blank=False)
+    role = serializers.ChoiceField(choices=[
+        ('reviewer', 'Reviewer'),
+        ('admin', 'Admin'),
+        ('staff', 'Staff'),
+    ])
+
+    def validate_email(self, value):
+        email = value.strip().lower()
+        try:
+            from users_access.services.email_validation_service import EmailValidationService
+            email = EmailValidationService.validate_email(email)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
+        from users_access.services.user_service import UserService
+        if UserService.email_exists(email):
+            raise serializers.ValidationError("Email already exists")
+        return email
+
+    def validate_role(self, value):
+        if value == 'staff':
+            return 'admin'
+        return value
 
 
 class UserSuspendSerializer(serializers.Serializer):

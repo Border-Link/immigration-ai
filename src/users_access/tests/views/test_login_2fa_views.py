@@ -117,6 +117,24 @@ class TestTwoFactorVerificationAPIView:
         response = client.post(url, data, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_2fa_verification_requires_password_change(self, client, verified_user, otp_service, user_service):
+        """Users flagged for password change cannot complete login."""
+        user_service.update_user(verified_user, must_change_password=True)
+        otp_service.create(
+            user=verified_user,
+            otp="123456",
+            endpoint_token="change_pw_token",
+            otp_type="login"
+        )
+        url = f"{API_PREFIX}/users/login/verify/change_pw_token/"
+        data = {
+            "otp": "123456",
+            "is_2fa": False
+        }
+        response = client.post(url, data, format='json')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data.get("password_change_required") is True
+
     @patch('users_access.views.users.login_2fa.TOTPAuthenticator')
     def test_2fa_verification_totp_failure(self, mock_totp, client, verified_user, user_settings_service, otp_service):
         """Test 2FA verification with TOTP failure."""

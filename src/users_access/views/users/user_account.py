@@ -43,6 +43,7 @@ class UserAccountAPI(AuthAPI):
             "is_active": user.is_active,
             "is_superuser": user.is_superuser,
             "is_staff": user.is_staff,
+            "must_change_password": user.must_change_password,
             "account_created_at": self._format_datetime(user.created_at),
             "account_updated_at": self._format_datetime(user.updated_at),
             "account_age_days": (now() - user.created_at).days if user.created_at else None,
@@ -76,6 +77,7 @@ class UserAccountAPI(AuthAPI):
             "email_verified": user.is_verified,
             "total_logins": user.login_count,
             "has_usable_password": user.has_usable_password(),
+            "must_change_password": user.must_change_password,
             "security_score": self._get_security_score(user),
         }
 

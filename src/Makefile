@@ -42,3 +42,6 @@ test:
 	fi
 
 
+create-admin:
+	python manage.py createsuperuser
+

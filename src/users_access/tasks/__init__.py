@@ -7,6 +7,7 @@ from .email_tasks import (
     send_rule_validation_task_email_task,
     send_rule_change_notification_email_task,
     send_admin_password_reset_email_task,
+    send_staff_reviewer_welcome_email_task,
 )
 from .user_tasks import (
     schedule_user_unsuspension_task,
@@ -24,6 +25,7 @@ __all__ = [
     'send_rule_validation_task_email_task',
     'send_rule_change_notification_email_task',
     'send_admin_password_reset_email_task',
+    'send_staff_reviewer_welcome_email_task',
     'schedule_user_unsuspension_task',
     'send_otp_email_task',
 ]
