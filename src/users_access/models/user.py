@@ -29,6 +29,7 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("role", "admin")
+        extra_fields.setdefault("is_verified", True)
         return self.create_user(email=email, password=password, **extra_fields)
 
 
@@ -55,6 +56,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user', db_index=True)
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
+    must_change_password = models.BooleanField(default=False, db_index=True)
     login_count = models.PositiveIntegerField(default=0, db_index=True)
     
     # Reviewer assignment tracking (from implementation spec)
