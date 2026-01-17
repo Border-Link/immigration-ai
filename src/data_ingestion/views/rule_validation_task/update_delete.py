@@ -45,7 +45,8 @@ class RuleValidationTaskAssignAPI(AuthAPI):
 
         task = RuleValidationTaskService.assign_reviewer(
             id,
-            serializer.validated_data.get('reviewer_id')
+            serializer.validated_data.get('reviewer_id'),
+            version=serializer.validated_data.get("version"),
         )
 
         if not task:
@@ -72,7 +73,8 @@ class RuleValidationTaskApproveAPI(AuthAPI):
 
         task = RuleValidationTaskService.approve_task(
             id,
-            reviewer_notes=serializer.validated_data.get('reviewer_notes')
+            reviewer_notes=serializer.validated_data.get('reviewer_notes'),
+            version=serializer.validated_data.get("version"),
         )
 
         if not task:
@@ -99,7 +101,8 @@ class RuleValidationTaskRejectAPI(AuthAPI):
 
         task = RuleValidationTaskService.reject_task(
             id,
-            reviewer_notes=serializer.validated_data.get('reviewer_notes')
+            reviewer_notes=serializer.validated_data.get('reviewer_notes'),
+            version=serializer.validated_data.get("version"),
         )
 
         if not task:
