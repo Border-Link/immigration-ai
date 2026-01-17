@@ -53,14 +53,15 @@ class DocumentRequirementMatchingService:
                 return 'failed', {'error': error, 'payment_required': True}, error
             
             # Get visa type from case
-            if not case.visa_type:
+            visa_type = getattr(case, "visa_type", None)
+            if not visa_type:
                 logger.warning(f"Case {case.id} has no visa type")
                 return 'pending', {'message': 'Case has no visa type'}, None
             
             # Get current rule version for visa type
-            rule_version = VisaRuleVersionSelector.get_current_by_visa_type(case.visa_type)
+            rule_version = VisaRuleVersionSelector.get_current_by_visa_type(visa_type)
             if not rule_version:
-                logger.warning(f"No active rule version found for visa type {case.visa_type.id}")
+                logger.warning(f"No active rule version found for visa type {visa_type.id}")
                 return 'pending', {'message': 'No active rule version found'}, None
             
             # Get document requirements for this rule version
@@ -89,9 +90,9 @@ class DocumentRequirementMatchingService:
             if not matching_requirement:
                 # Document type doesn't match any requirement
                 return 'failed', {
-                    'message': f'Document type {document_type.name} does not match any requirement for visa type {case.visa_type.name}',
+                    'message': f'Document type {document_type.name} does not match any requirement for visa type {visa_type.name}',
                     'document_type': document_type.name,
-                    'visa_type': case.visa_type.name,
+                    'visa_type': visa_type.name,
                     'required_document_types': [
                         {
                             'id': str(req.document_type.id),
@@ -145,7 +146,7 @@ class DocumentRequirementMatchingService:
             # Determine result
             if conditional_passed:
                 result = 'passed'
-                message = f'Document type {document_type.name} matches requirement for visa type {case.visa_type.name}'
+                message = f'Document type {document_type.name} matches requirement for visa type {visa_type.name}'
             else:
                 result = 'warning'
                 message = f'Document type {document_type.name} matches requirement but conditional logic not satisfied'
@@ -158,8 +159,8 @@ class DocumentRequirementMatchingService:
                     'code': document_type.code
                 },
                 'visa_type': {
-                    'id': str(case.visa_type.id),
-                    'name': case.visa_type.name
+                    'id': str(visa_type.id),
+                    'name': visa_type.name
                 },
                 'requirement': {
                     'id': str(matching_requirement.id),
