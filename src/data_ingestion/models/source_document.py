@@ -52,6 +52,13 @@ class SourceDocument(models.Model):
         help_text="Error message if fetch failed"
     )
 
+    # Optimistic locking
+    version = models.IntegerField(default=1, db_index=True, help_text="Version number for optimistic locking")
+
+    # Soft delete
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         db_table = 'source_documents'
         ordering = ['-fetched_at']
