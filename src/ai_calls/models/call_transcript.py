@@ -1,5 +1,4 @@
 import uuid
-import hashlib
 from django.db import models
 
 
@@ -110,6 +109,14 @@ class CallTranscript(models.Model):
         help_text="When transcript was moved to cold storage"
     )
 
+    # Optimistic locking
+    version = models.IntegerField(default=1, db_index=True, help_text="Version number for optimistic locking")
+
+    # Soft delete (CRITICAL: do not hard-delete call artifacts)
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     class Meta:
         db_table = 'call_transcripts'
         ordering = ['call_session', 'turn_number']
@@ -121,8 +128,3 @@ class CallTranscript(models.Model):
 
     def __str__(self):
         return f"CallTranscript {self.turn_number} - {self.call_session.id} ({self.turn_type})"
-    
-    @staticmethod
-    def compute_prompt_hash(prompt_text: str) -> str:
-        """Compute SHA-256 hash of prompt for audit trail."""
-        return hashlib.sha256(prompt_text.encode('utf-8')).hexdigest()
