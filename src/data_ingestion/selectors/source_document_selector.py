@@ -7,33 +7,36 @@ class SourceDocumentSelector:
     @staticmethod
     def get_all():
         """Get all source documents."""
-        return SourceDocument.objects.select_related('data_source').all()
+        return SourceDocument.objects.select_related('data_source').filter(is_deleted=False)
 
     @staticmethod
     def get_by_data_source(data_source):
         """Get source documents by data source."""
         return SourceDocument.objects.select_related('data_source').filter(
-            data_source=data_source
+            data_source=data_source,
+            is_deleted=False,
         ).order_by('-fetched_at')
 
     @staticmethod
     def get_by_url(source_url: str):
         """Get source document by URL."""
         return SourceDocument.objects.select_related('data_source').filter(
-            source_url=source_url
+            source_url=source_url,
+            is_deleted=False,
         ).order_by('-fetched_at').first()
 
     @staticmethod
     def get_latest_by_data_source(data_source):
         """Get latest source document for a data source."""
         return SourceDocument.objects.select_related('data_source').filter(
-            data_source=data_source
+            data_source=data_source,
+            is_deleted=False,
         ).order_by('-fetched_at').first()
 
     @staticmethod
     def get_by_id(document_id):
         """Get source document by ID."""
-        return SourceDocument.objects.select_related('data_source').get(id=document_id)
+        return SourceDocument.objects.select_related('data_source').filter(id=document_id, is_deleted=False).first()
 
     @staticmethod
     def get_none():
@@ -71,7 +74,7 @@ class SourceDocumentSelector:
         from django.utils import timezone
         from datetime import timedelta
         
-        queryset = SourceDocument.objects.all()
+        queryset = SourceDocument.objects.filter(is_deleted=False)
         
         total_documents = queryset.count()
         documents_with_errors = queryset.exclude(
