@@ -43,10 +43,11 @@ class SourceDocumentService:
     def get_by_id(document_id: str) -> Optional[SourceDocument]:
         """Get source document by ID."""
         try:
-            return SourceDocumentSelector.get_by_id(document_id)
-        except SourceDocument.DoesNotExist:
-            logger.error(f"Source document {document_id} not found")
-            return None
+            doc = SourceDocumentSelector.get_by_id(document_id)
+            if not doc:
+                logger.error(f"Source document {document_id} not found")
+                return None
+            return doc
         except Exception as e:
             logger.error(f"Error fetching source document {document_id}: {e}")
             return None
@@ -74,11 +75,8 @@ class SourceDocumentService:
             if not document:
                 logger.error(f"Source document {document_id} not found")
                 return False
-            SourceDocumentRepository.delete_source_document(document)
+            SourceDocumentRepository.delete_source_document(document, version=getattr(document, "version", None))
             return True
-        except SourceDocument.DoesNotExist:
-            logger.error(f"Source document {document_id} not found")
-            return False
         except Exception as e:
             logger.error(f"Error deleting source document {document_id}: {e}")
             return False
