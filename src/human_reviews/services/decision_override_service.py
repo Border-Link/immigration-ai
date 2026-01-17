@@ -216,11 +216,16 @@ class DecisionOverrideService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=lambda o: o is not None)
-    def update_decision_override(override_id: str, **fields) -> Optional[DecisionOverride]:
+    def update_decision_override(override_id: str, version: int = None, **fields) -> Optional[DecisionOverride]:
         """
-        Update decision override fields.
+        Update decision override fields with optimistic locking.
         
         Requires: Case must have a completed payment before decision overrides can be updated.
+        
+        Args:
+            override_id: ID of the override to update
+            version: Expected version number for optimistic locking (required)
+            **fields: Fields to update
         """
         from django.core.exceptions import ValidationError
         from payments.helpers.payment_validator import PaymentValidator
@@ -240,7 +245,13 @@ class DecisionOverrideService:
                 logger.warning(f"Decision override update blocked for case {override.case.id}: {error}")
                 raise ValidationError(error)
             
-            return DecisionOverrideRepository.update_decision_override(override, **fields)
+            # Use version from parameter or from the override
+            update_version = version if version is not None else override.version
+            
+            return DecisionOverrideRepository.update_decision_override(override, version=update_version, **fields)
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error updating decision override {override_id}: {e}")
+            raise
         except ObjectDoesNotExist:
             logger.error(f"Decision override {override_id} not found")
             return None
@@ -250,12 +261,17 @@ class DecisionOverrideService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=bool)
-    def delete_decision_override(override_id: str) -> bool:
+    def delete_decision_override(override_id: str, version: int = None, deleted_by=None) -> bool:
         """
-        Delete a decision override.
+        Soft delete a decision override.
         
         Requires: Case must have a completed payment before decision overrides can be deleted.
         This prevents abuse and ensures only paid cases can manage their decision overrides.
+        
+        Args:
+            override_id: ID of the override to delete
+            version: Expected version number for optimistic locking (required)
+            deleted_by: User performing the deletion
         """
         from django.core.exceptions import ValidationError
         from payments.helpers.payment_validator import PaymentValidator
@@ -275,8 +291,14 @@ class DecisionOverrideService:
                 logger.warning(f"Decision override deletion blocked for case {override.case.id}: {error}")
                 raise ValidationError(error)
             
-            DecisionOverrideRepository.delete_decision_override(override)
+            # Use version from parameter or from the override
+            delete_version = version if version is not None else override.version
+            
+            DecisionOverrideRepository.delete_decision_override(override, version=delete_version, deleted_by=deleted_by)
             return True
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error deleting decision override {override_id}: {e}")
+            raise
         except ObjectDoesNotExist:
             logger.error(f"Decision override {override_id} not found")
             return False
