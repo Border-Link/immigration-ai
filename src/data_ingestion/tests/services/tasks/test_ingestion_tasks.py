@@ -14,8 +14,8 @@ class TestIngestionTasks:
         mock_service.ingest_data_source.assert_called_once_with("123")
 
     @patch("data_ingestion.tasks.ingestion_tasks.IngestionService")
-    @patch("data_ingestion.selectors.data_source_selector.DataSourceSelector")
-    def test_ingest_all_active_sources_task_aggregates(self, mock_selector, mock_service):
+    @patch("data_ingestion.services.data_source_service.DataSourceService")
+    def test_ingest_all_active_sources_task_aggregates(self, mock_data_source_service, mock_service):
         from data_ingestion.tasks.ingestion_tasks import ingest_all_active_sources_task
 
         ds1 = MagicMock(id="1", name="A")
@@ -23,7 +23,7 @@ class TestIngestionTasks:
         qs = MagicMock()
         qs.__iter__.return_value = iter([ds1, ds2])
         qs.count.return_value = 2
-        mock_selector.get_active.return_value = qs
+        mock_data_source_service.get_active.return_value = qs
         mock_service.ingest_data_source.side_effect = [{"success": True}, {"success": False}]
 
         res = ingest_all_active_sources_task.run()
@@ -33,8 +33,8 @@ class TestIngestionTasks:
         assert res["failed"] == 1
 
     @patch("data_ingestion.tasks.ingestion_tasks.IngestionService")
-    @patch("data_ingestion.selectors.data_source_selector.DataSourceSelector")
-    def test_ingest_uk_sources_weekly_task_aggregates(self, mock_selector, mock_service):
+    @patch("data_ingestion.services.data_source_service.DataSourceService")
+    def test_ingest_uk_sources_weekly_task_aggregates(self, mock_data_source_service, mock_service):
         from data_ingestion.tasks.ingestion_tasks import ingest_uk_sources_weekly_task
 
         ds1 = MagicMock(id="1", name="UK1")
@@ -42,7 +42,7 @@ class TestIngestionTasks:
         qs.filter.return_value = qs
         qs.__iter__.return_value = iter([ds1])
         qs.count.return_value = 1
-        mock_selector.get_by_jurisdiction.return_value = qs
+        mock_data_source_service.get_by_jurisdiction.return_value = qs
         mock_service.ingest_data_source.return_value = {"success": True, "urls_processed": 2, "new_versions": 1, "rules_parsed": 3}
 
         res = ingest_uk_sources_weekly_task.run()

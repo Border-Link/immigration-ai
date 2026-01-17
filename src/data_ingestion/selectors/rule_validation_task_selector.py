@@ -11,7 +11,7 @@ class RuleValidationTaskSelector:
             'parsed_rule',
             'parsed_rule__document_version',
             'assigned_to'
-        ).all()
+        ).filter(is_deleted=False)
 
     @staticmethod
     def get_by_status(status: str):
@@ -20,7 +20,7 @@ class RuleValidationTaskSelector:
             'parsed_rule',
             'parsed_rule__document_version',
             'assigned_to'
-        ).filter(status=status).order_by('-created_at')
+        ).filter(status=status, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_reviewer(reviewer):
@@ -29,7 +29,7 @@ class RuleValidationTaskSelector:
             'parsed_rule',
             'parsed_rule__document_version',
             'assigned_to'
-        ).filter(assigned_to=reviewer).order_by('-created_at')
+        ).filter(assigned_to=reviewer, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_parsed_rule(parsed_rule):
@@ -38,12 +38,12 @@ class RuleValidationTaskSelector:
             'parsed_rule',
             'parsed_rule__document_version',
             'assigned_to'
-        ).filter(parsed_rule=parsed_rule).order_by('-created_at').first()
+        ).filter(parsed_rule=parsed_rule, is_deleted=False).order_by('-created_at').first()
     
     @staticmethod
     def exists_for_parsed_rule(parsed_rule):
         """Check if validation task exists for a parsed rule."""
-        return RuleValidationTask.objects.filter(parsed_rule=parsed_rule).exists()
+        return RuleValidationTask.objects.filter(parsed_rule=parsed_rule, is_deleted=False).exists()
 
     @staticmethod
     def get_pending():
@@ -52,7 +52,7 @@ class RuleValidationTaskSelector:
             'parsed_rule',
             'parsed_rule__document_version',
             'assigned_to'
-        ).filter(status='pending').order_by('sla_deadline', '-created_at')
+        ).filter(status='pending', is_deleted=False).order_by('sla_deadline', '-created_at')
 
     @staticmethod
     def get_by_id(task_id):
@@ -61,7 +61,7 @@ class RuleValidationTaskSelector:
             'parsed_rule',
             'parsed_rule__document_version',
             'assigned_to'
-        ).get(id=task_id)
+        ).filter(id=task_id, is_deleted=False).first()
 
     @staticmethod
     def get_by_reviewer_id(reviewer_id: str):
@@ -70,7 +70,7 @@ class RuleValidationTaskSelector:
             'parsed_rule',
             'parsed_rule__document_version',
             'assigned_to'
-        ).filter(assigned_to_id=reviewer_id).order_by('-created_at')
+        ).filter(assigned_to_id=reviewer_id, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_none():
@@ -104,7 +104,7 @@ class RuleValidationTaskSelector:
         """Get validation task statistics."""
         from django.db.models import Count
         
-        queryset = RuleValidationTask.objects.all()
+        queryset = RuleValidationTask.objects.filter(is_deleted=False)
         
         total_tasks = queryset.count()
         tasks_by_status = queryset.values('status').annotate(

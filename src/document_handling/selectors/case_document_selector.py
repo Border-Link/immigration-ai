@@ -7,57 +7,57 @@ class CaseDocumentSelector:
 
     @staticmethod
     def get_all():
-        """Get all case documents."""
+        """Get all case documents (excluding soft-deleted)."""
         return CaseDocument.objects.select_related(
             'case',
             'case__user',
             'document_type'
-        ).all().order_by('-uploaded_at')
+        ).filter(is_deleted=False).order_by('-uploaded_at')
 
     @staticmethod
     def get_by_case(case: Case):
-        """Get documents by case."""
+        """Get documents by case (excluding soft-deleted)."""
         return CaseDocument.objects.select_related(
             'case',
             'case__user',
             'document_type'
-        ).filter(case=case).order_by('-uploaded_at')
+        ).filter(case=case, is_deleted=False).order_by('-uploaded_at')
 
     @staticmethod
     def get_by_status(status: str):
-        """Get documents by status."""
+        """Get documents by status (excluding soft-deleted)."""
         return CaseDocument.objects.select_related(
             'case',
             'case__user',
             'document_type'
-        ).filter(status=status).order_by('-uploaded_at')
+        ).filter(status=status, is_deleted=False).order_by('-uploaded_at')
 
     @staticmethod
     def get_by_document_type(document_type_id):
-        """Get documents by document type."""
+        """Get documents by document type (excluding soft-deleted)."""
         return CaseDocument.objects.select_related(
             'case',
             'case__user',
             'document_type'
-        ).filter(document_type_id=document_type_id).order_by('-uploaded_at')
+        ).filter(document_type_id=document_type_id, is_deleted=False).order_by('-uploaded_at')
 
     @staticmethod
     def get_by_id(document_id):
-        """Get case document by ID."""
+        """Get case document by ID (excluding soft-deleted)."""
         return CaseDocument.objects.select_related(
             'case',
             'case__user',
             'document_type'
-        ).get(id=document_id)
+        ).filter(is_deleted=False).get(id=document_id)
 
     @staticmethod
     def get_verified_by_case(case: Case):
-        """Get verified documents by case."""
+        """Get verified documents by case (excluding soft-deleted)."""
         return CaseDocument.objects.select_related(
             'case',
             'case__user',
             'document_type'
-        ).filter(case=case, status='verified').order_by('-uploaded_at')
+        ).filter(case=case, status='verified', is_deleted=False).order_by('-uploaded_at')
 
     @staticmethod
     def get_none():
@@ -79,7 +79,7 @@ class CaseDocumentSelector:
             'case',
             'case__user',
             'document_type'
-        ).all()
+        ).filter(is_deleted=False)
         
         if case_id:
             queryset = queryset.filter(case_id=case_id)
@@ -128,7 +128,7 @@ class CaseDocumentSelector:
         from django.utils import timezone
         from datetime import timedelta
         
-        queryset = CaseDocument.objects.all()
+        queryset = CaseDocument.objects.filter(is_deleted=False)
         
         total_documents = queryset.count()
         documents_by_status = queryset.values('status').annotate(

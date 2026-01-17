@@ -1,8 +1,7 @@
 from rest_framework import status
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.ai_call_permission import AiCallPermission
-from ai_calls.selectors.call_transcript_selector import CallTranscriptSelector
-from ai_calls.selectors.call_session_selector import CallSessionSelector
+from ai_calls.services.call_session_service import CallSessionService
 from ai_calls.serializers.call_transcript.read import CallTranscriptSerializer
 
 
@@ -11,7 +10,7 @@ class CallSessionTranscriptAPI(AuthAPI):
     permission_classes = [AiCallPermission]
     
     def get(self, request, session_id):
-        call_session = CallSessionSelector.get_by_id(session_id)
+        call_session = CallSessionService.get_call_session(session_id)
         
         if not call_session:
             return self.api_response(
@@ -24,7 +23,7 @@ class CallSessionTranscriptAPI(AuthAPI):
         self.check_object_permissions(request, call_session)
         
         # Get transcript
-        transcripts = CallTranscriptSelector.get_by_call_session(call_session)
+        transcripts = CallSessionService.get_transcript_turns(session_id)
         
         return self.api_response(
             message="Transcript retrieved successfully.",

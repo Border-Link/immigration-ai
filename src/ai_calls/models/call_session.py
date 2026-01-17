@@ -1,9 +1,6 @@
 import uuid
-import hashlib
-import json
 from django.db import models
 from django.conf import settings
-from django.utils import timezone
 
 # Status choices for CallSession
 STATUS_CHOICES = [
@@ -158,27 +155,3 @@ class CallSession(models.Model):
 
     def __str__(self):
         return f"CallSession {self.id} - {self.case.id} ({self.status})"
-    
-    def compute_context_hash(self) -> str:
-        """Compute SHA-256 hash of context bundle for deterministic audits."""
-        if not self.context_bundle:
-            return ""
-        
-        # Canonicalize JSON (sorted keys, no whitespace)
-        canonical_json = json.dumps(self.context_bundle, sort_keys=True, separators=(',', ':'))
-        return hashlib.sha256(canonical_json.encode('utf-8')).hexdigest()
-    
-    def is_expired(self) -> bool:
-        """Check if call session has expired (not started within TTL)."""
-        if self.status != 'created' and self.status != 'ready':
-            return False
-        
-        # Expire if not started within 1 hour of creation
-        if self.status == 'created':
-            return (timezone.now() - self.created_at).total_seconds() > 3600
-        
-        # Expire if not started within 1 hour of ready
-        if self.status == 'ready' and self.ready_at:
-            return (timezone.now() - self.ready_at).total_seconds() > 3600
-        
-        return False

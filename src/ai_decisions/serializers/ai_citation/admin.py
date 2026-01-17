@@ -17,6 +17,7 @@ class AICitationAdminListQuerySerializer(BaseAdminListQuerySerializer):
 
 class AICitationAdminUpdateSerializer(serializers.Serializer):
     """Serializer for updating AI citation in admin."""
+    version = serializers.IntegerField(required=False, help_text="Version for optimistic locking")
     excerpt = serializers.CharField(required=False, allow_blank=True)
     relevance_score = serializers.FloatField(required=False, min_value=0.0, max_value=1.0, allow_null=True)
 

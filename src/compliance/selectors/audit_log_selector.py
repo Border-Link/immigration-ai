@@ -7,27 +7,27 @@ class AuditLogSelector:
     @staticmethod
     def get_all():
         """Get all audit logs."""
-        return AuditLog.objects.all().order_by('-timestamp')
+        return AuditLog.objects.filter(is_deleted=False).order_by('-timestamp')
 
     @staticmethod
     def get_by_level(level: str):
         """Get audit logs by level."""
-        return AuditLog.objects.filter(level=level).order_by('-timestamp')
+        return AuditLog.objects.filter(level=level, is_deleted=False).order_by('-timestamp')
 
     @staticmethod
     def get_by_logger_name(logger_name: str):
         """Get audit logs by logger name."""
-        return AuditLog.objects.filter(logger_name=logger_name).order_by('-timestamp')
+        return AuditLog.objects.filter(logger_name=logger_name, is_deleted=False).order_by('-timestamp')
 
     @staticmethod
     def get_by_id(log_id):
         """Get audit log by ID."""
-        return AuditLog.objects.get(id=log_id)
+        return AuditLog.objects.filter(id=log_id, is_deleted=False).first()
 
     @staticmethod
     def get_recent(limit: int = 100):
         """Get recent audit logs."""
-        return AuditLog.objects.all().order_by('-timestamp')[:limit]
+        return AuditLog.objects.filter(is_deleted=False).order_by('-timestamp')[:limit]
 
     @staticmethod
     def get_by_date_range(start_date=None, end_date=None):
@@ -39,7 +39,7 @@ class AuditLogSelector:
         - end_date only: all logs up to end_date
         - neither: all logs
         """
-        qs = AuditLog.objects.all()
+        qs = AuditLog.objects.filter(is_deleted=False)
         if start_date is not None:
             qs = qs.filter(timestamp__gte=start_date)
         if end_date is not None:

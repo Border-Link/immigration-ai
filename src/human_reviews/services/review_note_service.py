@@ -95,11 +95,16 @@ class ReviewNoteService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=lambda n: n is not None)
-    def update_review_note(note_id: str, **fields) -> Optional[ReviewNote]:
+    def update_review_note(note_id: str, version: int = None, **fields) -> Optional[ReviewNote]:
         """
-        Update review note fields.
+        Update review note fields with optimistic locking.
         
         Requires: Case must have a completed payment before review notes can be updated.
+        
+        Args:
+            note_id: ID of the note to update
+            version: Expected version number for optimistic locking (required)
+            **fields: Fields to update
         """
         from django.core.exceptions import ValidationError
         from payments.helpers.payment_validator import PaymentValidator
@@ -119,7 +124,13 @@ class ReviewNoteService:
                 logger.warning(f"Review note update blocked for case {review_note.review.case.id}: {error}")
                 raise ValidationError(error)
             
-            return ReviewNoteRepository.update_review_note(review_note, **fields)
+            # Use version from parameter or from the note
+            update_version = version if version is not None else review_note.version
+            
+            return ReviewNoteRepository.update_review_note(review_note, version=update_version, **fields)
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error updating review note {note_id}: {e}")
+            raise
         except ObjectDoesNotExist:
             logger.error(f"Review note {note_id} not found")
             return None
@@ -129,12 +140,17 @@ class ReviewNoteService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=bool)
-    def delete_review_note(note_id: str) -> bool:
+    def delete_review_note(note_id: str, version: int = None, deleted_by=None) -> bool:
         """
-        Delete a review note.
+        Soft delete a review note.
         
         Requires: Case must have a completed payment before review notes can be deleted.
         This prevents abuse and ensures only paid cases can manage their review notes.
+        
+        Args:
+            note_id: ID of the note to delete
+            version: Expected version number for optimistic locking (required)
+            deleted_by: User performing the deletion
         """
         from django.core.exceptions import ValidationError
         from payments.helpers.payment_validator import PaymentValidator
@@ -154,8 +170,14 @@ class ReviewNoteService:
                 logger.warning(f"Review note deletion blocked for case {review_note.review.case.id}: {error}")
                 raise ValidationError(error)
             
-            ReviewNoteRepository.delete_review_note(review_note)
+            # Use version from parameter or from the note
+            delete_version = version if version is not None else review_note.version
+            
+            ReviewNoteRepository.delete_review_note(review_note, version=delete_version, deleted_by=deleted_by)
             return True
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error deleting review note {note_id}: {e}")
+            raise
         except ObjectDoesNotExist:
             logger.error(f"Review note {note_id} not found")
             return False

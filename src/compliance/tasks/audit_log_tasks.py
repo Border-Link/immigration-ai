@@ -3,7 +3,7 @@ import logging
 from django.utils import timezone
 from datetime import timedelta
 from main_system.utils.tasks_base import BaseTaskWithMeta
-from compliance.selectors.audit_log_selector import AuditLogSelector
+from compliance.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger('django')
 
@@ -22,7 +22,7 @@ def archive_old_audit_logs_task(self):
         
         # Get logs older than 1 year
         one_year_ago = timezone.now() - timedelta(days=365)
-        old_logs = AuditLogSelector.get_by_date_range(end_date=one_year_ago)
+        old_logs = AuditLogService.get_by_date_range(None, one_year_ago)
         
         count = old_logs.count()
         

@@ -1,10 +1,10 @@
 from rest_framework import serializers
-from data_ingestion.selectors.rule_validation_task_selector import RuleValidationTaskSelector
 
 
 class RuleValidationTaskUpdateSerializer(serializers.Serializer):
     """Serializer for updating a rule validation task."""
     
+    version = serializers.IntegerField(required=False, help_text="Version for optimistic locking")
     status = serializers.ChoiceField(
         choices=['pending', 'in_progress', 'approved', 'rejected', 'needs_revision'],
         required=False
@@ -26,6 +26,7 @@ class RuleValidationTaskUpdateSerializer(serializers.Serializer):
 class RuleValidationTaskAssignSerializer(serializers.Serializer):
     """Serializer for assigning a reviewer to a validation task."""
     
+    version = serializers.IntegerField(required=False, help_text="Version for optimistic locking")
     reviewer_id = serializers.UUIDField(required=True)
 
     def validate_reviewer_id(self, value):
@@ -46,11 +47,13 @@ class RuleValidationTaskAssignSerializer(serializers.Serializer):
 class RuleValidationTaskApproveSerializer(serializers.Serializer):
     """Serializer for approving a validation task."""
     
+    version = serializers.IntegerField(required=False, help_text="Version for optimistic locking")
     reviewer_notes = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
 class RuleValidationTaskRejectSerializer(serializers.Serializer):
     """Serializer for rejecting a validation task."""
     
+    version = serializers.IntegerField(required=False, help_text="Version for optimistic locking")
     reviewer_notes = serializers.CharField(required=True, allow_blank=False)
 

@@ -14,7 +14,7 @@ class AICitationSelector:
             'reasoning_log__case',
             'document_version',
             'document_version__source_document'
-        ).all().order_by('-created_at')
+        ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_reasoning_log(reasoning_log: AIReasoningLog):
@@ -24,7 +24,7 @@ class AICitationSelector:
             'reasoning_log__case',
             'document_version',
             'document_version__source_document'
-        ).filter(reasoning_log=reasoning_log).order_by('-created_at')
+        ).filter(reasoning_log=reasoning_log, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_document_version(document_version: DocumentVersion):
@@ -34,7 +34,7 @@ class AICitationSelector:
             'reasoning_log__case',
             'document_version',
             'document_version__source_document'
-        ).filter(document_version=document_version).order_by('-created_at')
+        ).filter(document_version=document_version, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_id(citation_id):
@@ -44,7 +44,7 @@ class AICitationSelector:
             'reasoning_log__case',
             'document_version',
             'document_version__source_document'
-        ).get(id=citation_id)
+        ).get(id=citation_id, is_deleted=False)
 
     @staticmethod
     def get_none():
@@ -58,7 +58,7 @@ class AICitationSelector:
         from django.utils import timezone
         from datetime import timedelta
         
-        queryset = AICitation.objects.all()
+        queryset = AICitation.objects.filter(is_deleted=False)
         
         total_citations = queryset.count()
         avg_relevance_score = queryset.aggregate(

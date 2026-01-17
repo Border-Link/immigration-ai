@@ -8,7 +8,8 @@ class CallTranscriptSelector:
     def get_by_call_session(call_session, include_cold: bool = False):
         """Get transcript for call session."""
         queryset = CallTranscript.objects.filter(
-            call_session=call_session
+            call_session=call_session,
+            is_deleted=False,
         )
         
         if not include_cold:
@@ -19,14 +20,15 @@ class CallTranscriptSelector:
     @staticmethod
     def get_by_id(transcript_id):
         """Get transcript turn by ID."""
-        return CallTranscript.objects.select_related('call_session').get(id=transcript_id)
+        return CallTranscript.objects.select_related('call_session').filter(id=transcript_id, is_deleted=False).first()
 
     @staticmethod
     def get_by_turn_number(call_session, turn_number: int):
         """Get transcript turn by turn number."""
         return CallTranscript.objects.filter(
             call_session=call_session,
-            turn_number=turn_number
+            turn_number=turn_number,
+            is_deleted=False,
         ).first()
 
     @staticmethod
@@ -39,14 +41,16 @@ class CallTranscriptSelector:
         
         return CallTranscript.objects.filter(
             storage_tier='hot',
-            timestamp__lt=cutoff_date
+            timestamp__lt=cutoff_date,
+            is_deleted=False,
         ).order_by('timestamp')
 
     @staticmethod
     def get_latest_turn_number(call_session):
         """Get the latest turn number for a call session."""
         last_turn = CallTranscript.objects.filter(
-            call_session=call_session
+            call_session=call_session,
+            is_deleted=False,
         ).order_by('-turn_number').first()
         return last_turn.turn_number if last_turn else 0
 

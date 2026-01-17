@@ -30,9 +30,8 @@ from ai_decisions.helpers.metrics import (
     track_auto_escalation,
     track_eligibility_conflict
 )
-from immigration_cases.selectors.case_selector import CaseSelector
 from immigration_cases.services.case_service import CaseService
-from rules_knowledge.selectors.visa_type_selector import VisaTypeSelector
+from rules_knowledge.services.visa_type_service import VisaTypeService
 
 logger = logging.getLogger('django')
 
@@ -112,7 +111,7 @@ def run_eligibility_check_task(
         )
         
         # Get case
-        case = CaseSelector.get_by_id(case_id)
+        case = CaseService.get_by_id(case_id)
         if not case:
             error_msg = f"Case {case_id} not found"
             logger.error(error_msg)
@@ -236,7 +235,7 @@ def _run_single_visa_type_check(
     """
     try:
         # Validate visa type exists
-        visa_type = VisaTypeSelector.get_by_id(visa_type_id)
+        visa_type = VisaTypeService.get_by_id(visa_type_id)
         if not visa_type:
             logger.error(f"Visa type {visa_type_id} not found")
             return {
@@ -329,7 +328,7 @@ def _run_multi_visa_type_check(
             }
         
         # Get all active visa types for this jurisdiction
-        visa_types = VisaTypeSelector.get_by_jurisdiction(jurisdiction)
+        visa_types = VisaTypeService.get_by_jurisdiction(jurisdiction)
         if not visa_types.exists():
             logger.warning(f"No active visa types found for jurisdiction {jurisdiction}")
             return {

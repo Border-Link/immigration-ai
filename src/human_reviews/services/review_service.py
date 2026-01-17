@@ -420,12 +420,17 @@ class ReviewService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=bool)
-    def delete_review(review_id: str, deleted_by_id: str = None) -> bool:
+    def delete_review(review_id: str, version: int = None, deleted_by_id: str = None) -> bool:
         """
-        Delete a review.
+        Soft delete a review.
         
         Requires: Case must have a completed payment before reviews can be deleted.
         This prevents abuse and ensures only paid cases can manage their reviews.
+        
+        Args:
+            review_id: ID of the review to delete
+            version: Expected version number for optimistic locking (required)
+            deleted_by_id: User performing the deletion
         """
         from django.core.exceptions import ValidationError
         from payments.helpers.payment_validator import PaymentValidator
@@ -441,7 +446,15 @@ class ReviewService:
             if not is_valid:
                 logger.warning(f"Review deletion blocked for case {review.case.id}: {error}")
                 raise ValidationError(error)
-            ReviewRepository.delete_review(review)
+            
+            deleted_by = None
+            if deleted_by_id:
+                deleted_by = UserSelector.get_by_id(deleted_by_id)
+            
+            # Use version from parameter or from the review
+            delete_version = version if version is not None else review.version
+            
+            ReviewRepository.delete_review(review, version=delete_version, deleted_by=deleted_by)
             
             # Log audit event
             try:
@@ -456,6 +469,9 @@ class ReviewService:
                 logger.warning(f"Failed to create audit log: {audit_error}")
             
             return True
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error deleting review {review_id}: {e}")
+            raise
         except ObjectDoesNotExist:
             logger.error(f"Review {review_id} not found")
             return False

@@ -6,13 +6,10 @@ Access restricted to staff/superusers using AdminPermission.
 """
 import logging
 from rest_framework import status, serializers
-from django.db.models import Q
-from django.utils import timezone
-from datetime import timedelta
 from main_system.base.auth_api import AuthAPI
 from main_system.permissions.admin_permission import AdminPermission
 from main_system.views.admin.base import BaseAdminDetailAPI
-from ai_calls.selectors.call_session_selector import CallSessionSelector
+from ai_calls.services.call_session_service import CallSessionService
 from ai_calls.serializers.call_session.read import CallSessionSerializer
 from main_system.utils import paginate_queryset
 
@@ -56,7 +53,7 @@ class CallSessionAdminListAPI(AuthAPI):
         validated_params = query_serializer.validated_data
         
         # Get all call sessions (admin can see all)
-        queryset = CallSessionSelector.get_all(include_deleted=False)
+        queryset = CallSessionService.admin_get_sessions_queryset()
         
         # Apply filters
         if validated_params.get('case_id'):
@@ -104,7 +101,7 @@ class CallSessionAdminDetailAPI(BaseAdminDetailAPI):
     
     def get_entity_by_id(self, entity_id):
         """Get call session by ID."""
-        return CallSessionSelector.get_by_id(str(entity_id), include_deleted=True)
+        return CallSessionService.admin_get_by_id(str(entity_id), include_deleted=True)
     
     def get_serializer_class(self):
         """Return the detail serializer."""

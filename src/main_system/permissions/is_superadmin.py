@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from main_system.permissions.role_checker import RoleChecker
 
 
 class IsSuperAdmin(permissions.BasePermission):
@@ -15,8 +16,5 @@ class IsSuperAdmin(permissions.BasePermission):
     
     def has_permission(self, request, view):
         """Check if user is superuser (superadmin)."""
-        if not request.user or not request.user.is_authenticated:
-            return False
-        
-        # Superuser flag is the primary indicator
-        return request.user.is_superuser
+        user = getattr(request, 'user', None)
+        return RoleChecker.is_superadmin(user)

@@ -116,6 +116,13 @@ class CaseDocument(models.Model):
     
     uploaded_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Optimistic locking
+    version = models.IntegerField(default=1, db_index=True, help_text="Version number for optimistic locking")
+    
+    # Soft delete
+    is_deleted = models.BooleanField(default=False, db_index=True, help_text="Whether this document is soft-deleted")
+    deleted_at = models.DateTimeField(null=True, blank=True, help_text="When this document was soft-deleted")
 
     class Meta:
         db_table = 'case_documents'

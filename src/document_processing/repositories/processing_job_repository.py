@@ -2,6 +2,7 @@
 Repository for ProcessingJob write operations.
 """
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from document_processing.models.processing_job import ProcessingJob
@@ -38,8 +39,12 @@ class ProcessingJobRepository:
             return job
 
     @staticmethod
-    def update_processing_job(job, **fields):
-        """Update processing job fields with status transition validation."""
+    def update_processing_job(job, version: int = None, **fields):
+        """
+        Update processing job fields with status transition validation and optimistic locking.
+        
+        Uses a single conditional UPDATE (WHERE id AND version) to prevent last-write-wins overwrites.
+        """
         with transaction.atomic():
             # Validate status transition if status is being updated
             if 'status' in fields:
@@ -50,38 +55,55 @@ class ProcessingJobRepository:
                 if not is_valid:
                     raise ValidationError(error)
             
-            for key, value in fields.items():
-                if hasattr(job, key):
-                    setattr(job, key, value)
-            
+            expected_version = version if version is not None else getattr(job, "version", None)
+            if expected_version is None:
+                raise ValidationError("Missing version for optimistic locking.")
+
+            allowed_fields = {f.name for f in ProcessingJob._meta.fields}
+            protected_fields = {"id", "version", "created_at"}
+            update_fields = {
+                k: v for k, v in fields.items()
+                if k in allowed_fields and k not in protected_fields
+            }
+
             # Auto-update timestamps based on status
             if 'status' in fields:
                 if fields['status'] == 'processing' and not job.started_at:
-                    job.started_at = timezone.now()
+                    update_fields['started_at'] = timezone.now()
                 elif fields['status'] in ['completed', 'failed', 'cancelled'] and not job.completed_at:
-                    job.completed_at = timezone.now()
-            
-            job.full_clean()
-            job.save()
-            return job
+                    update_fields['completed_at'] = timezone.now()
+
+            # QuerySet.update bypasses auto_now; set updated_at explicitly.
+            if "updated_at" in allowed_fields:
+                update_fields["updated_at"] = timezone.now()
+
+            updated_count = ProcessingJob.objects.filter(
+                id=job.id,
+                version=expected_version,
+                is_deleted=False,
+            ).update(
+                **update_fields,
+                version=F("version") + 1,
+            )
+
+            if updated_count != 1:
+                current_version = ProcessingJob.objects.filter(id=job.id).values_list("version", flat=True).first()
+                if current_version is None:
+                    raise ValidationError("Processing job not found.")
+                raise ValidationError(
+                    f"Processing job was modified by another user. Expected version {expected_version}, got {current_version}."
+                )
+
+            return ProcessingJob.objects.get(id=job.id)
 
     @staticmethod
-    def update_status(job, status: str):
-        """Update processing job status with transition validation."""
-        # Validate transition
-        is_valid, error = StatusTransitionValidator.validate_transition(job.status, status)
-        if not is_valid:
-            raise ValidationError(error)
-        
-        with transaction.atomic():
-            job.status = status
-            if status == 'processing' and not job.started_at:
-                job.started_at = timezone.now()
-            elif status in ['completed', 'failed', 'cancelled'] and not job.completed_at:
-                job.completed_at = timezone.now()
-            job.full_clean()
-            job.save()
-            return job
+    def update_status(job, status: str, version: int = None):
+        """Update processing job status with transition validation and optimistic locking."""
+        return ProcessingJobRepository.update_processing_job(
+            job,
+            version=version,
+            status=status
+        )
 
     @staticmethod
     def increment_retry_count(job):
@@ -93,8 +115,91 @@ class ProcessingJobRepository:
             return job
 
     @staticmethod
-    def delete_processing_job(job):
-        """Delete a processing job."""
+    def soft_delete_processing_job(job, version: int = None, deleted_by=None) -> ProcessingJob:
+        """
+        Soft delete a processing job with optimistic locking.
+        
+        Args:
+            job: ProcessingJob instance to soft delete
+            version: Expected version number for optimistic locking
+            deleted_by: User performing the deletion
+            
+        Returns:
+            Soft-deleted ProcessingJob instance
+        """
         with transaction.atomic():
-            job.delete()
-            return True
+            expected_version = version if version is not None else getattr(job, "version", None)
+            if expected_version is None:
+                raise ValidationError("Missing version for optimistic locking.")
+
+            now_ts = timezone.now()
+            updated_count = ProcessingJob.objects.filter(
+                id=job.id,
+                version=expected_version,
+                is_deleted=False,
+            ).update(
+                is_deleted=True,
+                deleted_at=now_ts,
+                updated_at=now_ts,
+                version=F("version") + 1,
+            )
+
+            if updated_count != 1:
+                current_version = ProcessingJob.objects.filter(id=job.id).values_list("version", flat=True).first()
+                if current_version is None:
+                    raise ValidationError("Processing job not found.")
+                raise ValidationError(
+                    f"Processing job was modified by another user. Expected version {expected_version}, got {current_version}."
+                )
+
+            return ProcessingJob.objects.get(id=job.id)
+    
+    @staticmethod
+    def delete_processing_job(job, version: int = None, deleted_by=None):
+        """
+        Delete a processing job (soft delete).
+        
+        CRITICAL: Deletion must be soft-delete to preserve auditability.
+        """
+        ProcessingJobRepository.soft_delete_processing_job(job, version=version, deleted_by=deleted_by)
+        return True
+    
+    @staticmethod
+    def restore_processing_job(job, version: int = None, restored_by=None) -> ProcessingJob:
+        """
+        Restore a soft-deleted processing job with optimistic locking.
+        
+        Args:
+            job: ProcessingJob instance to restore
+            version: Expected version number for optimistic locking
+            restored_by: User performing the restoration
+            
+        Returns:
+            Restored ProcessingJob instance
+        """
+        with transaction.atomic():
+            expected_version = version if version is not None else getattr(job, "version", None)
+            if expected_version is None:
+                raise ValidationError("Missing version for optimistic locking.")
+
+            now_ts = timezone.now()
+            updated_count = ProcessingJob.objects.filter(
+                id=job.id,
+                version=expected_version,
+                is_deleted=True,
+            ).update(
+                is_deleted=False,
+                deleted_at=None,
+                updated_at=now_ts,
+                version=F("version") + 1,
+            )
+
+            if updated_count != 1:
+                current_version = ProcessingJob.objects.filter(id=job.id).values_list("version", flat=True).first()
+                if current_version is None:
+                    raise ValidationError("Processing job not found.")
+                raise ValidationError(
+                    f"Processing job was modified by another user. Expected version {expected_version}, got {current_version}."
+                )
+
+            return ProcessingJob.objects.get(id=job.id)

@@ -1,10 +1,10 @@
 from rest_framework import serializers
-from data_ingestion.selectors.parsed_rule_selector import ParsedRuleSelector
 
 
 class ParsedRuleUpdateSerializer(serializers.Serializer):
     """Serializer for updating a parsed rule."""
     
+    version = serializers.IntegerField(required=False, help_text="Version for optimistic locking")
     status = serializers.ChoiceField(
         choices=['pending', 'approved', 'rejected', 'needs_revision'],
         required=False
@@ -28,6 +28,7 @@ class ParsedRuleUpdateSerializer(serializers.Serializer):
 class ParsedRuleStatusUpdateSerializer(serializers.Serializer):
     """Serializer for updating parsed rule status."""
     
+    version = serializers.IntegerField(required=False, help_text="Version for optimistic locking")
     status = serializers.ChoiceField(
         choices=['pending', 'approved', 'rejected', 'needs_revision'],
         required=True

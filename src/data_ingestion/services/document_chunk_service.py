@@ -42,10 +42,11 @@ class DocumentChunkService:
     def get_by_id(chunk_id: str) -> Optional[DocumentChunk]:
         """Get document chunk by ID."""
         try:
-            return DocumentChunkSelector.get_by_id(chunk_id)
-        except DocumentChunk.DoesNotExist:
-            logger.error(f"Document chunk {chunk_id} not found")
-            return None
+            chunk = DocumentChunkSelector.get_by_id(chunk_id)
+            if not chunk:
+                logger.error(f"Document chunk {chunk_id} not found")
+                return None
+            return chunk
         except Exception as e:
             logger.error(f"Error fetching document chunk {chunk_id}: {e}")
             return None
@@ -56,11 +57,11 @@ class DocumentChunkService:
         """Delete a document chunk."""
         try:
             chunk = DocumentChunkSelector.get_by_id(chunk_id)
-            DocumentChunkRepository.delete_document_chunk(chunk)
+            if not chunk:
+                logger.error(f"Document chunk {chunk_id} not found")
+                return False
+            DocumentChunkRepository.delete_document_chunk(chunk, version=getattr(chunk, "version", None))
             return True
-        except DocumentChunk.DoesNotExist:
-            logger.error(f"Document chunk {chunk_id} not found")
-            return False
         except Exception as e:
             logger.error(f"Error deleting document chunk {chunk_id}: {e}")
             return False
@@ -117,14 +118,11 @@ class DocumentChunkService:
                 return False
             
             # Update chunk with new embedding
-            DocumentChunkRepository.update_embedding(chunk, embedding)
+            DocumentChunkRepository.update_embedding(chunk, embedding, version=getattr(chunk, "version", None))
             
             logger.info(f"Successfully regenerated embedding for chunk {chunk_id} using model {model}")
             return True
             
-        except DocumentChunk.DoesNotExist:
-            logger.error(f"Document chunk {chunk_id} not found")
-            return False
         except Exception as e:
             logger.error(f"Error regenerating embedding for chunk {chunk_id}: {e}", exc_info=True)
             return False

@@ -8,7 +8,7 @@ from data_ingestion.tasks.rule_validation_tasks import notify_pending_rule_valid
 class TestRuleValidationTasks:
     @patch("data_ingestion.tasks.rule_validation_tasks.send_rule_validation_task_email_task")
     @patch("data_ingestion.tasks.rule_validation_tasks.NotificationService")
-    @patch("data_ingestion.tasks.rule_validation_tasks.RuleValidationTaskSelector")
+    @patch("data_ingestion.tasks.rule_validation_tasks.RuleValidationTaskService")
     def test_notify_pending_tasks_assigned(
         self, mock_selector, mock_notification_service, mock_email_task, validation_task, reviewer_user
     ):

@@ -115,11 +115,16 @@ class DocumentCheckService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=lambda chk: chk is not None)
-    def update_document_check(check_id: str, **fields) -> Optional[DocumentCheck]:
+    def update_document_check(check_id: str, version: int = None, **fields) -> Optional[DocumentCheck]:
         """
-        Update document check.
+        Update document check with optimistic locking.
         
         Requires: Case must have a completed payment before document checks can be updated.
+        
+        Args:
+            check_id: ID of the check to update
+            version: Expected version number for optimistic locking (required)
+            **fields: Fields to update
         """
         from django.core.exceptions import ValidationError
         from payments.helpers.payment_validator import PaymentValidator
@@ -139,7 +144,13 @@ class DocumentCheckService:
                 logger.warning(f"Document check update blocked for case {document_check.case_document.case.id}: {error}")
                 raise ValidationError(error)
             
-            return DocumentCheckRepository.update_document_check(document_check, **fields)
+            # Use version from parameter or from the check
+            update_version = version if version is not None else document_check.version
+            
+            return DocumentCheckRepository.update_document_check(document_check, version=update_version, **fields)
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error updating document check {check_id}: {e}")
+            raise
         except DocumentCheck.DoesNotExist:
             logger.error(f"Document check {check_id} not found")
             return None
@@ -149,12 +160,17 @@ class DocumentCheckService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=bool)
-    def delete_document_check(check_id: str) -> bool:
+    def delete_document_check(check_id: str, version: int = None, deleted_by=None) -> bool:
         """
-        Delete document check.
+        Soft delete document check.
         
         Requires: Case must have a completed payment before document checks can be deleted.
         This prevents abuse and ensures only paid cases can manage their document checks.
+        
+        Args:
+            check_id: ID of the check to delete
+            version: Expected version number for optimistic locking (required)
+            deleted_by: User performing the deletion
         """
         from django.core.exceptions import ValidationError
         from payments.helpers.payment_validator import PaymentValidator
@@ -174,8 +190,14 @@ class DocumentCheckService:
                 logger.warning(f"Document check deletion blocked for case {document_check.case_document.case.id}: {error}")
                 raise ValidationError(error)
             
-            DocumentCheckRepository.delete_document_check(document_check)
+            # Use version from parameter or from the check
+            delete_version = version if version is not None else document_check.version
+            
+            DocumentCheckRepository.delete_document_check(document_check, version=delete_version, deleted_by=deleted_by)
             return True
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error deleting document check {check_id}: {e}")
+            raise
         except DocumentCheck.DoesNotExist:
             logger.error(f"Document check {check_id} not found")
             return False

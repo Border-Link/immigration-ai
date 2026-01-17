@@ -22,7 +22,7 @@ class RuleParsingAuditLogSelector:
             'document_version__source_document',
             'document_version__source_document__data_source',
             'user'
-        ).all().order_by('-created_at')
+        ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_document_version(document_version: DocumentVersion):
@@ -30,7 +30,7 @@ class RuleParsingAuditLogSelector:
         return RuleParsingAuditLog.objects.select_related(
             'document_version',
             'user'
-        ).filter(document_version=document_version).order_by('-created_at')
+        ).filter(document_version=document_version, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_action(action: str):
@@ -38,7 +38,7 @@ class RuleParsingAuditLogSelector:
         return RuleParsingAuditLog.objects.select_related(
             'document_version',
             'user'
-        ).filter(action=action).order_by('-created_at')
+        ).filter(action=action, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_status(status: str):
@@ -46,7 +46,7 @@ class RuleParsingAuditLogSelector:
         return RuleParsingAuditLog.objects.select_related(
             'document_version',
             'user'
-        ).filter(status=status).order_by('-created_at')
+        ).filter(status=status, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_error_type(error_type: str):
@@ -54,7 +54,7 @@ class RuleParsingAuditLogSelector:
         return RuleParsingAuditLog.objects.select_related(
             'document_version',
             'user'
-        ).filter(error_type=error_type).order_by('-created_at')
+        ).filter(error_type=error_type, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_id(audit_log_id):
@@ -64,7 +64,7 @@ class RuleParsingAuditLogSelector:
             'document_version__source_document',
             'document_version__source_document__data_source',
             'user'
-        ).get(id=audit_log_id)
+        ).filter(id=audit_log_id, is_deleted=False).first()
 
     @staticmethod
     def get_none():
@@ -100,7 +100,7 @@ class RuleParsingAuditLogSelector:
         """Get audit log statistics."""
         from django.db.models import Count
         
-        queryset = RuleParsingAuditLog.objects.all()
+        queryset = RuleParsingAuditLog.objects.filter(is_deleted=False)
         
         total_audit_logs = queryset.count()
         logs_by_action = queryset.values('action').annotate(

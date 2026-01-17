@@ -120,6 +120,16 @@ class UserService:
             return None
 
     @staticmethod
+    @cache_result(timeout=60, keys=["role"], namespace=namespace, user_scope="global")
+    def get_by_role(role: str):
+        """Get users by role (service wrapper around selector)."""
+        try:
+            return UserSelector.get_by_role(role)
+        except Exception as e:
+            logger.error(f"Error fetching users by role {role}: {e}")
+            return UserSelector.get_none()
+
+    @staticmethod
     @cache_result(timeout=300, keys=[], namespace=namespace)  # 5 minutes - user list changes frequently
     def get_all():
         try:

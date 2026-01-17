@@ -43,10 +43,11 @@ class DocumentVersionService:
     def get_by_id(version_id: str) -> Optional[DocumentVersion]:
         """Get document version by ID."""
         try:
-            return DocumentVersionSelector.get_by_id(version_id)
-        except DocumentVersion.DoesNotExist:
-            logger.error(f"Document version {version_id} not found")
-            return None
+            dv = DocumentVersionSelector.get_by_id(version_id)
+            if not dv:
+                logger.error(f"Document version {version_id} not found")
+                return None
+            return dv
         except Exception as e:
             logger.error(f"Error fetching document version {version_id}: {e}")
             return None
@@ -74,11 +75,8 @@ class DocumentVersionService:
             if not version:
                 logger.error(f"Document version {version_id} not found")
                 return False
-            DocumentVersionRepository.delete_document_version(version)
+            DocumentVersionRepository.delete_document_version(version, version=getattr(version, "version", None))
             return True
-        except DocumentVersion.DoesNotExist:
-            logger.error(f"Document version {version_id} not found")
-            return False
         except Exception as e:
             logger.error(f"Error deleting document version {version_id}: {e}")
             return False
