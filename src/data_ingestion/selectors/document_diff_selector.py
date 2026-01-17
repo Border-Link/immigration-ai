@@ -10,7 +10,7 @@ class DocumentDiffSelector:
             'old_version', 'new_version',
             'old_version__source_document',
             'new_version__source_document'
-        ).all()
+        ).filter(is_deleted=False)
 
     @staticmethod
     def get_by_versions(old_version, new_version):
@@ -19,7 +19,7 @@ class DocumentDiffSelector:
             'old_version', 'new_version',
             'old_version__source_document',
             'new_version__source_document'
-        ).filter(old_version=old_version, new_version=new_version).first()
+        ).filter(old_version=old_version, new_version=new_version, is_deleted=False).first()
 
     @staticmethod
     def get_by_change_type(change_type: str):
@@ -28,7 +28,7 @@ class DocumentDiffSelector:
             'old_version', 'new_version',
             'old_version__source_document',
             'new_version__source_document'
-        ).filter(change_type=change_type).order_by('-created_at')
+        ).filter(change_type=change_type, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_id(diff_id):
@@ -37,7 +37,7 @@ class DocumentDiffSelector:
             'old_version', 'new_version',
             'old_version__source_document',
             'new_version__source_document'
-        ).get(id=diff_id)
+        ).filter(id=diff_id, is_deleted=False).first()
 
     @staticmethod
     def get_none():
