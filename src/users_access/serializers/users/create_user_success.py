@@ -18,6 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
             "is_active",
             "is_superuser",
             "is_staff",
+            "must_change_password",
             "created_at",
             "updated_at",
         )
@@ -27,6 +28,7 @@ class UserSerializer(serializers.ModelSerializer):
             "is_active",
             "is_superuser",
             "is_staff",
+            "must_change_password",
             "created_at",
             "updated_at",
         )
@@ -68,6 +70,7 @@ class WhoAmISerializer(serializers.ModelSerializer):
             "last_name",
             'full_name',
             "is_active",
+            "must_change_password",
         )
 
     def get_first_name(self, obj):

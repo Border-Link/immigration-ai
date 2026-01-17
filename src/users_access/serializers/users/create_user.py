@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .password_validation import PasswordValidation
 from users_access.models.user import User
 from users_access.services.user_service import UserService
+from users_access.services.email_validation_service import EmailValidationService
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
@@ -21,6 +22,10 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         email = value.strip().lower()
+        try:
+            email = EmailValidationService.validate_email(email)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
         if UserService().email_exists(email):
             raise serializers.ValidationError("Email already exists")
         return email

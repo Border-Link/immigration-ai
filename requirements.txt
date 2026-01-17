@@ -72,6 +72,7 @@ django-qrcode~=0.3
 numpy~=2.4.0
 django-redis
 sendgrid
+email-validator
 json-logic~=0.6.3  # JSON Logic expression evaluator for rule engine
 tenacity~=9.0.0  # Retry library with exponential backoff
 pybreaker~=1.0.1  # Circuit breaker pattern implementation

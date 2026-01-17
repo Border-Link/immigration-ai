@@ -27,11 +27,39 @@ class UserRepository:
             return user
 
     @staticmethod
+    def create_user_with_role(
+        email,
+        password,
+        role,
+        is_staff=False,
+        is_superuser=False,
+        is_verified=True,
+        must_change_password=False
+    ):
+        """
+        Create a user with a specific role and permissions.
+        Intended for admin-created staff/reviewer accounts.
+        """
+        with transaction.atomic():
+            normalized_email = BaseUserManager.normalize_email(email)
+            user = User.objects.create(email=normalized_email, role=role)
+            user.set_password(password)
+            user.is_active = True
+            user.is_staff = bool(is_staff)
+            user.is_superuser = bool(is_superuser)
+            user.is_verified = bool(is_verified)
+            user.must_change_password = bool(must_change_password)
+            user.save(using=User.objects._db)
+            user.full_clean()
+            return user
+
+    @staticmethod
     def create_superuser(email, password):
         user = UserRepository.create_user(email, password)
         user.role = "admin"
         user.is_superuser = True
         user.is_staff = True
+        user.is_verified = True
 
         user.full_clean()
         user.save()
@@ -50,6 +78,7 @@ class UserRepository:
     def update_password(user, password):
         with transaction.atomic():
             user.password = make_password(password)
+            user.must_change_password = False
 
             user.full_clean()
             user.save()
