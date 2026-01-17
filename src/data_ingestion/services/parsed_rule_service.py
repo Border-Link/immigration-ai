@@ -59,24 +59,29 @@ class ParsedRuleService:
     def get_by_id(rule_id: str) -> Optional[ParsedRule]:
         """Get parsed rule by ID."""
         try:
-            return ParsedRuleSelector.get_by_id(rule_id)
-        except ParsedRule.DoesNotExist:
-            logger.error(f"Parsed rule {rule_id} not found")
-            return None
+            pr = ParsedRuleSelector.get_by_id(rule_id)
+            if not pr:
+                logger.error(f"Parsed rule {rule_id} not found")
+                return None
+            return pr
         except Exception as e:
             logger.error(f"Error fetching parsed rule {rule_id}: {e}")
             return None
 
     @staticmethod
     @invalidate_cache(namespace, predicate=lambda pr: pr is not None)
-    def update_status(rule_id: str, status: str) -> Optional[ParsedRule]:
+    def update_status(rule_id: str, status: str, version: int = None) -> Optional[ParsedRule]:
         """Update parsed rule status."""
         try:
             parsed_rule = ParsedRuleSelector.get_by_id(rule_id)
-            return ParsedRuleRepository.update_status(parsed_rule, status)
-        except ParsedRule.DoesNotExist:
-            logger.error(f"Parsed rule {rule_id} not found")
-            return None
+            if not parsed_rule:
+                logger.error(f"Parsed rule {rule_id} not found")
+                return None
+            return ParsedRuleRepository.update_parsed_rule(
+                parsed_rule,
+                version=version if version is not None else getattr(parsed_rule, "version", None),
+                status=status,
+            )
         except Exception as e:
             logger.error(f"Error updating parsed rule {rule_id} status: {e}")
             return None
@@ -87,10 +92,15 @@ class ParsedRuleService:
         """Update parsed rule fields."""
         try:
             parsed_rule = ParsedRuleSelector.get_by_id(rule_id)
-            return ParsedRuleRepository.update_parsed_rule(parsed_rule, **fields)
-        except ParsedRule.DoesNotExist:
-            logger.error(f"Parsed rule {rule_id} not found")
-            return None
+            if not parsed_rule:
+                logger.error(f"Parsed rule {rule_id} not found")
+                return None
+            expected_version = fields.pop("version", None)
+            return ParsedRuleRepository.update_parsed_rule(
+                parsed_rule,
+                version=expected_version if expected_version is not None else getattr(parsed_rule, "version", None),
+                **fields
+            )
         except Exception as e:
             logger.error(f"Error updating parsed rule {rule_id}: {e}")
             return None
@@ -104,11 +114,8 @@ class ParsedRuleService:
             if not parsed_rule:
                 logger.error(f"Parsed rule {rule_id} not found")
                 return False
-            ParsedRuleRepository.delete_parsed_rule(parsed_rule)
+            ParsedRuleRepository.delete_parsed_rule(parsed_rule, version=getattr(parsed_rule, "version", None))
             return True
-        except ParsedRule.DoesNotExist:
-            logger.error(f"Parsed rule {rule_id} not found")
-            return False
         except Exception as e:
             logger.error(f"Error deleting parsed rule {rule_id}: {e}")
             return False
