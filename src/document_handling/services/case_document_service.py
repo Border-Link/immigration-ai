@@ -145,7 +145,8 @@ class CaseDocumentService:
             is_valid, error = PaymentValidator.validate_case_has_payment(case_document.case, operation_name="document update")
             if not is_valid:
                 logger.warning(f"Document update blocked for case {case_document.case.id}: {error}")
-                raise ValidationError(error)
+                # For payment gating, services return None (do not raise) so callers can treat it as a soft denial.
+                return None
             
             # Handle document_type_id separately (convert to ForeignKey)
             if 'document_type_id' in fields:
