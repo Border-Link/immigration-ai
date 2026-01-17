@@ -7,27 +7,27 @@ class DataSourceSelector:
     @staticmethod
     def get_all():
         """Get all data sources."""
-        return DataSource.objects.all()
+        return DataSource.objects.filter(is_deleted=False)
 
     @staticmethod
     def get_active():
         """Get all active data sources."""
-        return DataSource.objects.filter(is_active=True)
+        return DataSource.objects.filter(is_active=True, is_deleted=False)
 
     @staticmethod
     def get_by_jurisdiction(jurisdiction: str):
         """Get data sources by jurisdiction."""
-        return DataSource.objects.filter(jurisdiction=jurisdiction, is_active=True)
+        return DataSource.objects.filter(jurisdiction=jurisdiction, is_active=True, is_deleted=False)
 
     @staticmethod
     def get_by_id(data_source_id):
         """Get data source by ID."""
-        return DataSource.objects.get(id=data_source_id)
+        return DataSource.objects.filter(id=data_source_id, is_deleted=False).first()
 
     @staticmethod
     def get_by_base_url(base_url: str):
         """Get data source by base URL."""
-        return DataSource.objects.filter(base_url=base_url).first()
+        return DataSource.objects.filter(base_url=base_url, is_deleted=False).first()
 
     @staticmethod
     def get_none():
@@ -37,7 +37,7 @@ class DataSourceSelector:
     @staticmethod
     def get_by_filters(jurisdiction: str = None, is_active: bool = None, date_from=None, date_to=None):
         """Get data sources with filters."""
-        queryset = DataSource.objects.all()
+        queryset = DataSource.objects.filter(is_deleted=False)
         
         if jurisdiction:
             queryset = queryset.filter(jurisdiction=jurisdiction)
@@ -55,7 +55,7 @@ class DataSourceSelector:
         """Get data source statistics."""
         from django.db.models import Count
         
-        queryset = DataSource.objects.all()
+        queryset = DataSource.objects.filter(is_deleted=False)
         
         total_sources = queryset.count()
         active_sources = queryset.filter(is_active=True).count()
