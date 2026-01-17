@@ -304,8 +304,8 @@ class CaseContextBuilder:
         Uses canonicalized JSON (sorted keys, no whitespace).
         """
         try:
-            canonical_json = json.dumps(context_bundle, sort_keys=True, separators=(',', ':'))
-            return hashlib.sha256(canonical_json.encode('utf-8')).hexdigest()
+            from ai_calls.helpers.context_hashing import compute_context_hash
+            return compute_context_hash(context_bundle)
         except Exception as e:
             logger.error(f"Error computing context hash: {e}", exc_info=True)
             return ''
