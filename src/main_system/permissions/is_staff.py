@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from main_system.permissions.role_checker import RoleChecker
 
 
 class IsStaff(permissions.BasePermission):
@@ -15,19 +16,5 @@ class IsStaff(permissions.BasePermission):
     
     def has_permission(self, request, view):
         """Check if user is staff or superuser."""
-        if not request.user or not request.user.is_authenticated:
-            return False
-        
-        # Superuser always has staff access
-        if request.user.is_superuser:
-            return True
-        
-        # Staff flag grants access
-        if request.user.is_staff:
-            return True
-        
-        # Admin role grants staff access
-        if request.user.role == 'admin':
-            return True
-        
-        return False
+        user = getattr(request, 'user', None)
+        return RoleChecker.is_staff(user)
