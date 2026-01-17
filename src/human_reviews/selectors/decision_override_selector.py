@@ -17,7 +17,7 @@ class DecisionOverrideSelector:
             'original_result__visa_type',
             'reviewer',
             'reviewer__profile'
-        ).all().order_by('-created_at')
+        ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_case(case: Case):
@@ -29,7 +29,7 @@ class DecisionOverrideSelector:
             'original_result__visa_type',
             'reviewer',
             'reviewer__profile'
-        ).filter(case=case).order_by('-created_at')
+        ).filter(case=case, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_original_result(original_result: EligibilityResult):
@@ -53,7 +53,7 @@ class DecisionOverrideSelector:
             'original_result__visa_type',
             'reviewer',
             'reviewer__profile'
-        ).filter(original_result=original_result).order_by('-created_at').first()
+        ).filter(original_result=original_result, is_deleted=False).order_by('-created_at').first()
 
     @staticmethod
     def get_by_reviewer(reviewer):
@@ -65,7 +65,7 @@ class DecisionOverrideSelector:
             'original_result__visa_type',
             'reviewer',
             'reviewer__profile'
-        ).filter(reviewer=reviewer).order_by('-created_at')
+        ).filter(reviewer=reviewer, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_id(override_id):
@@ -77,7 +77,7 @@ class DecisionOverrideSelector:
             'original_result__visa_type',
             'reviewer',
             'reviewer__profile'
-        ).get(id=override_id)
+        ).filter(is_deleted=False).get(id=override_id)
 
     @staticmethod
     def get_by_filters(case_id=None, reviewer_id=None, original_result_id=None, overridden_outcome=None, date_from=None, date_to=None):

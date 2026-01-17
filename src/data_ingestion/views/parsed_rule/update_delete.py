@@ -41,7 +41,11 @@ class ParsedRuleStatusUpdateAPI(AuthAPI):
         serializer = ParsedRuleStatusUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        parsed_rule = ParsedRuleService.update_status(id, serializer.validated_data.get('status'))
+        parsed_rule = ParsedRuleService.update_status(
+            id,
+            serializer.validated_data.get('status'),
+            version=serializer.validated_data.get("version"),
+        )
 
         if not parsed_rule:
             return self.api_response(

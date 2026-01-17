@@ -11,7 +11,7 @@ class ParsedRuleSelector:
             'document_version',
             'document_version__source_document',
             'document_version__source_document__data_source'
-        ).all()
+        ).filter(is_deleted=False)
 
     @staticmethod
     def get_by_status(status: str):
@@ -20,7 +20,7 @@ class ParsedRuleSelector:
             'document_version',
             'document_version__source_document',
             'document_version__source_document__data_source'
-        ).filter(status=status).order_by('-created_at')
+        ).filter(status=status, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_visa_code(visa_code: str):
@@ -29,7 +29,7 @@ class ParsedRuleSelector:
             'document_version',
             'document_version__source_document',
             'document_version__source_document__data_source'
-        ).filter(visa_code=visa_code).order_by('-created_at')
+        ).filter(visa_code=visa_code, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_document_version(document_version):
@@ -38,7 +38,7 @@ class ParsedRuleSelector:
             'document_version',
             'document_version__source_document',
             'document_version__source_document__data_source'
-        ).filter(document_version=document_version).order_by('-created_at')
+        ).filter(document_version=document_version, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_pending():
@@ -47,7 +47,7 @@ class ParsedRuleSelector:
             'document_version',
             'document_version__source_document',
             'document_version__source_document__data_source'
-        ).filter(status='pending').order_by('-confidence_score', '-created_at')
+        ).filter(status='pending', is_deleted=False).order_by('-confidence_score', '-created_at')
 
     @staticmethod
     def get_by_id(rule_id):
@@ -56,7 +56,7 @@ class ParsedRuleSelector:
             'document_version',
             'document_version__source_document',
             'document_version__source_document__data_source'
-        ).get(id=rule_id)
+        ).filter(id=rule_id, is_deleted=False).first()
 
     @staticmethod
     def get_none():
@@ -91,7 +91,7 @@ class ParsedRuleSelector:
         from django.utils import timezone
         from datetime import timedelta
         
-        queryset = ParsedRule.objects.all()
+        queryset = ParsedRule.objects.filter(is_deleted=False)
         
         total_rules = queryset.count()
         rules_by_status = queryset.values('status').annotate(

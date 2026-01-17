@@ -15,7 +15,7 @@ class EligibilityResultSelector:
             'visa_type',
             'rule_version',
             'rule_version__visa_type'
-        ).all().order_by('-created_at')
+        ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_case(case: Case):
@@ -26,7 +26,7 @@ class EligibilityResultSelector:
             'visa_type',
             'rule_version',
             'rule_version__visa_type'
-        ).filter(case=case).order_by('-created_at')
+        ).filter(case=case, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_visa_type(visa_type: VisaType):
@@ -37,7 +37,7 @@ class EligibilityResultSelector:
             'visa_type',
             'rule_version',
             'rule_version__visa_type'
-        ).filter(visa_type=visa_type).order_by('-created_at')
+        ).filter(visa_type=visa_type, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_id(result_id):
@@ -48,7 +48,7 @@ class EligibilityResultSelector:
             'visa_type',
             'rule_version',
             'rule_version__visa_type'
-        ).get(id=result_id)
+        ).get(id=result_id, is_deleted=False)
 
     @staticmethod
     def get_by_rule_version(rule_version_id: str):
@@ -59,7 +59,7 @@ class EligibilityResultSelector:
             'visa_type',
             'rule_version',
             'rule_version__visa_type'
-        ).filter(rule_version_id=rule_version_id).order_by('-created_at')
+        ).filter(rule_version_id=rule_version_id, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_none():
@@ -73,7 +73,7 @@ class EligibilityResultSelector:
         from django.utils import timezone
         from datetime import timedelta
         
-        queryset = EligibilityResult.objects.all()
+        queryset = EligibilityResult.objects.filter(is_deleted=False)
         
         total_results = queryset.count()
         results_by_outcome = queryset.values('outcome').annotate(

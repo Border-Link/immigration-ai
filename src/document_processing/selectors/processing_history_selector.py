@@ -16,7 +16,7 @@ class ProcessingHistorySelector:
             'case_document__document_type',
             'processing_job',
             'user'
-        ).all().order_by('-created_at')
+        ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_id(history_id):
@@ -27,7 +27,7 @@ class ProcessingHistorySelector:
             'case_document__document_type',
             'processing_job',
             'user'
-        ).get(id=history_id)
+        ).filter(is_deleted=False).get(id=history_id)
 
     @staticmethod
     def get_by_case_document(case_document_id: str):
@@ -38,7 +38,7 @@ class ProcessingHistorySelector:
             'case_document__document_type',
             'processing_job',
             'user'
-        ).filter(case_document_id=case_document_id).order_by('-created_at')
+        ).filter(case_document_id=case_document_id, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_processing_job(processing_job_id: str):
@@ -49,7 +49,7 @@ class ProcessingHistorySelector:
             'case_document__document_type',
             'processing_job',
             'user'
-        ).filter(processing_job_id=processing_job_id).order_by('-created_at')
+        ).filter(processing_job_id=processing_job_id, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_action(action: str):
@@ -60,7 +60,7 @@ class ProcessingHistorySelector:
             'case_document__document_type',
             'processing_job',
             'user'
-        ).filter(action=action).order_by('-created_at')
+        ).filter(action=action, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_status(status: str):
@@ -71,7 +71,7 @@ class ProcessingHistorySelector:
             'case_document__document_type',
             'processing_job',
             'user'
-        ).filter(status=status).order_by('-created_at')
+        ).filter(status=status, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_none():
@@ -97,7 +97,7 @@ class ProcessingHistorySelector:
             'case_document__document_type',
             'processing_job',
             'user'
-        ).all()
+        ).filter(is_deleted=False)
         
         if case_document_id:
             queryset = queryset.filter(case_document_id=case_document_id)
@@ -130,7 +130,7 @@ class ProcessingHistorySelector:
         from django.utils import timezone
         from datetime import timedelta
         
-        queryset = ProcessingHistory.objects.all()
+        queryset = ProcessingHistory.objects.filter(is_deleted=False)
         
         total_entries = queryset.count()
         entries_by_action = queryset.values('action').annotate(

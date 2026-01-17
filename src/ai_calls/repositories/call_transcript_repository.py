@@ -1,5 +1,8 @@
 from django.db import transaction, IntegrityError
 from django.db.models import Max
+from django.db.models import F
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 from ai_calls.models.call_transcript import CallTranscript
 import logging
 
@@ -18,7 +21,8 @@ class CallTranscriptRepository:
         with transaction.atomic():
             # Use select_for_update to lock the row and prevent concurrent access
             max_turn = CallTranscript.objects.filter(
-                call_session=call_session
+                call_session=call_session,
+                is_deleted=False,
             ).select_for_update().aggregate(Max('turn_number'))['turn_number__max']
             
             return (max_turn or 0) + 1
@@ -44,6 +48,8 @@ class CallTranscriptRepository:
                         turn_number=turn_number,
                         turn_type=turn_type,
                         text=text,
+                        version=1,
+                        is_deleted=False,
                         **fields
                     )
                     transcript.full_clean()
@@ -59,31 +65,110 @@ class CallTranscriptRepository:
                         raise
 
     @staticmethod
-    def update_transcript_turn(transcript: CallTranscript, **fields):
-        """Update transcript turn fields."""
+    def update_transcript_turn(transcript: CallTranscript, version: int = None, **fields):
+        """
+        Update transcript turn fields with optimistic locking.
+
+        Uses a single conditional UPDATE (WHERE id AND version) to prevent last-write-wins overwrites.
+        """
         with transaction.atomic():
-            for key, value in fields.items():
-                if hasattr(transcript, key):
-                    setattr(transcript, key, value)
-            
-            transcript.full_clean()
-            transcript.save()
-            return transcript
+            expected_version = version if version is not None else getattr(transcript, "version", None)
+            if expected_version is None:
+                raise ValidationError("Missing version for optimistic locking.")
+
+            allowed_fields = {f.name for f in CallTranscript._meta.fields}
+            protected_fields = {"id", "version", "created_at", "timestamp", "call_session", "turn_number"}
+            update_fields = {
+                k: v for k, v in fields.items()
+                if k in allowed_fields and k not in protected_fields
+            }
+
+            # QuerySet.update bypasses auto_now; set updated_at explicitly.
+            if "updated_at" in allowed_fields:
+                update_fields["updated_at"] = timezone.now()
+
+            updated_count = CallTranscript.objects.filter(
+                id=transcript.id,
+                version=expected_version,
+                is_deleted=False,
+            ).update(
+                **update_fields,
+                version=F("version") + 1,
+            )
+
+            if updated_count != 1:
+                current_version = CallTranscript.objects.filter(id=transcript.id).values_list("version", flat=True).first()
+                if current_version is None:
+                    raise ValidationError("Transcript turn not found.")
+                raise ValidationError(
+                    f"Transcript turn was modified by another user. Expected version {expected_version}, got {current_version}."
+                )
+
+            return CallTranscript.objects.get(id=transcript.id)
 
     @staticmethod
-    def archive_transcript(transcript: CallTranscript):
-        """Move transcript to cold storage."""
-        from django.utils import timezone
-        
+    def archive_transcript(transcript: CallTranscript, version: int = None):
+        """Move transcript to cold storage with optimistic locking."""
         with transaction.atomic():
-            transcript.storage_tier = 'cold'
-            transcript.archived_at = timezone.now()
-            transcript.full_clean()
-            transcript.save()
-            return transcript
+            expected_version = version if version is not None else getattr(transcript, "version", None)
+            if expected_version is None:
+                raise ValidationError("Missing version for optimistic locking.")
+
+            updated_count = CallTranscript.objects.filter(
+                id=transcript.id,
+                version=expected_version,
+                is_deleted=False,
+            ).update(
+                storage_tier="cold",
+                archived_at=timezone.now(),
+                updated_at=timezone.now(),
+                version=F("version") + 1,
+            )
+
+            if updated_count != 1:
+                current_version = CallTranscript.objects.filter(id=transcript.id).values_list("version", flat=True).first()
+                if current_version is None:
+                    raise ValidationError("Transcript turn not found.")
+                raise ValidationError(
+                    f"Transcript turn was modified by another user. Expected version {expected_version}, got {current_version}."
+                )
+
+            return CallTranscript.objects.get(id=transcript.id)
 
     @staticmethod
-    def delete_transcript_turn(transcript: CallTranscript):
-        """Delete a transcript turn."""
+    def soft_delete_transcript_turn(transcript: CallTranscript, version: int = None) -> CallTranscript:
+        """Soft delete a transcript turn with optimistic locking."""
         with transaction.atomic():
-            transcript.delete()
+            expected_version = version if version is not None else getattr(transcript, "version", None)
+            if expected_version is None:
+                raise ValidationError("Missing version for optimistic locking.")
+
+            updated_count = CallTranscript.objects.filter(
+                id=transcript.id,
+                version=expected_version,
+                is_deleted=False,
+            ).update(
+                is_deleted=True,
+                deleted_at=timezone.now(),
+                updated_at=timezone.now(),
+                version=F("version") + 1,
+            )
+
+            if updated_count != 1:
+                current_version = CallTranscript.objects.filter(id=transcript.id).values_list("version", flat=True).first()
+                if current_version is None:
+                    raise ValidationError("Transcript turn not found.")
+                raise ValidationError(
+                    f"Transcript turn was modified by another user. Expected version {expected_version}, got {current_version}."
+                )
+
+            return CallTranscript.objects.get(id=transcript.id)
+
+    @staticmethod
+    def delete_transcript_turn(transcript: CallTranscript, version: int = None):
+        """
+        Delete a transcript turn.
+
+        CRITICAL: Deletion must be soft-delete to preserve auditability.
+        """
+        return CallTranscriptRepository.soft_delete_transcript_turn(transcript, version=version)

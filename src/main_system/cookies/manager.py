@@ -43,12 +43,11 @@ class CookieManager:
             if not settings.DEBUG:
                 logger.warning("SameSite=None is set in non-debug environment. Ensure Secure=True.")
 
-
         self.signer = TimestampSigner(salt=hashed_salt)
 
     def set_cookie(self, key, value, max_age=None, sign=True):
-        if value is None:
-            logger.warning(f"Cookie {key} has None value. Skipping set_cookie.")
+        if value is None or self.response is None:
+            logger.warning(f"Cookie {key} skipped (value is None or response is None).")
             return
 
         signed_value = self.signer.sign(str(value)) if sign else str(value)
@@ -65,7 +64,7 @@ class CookieManager:
 
 
     def get_cookie(self, key, sign=True, max_age=None):
-        val = self.request.COOKIES.get(key)
+        val = self.request.COOKIES.get(key) if self.request else None
         allowed_age = max_age or 30 * 24 * 3600
         if val:
             if not sign:
@@ -112,18 +111,15 @@ class CookieManager:
         Expire all cookies and optionally invalidate token and device session.
         """
         # 1. Expire cookies
-        for cookie_name in self.LIST_OF_COOKIES:
-            self.set_cookie(cookie_name, "", max_age=0, sign=False)
-            logger.info(f"Expired cookie {cookie_name}.")
+        self.expire_all_cookies()
 
         # 2. Invalidate access token
         if token_obj:
             try:
+                from knox.models import AuthToken
                 if isinstance(token_obj, str):
-                    from knox.models import AuthToken
                     AuthToken.objects.filter(key=token_obj).delete()
                 else:
-                    from knox.models import AuthToken
                     AuthToken.objects.filter(digest=token_obj.digest).delete()
                     token_obj.expiry = timezone.now()
                     token_obj.save(update_fields=["expiry"])

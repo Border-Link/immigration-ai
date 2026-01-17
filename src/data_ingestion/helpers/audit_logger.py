@@ -13,7 +13,7 @@ import logging
 from typing import Dict, Optional, Any
 from data_ingestion.models.audit_log import RuleParsingAuditLog
 from data_ingestion.models.document_version import DocumentVersion
-from data_ingestion.repositories.audit_log_repository import RuleParsingAuditLogRepository
+from data_ingestion.services.audit_log_service import RuleParsingAuditLogService
 
 logger = logging.getLogger('django')
 
@@ -61,7 +61,7 @@ class RuleParsingAuditLogger:
             Created audit log entry or None if creation failed
         """
         try:
-            audit_log = RuleParsingAuditLogRepository.create_audit_log(
+            audit_log = RuleParsingAuditLogService.create_audit_log(
                 document_version=document_version,
                 action=action,
                 status=status,

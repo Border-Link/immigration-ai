@@ -15,7 +15,7 @@ class ReviewStatusHistorySelector:
             'review',
             'review__case',
             'changed_by'
-        ).all().order_by('-created_at')
+        ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_review(review: Review):
@@ -24,7 +24,7 @@ class ReviewStatusHistorySelector:
             'review',
             'review__case',
             'changed_by'
-        ).filter(review=review).order_by('-created_at')
+        ).filter(review=review, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_id(history_id):
@@ -33,7 +33,7 @@ class ReviewStatusHistorySelector:
             'review',
             'review__case',
             'changed_by'
-        ).get(id=history_id)
+        ).filter(is_deleted=False).get(id=history_id)
 
     @staticmethod
     def get_by_review_id(review_id: str):
@@ -42,4 +42,4 @@ class ReviewStatusHistorySelector:
             'review',
             'review__case',
             'changed_by'
-        ).filter(review_id=review_id).order_by('-created_at')
+        ).filter(review_id=review_id, is_deleted=False).order_by('-created_at')

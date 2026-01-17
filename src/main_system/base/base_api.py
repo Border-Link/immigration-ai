@@ -13,7 +13,14 @@ class MyFallbackSerializer(serializers.Serializer):
 
 
 class BaseAPI(GenericAPIView):
+    """
+    Base API class for all API views.
+    
+    SECURITY: Explicitly sets authentication_classes to ensure cookie-based
+    authentication is used instead of DRF's default SessionAuthentication/BasicAuthentication.
+    """
     service = None
+
 
     def get_serializer_class(self):
         if getattr(self, 'swagger_fake_view', False):  # used by drf-spectacular

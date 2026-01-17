@@ -32,6 +32,9 @@ class IngestionService:
         """
         try:
             data_source = DataSourceSelector.get_by_id(data_source_id)
+            if not data_source:
+                logger.error(f"Data source {data_source_id} not found")
+                return {'success': False, 'message': 'Data source not found'}
             
             if not data_source.is_active:
                 logger.warning(f"Data source {data_source_id} is not active")
@@ -81,9 +84,6 @@ class IngestionService:
             
             return results
             
-        except DataSource.DoesNotExist:
-            logger.error(f"Data source {data_source_id} not found")
-            return {'success': False, 'message': 'Data source not found'}
         except Exception as e:
             logger.error(f"Error ingesting data source {data_source_id}: {e}")
             return {'success': False, 'message': str(e)}

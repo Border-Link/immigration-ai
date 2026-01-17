@@ -32,10 +32,11 @@ class DocumentDiffService:
     def get_by_id(diff_id: str) -> Optional[DocumentDiff]:
         """Get document diff by ID."""
         try:
-            return DocumentDiffSelector.get_by_id(diff_id)
-        except DocumentDiff.DoesNotExist:
-            logger.error(f"Document diff {diff_id} not found")
-            return None
+            diff = DocumentDiffSelector.get_by_id(diff_id)
+            if not diff:
+                logger.error(f"Document diff {diff_id} not found")
+                return None
+            return diff
         except Exception as e:
             logger.error(f"Error fetching document diff {diff_id}: {e}")
             return None
@@ -62,11 +63,8 @@ class DocumentDiffService:
             if not diff:
                 logger.error(f"Document diff {diff_id} not found")
                 return False
-            DocumentDiffRepository.delete_document_diff(diff)
+            DocumentDiffRepository.delete_document_diff(diff, version=getattr(diff, "version", None))
             return True
-        except DocumentDiff.DoesNotExist:
-            logger.error(f"Document diff {diff_id} not found")
-            return False
         except Exception as e:
             logger.error(f"Error deleting document diff {diff_id}: {e}")
             return False

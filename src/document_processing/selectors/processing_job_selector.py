@@ -15,7 +15,7 @@ class ProcessingJobSelector:
             'case_document__case',
             'case_document__document_type',
             'created_by'
-        ).all().order_by('-created_at')
+        ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_id(job_id):
@@ -25,7 +25,7 @@ class ProcessingJobSelector:
             'case_document__case',
             'case_document__document_type',
             'created_by'
-        ).get(id=job_id)
+        ).filter(is_deleted=False).get(id=job_id)
 
     @staticmethod
     def get_by_case_document(case_document_id: str):
@@ -35,7 +35,7 @@ class ProcessingJobSelector:
             'case_document__case',
             'case_document__document_type',
             'created_by'
-        ).filter(case_document_id=case_document_id).order_by('-created_at')
+        ).filter(case_document_id=case_document_id, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_status(status: str):
@@ -45,7 +45,7 @@ class ProcessingJobSelector:
             'case_document__case',
             'case_document__document_type',
             'created_by'
-        ).filter(status=status).order_by('-created_at')
+        ).filter(status=status, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_processing_type(processing_type: str):
@@ -55,7 +55,7 @@ class ProcessingJobSelector:
             'case_document__case',
             'case_document__document_type',
             'created_by'
-        ).filter(processing_type=processing_type).order_by('-created_at')
+        ).filter(processing_type=processing_type, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_celery_task_id(celery_task_id: str):
@@ -65,7 +65,7 @@ class ProcessingJobSelector:
             'case_document__case',
             'case_document__document_type',
             'created_by'
-        ).filter(celery_task_id=celery_task_id).first()
+        ).filter(celery_task_id=celery_task_id, is_deleted=False).first()
 
     @staticmethod
     def get_pending():
@@ -75,7 +75,7 @@ class ProcessingJobSelector:
             'case_document__case',
             'case_document__document_type',
             'created_by'
-        ).filter(status='pending').order_by('-priority', 'created_at')
+        ).filter(status='pending', is_deleted=False).order_by('-priority', 'created_at')
 
     @staticmethod
     def get_failed():
@@ -85,7 +85,7 @@ class ProcessingJobSelector:
             'case_document__case',
             'case_document__document_type',
             'created_by'
-        ).filter(status='failed').order_by('-created_at')
+        ).filter(status='failed', is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_none():
@@ -110,7 +110,7 @@ class ProcessingJobSelector:
             'case_document__case',
             'case_document__document_type',
             'created_by'
-        ).all()
+        ).filter(is_deleted=False)
         
         if case_document_id:
             queryset = queryset.filter(case_document_id=case_document_id)
@@ -145,7 +145,7 @@ class ProcessingJobSelector:
         from django.utils import timezone
         from datetime import timedelta
         
-        queryset = ProcessingJob.objects.all()
+        queryset = ProcessingJob.objects.filter(is_deleted=False)
         
         total_jobs = queryset.count()
         jobs_by_status = queryset.values('status').annotate(

@@ -1,4 +1,6 @@
 from rest_framework import permissions
+from django.contrib.auth.models import AnonymousUser
+from main_system.permissions.role_checker import RoleChecker
 
 
 class IsUser(permissions.BasePermission):
@@ -13,4 +15,5 @@ class IsUser(permissions.BasePermission):
     
     def has_permission(self, request, view):
         """Check if user is authenticated."""
-        return request.user and request.user.is_authenticated
+        user = getattr(request, 'user', None)
+        return RoleChecker.is_user(user)

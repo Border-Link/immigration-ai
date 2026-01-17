@@ -17,7 +17,9 @@ class HasCaseOwnership(permissions.BasePermission):
     
     def has_permission(self, request, view):
         """Check if user is authenticated."""
-        return request.user and request.user.is_authenticated
+        from main_system.permissions.role_checker import RoleChecker
+        user = getattr(request, 'user', None)
+        return RoleChecker.is_user(user)
     
     def has_object_permission(self, request, view, obj):
         """
@@ -29,7 +31,8 @@ class HasCaseOwnership(permissions.BasePermission):
             # If object doesn't have a case attribute, deny access
             return False
         
-        return CaseOwnershipPermission.has_case_access(request.user, obj.case)
+        user = getattr(request, 'user', None)
+        return CaseOwnershipPermission.has_case_access(user, obj.case)
 
 
 class HasCaseWriteAccess(permissions.BasePermission):
@@ -45,7 +48,9 @@ class HasCaseWriteAccess(permissions.BasePermission):
     
     def has_permission(self, request, view):
         """Check if user is authenticated."""
-        return request.user and request.user.is_authenticated
+        from main_system.permissions.role_checker import RoleChecker
+        user = getattr(request, 'user', None)
+        return RoleChecker.is_user(user)
     
     def has_object_permission(self, request, view, obj):
         """
@@ -57,4 +62,5 @@ class HasCaseWriteAccess(permissions.BasePermission):
             # If object doesn't have a case attribute, deny access
             return False
         
-        return CaseOwnershipPermission.has_case_write_access(request.user, obj.case)
+        user = getattr(request, 'user', None)
+        return CaseOwnershipPermission.has_case_write_access(user, obj.case)

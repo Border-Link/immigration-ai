@@ -63,29 +63,34 @@ class RuleValidationTaskService:
     def get_by_id(task_id: str) -> Optional[RuleValidationTask]:
         """Get validation task by ID."""
         try:
-            return RuleValidationTaskSelector.get_by_id(task_id)
-        except RuleValidationTask.DoesNotExist:
-            logger.error(f"Validation task {task_id} not found")
-            return None
+            task = RuleValidationTaskSelector.get_by_id(task_id)
+            if not task:
+                logger.error(f"Validation task {task_id} not found")
+                return None
+            return task
         except Exception as e:
             logger.error(f"Error fetching validation task {task_id}: {e}")
             return None
 
     @staticmethod
     @invalidate_cache(namespace, predicate=lambda t: t is not None)
-    def assign_reviewer(task_id: str, reviewer_id: str) -> Optional[RuleValidationTask]:
+    def assign_reviewer(task_id: str, reviewer_id: str, version: int = None) -> Optional[RuleValidationTask]:
         """Assign a reviewer to a validation task."""
         try:
             task = RuleValidationTaskSelector.get_by_id(task_id)
+            if not task:
+                logger.error(f"Validation task {task_id} not found")
+                return None
             from users_access.selectors.user_selector import UserSelector
             reviewer = UserSelector.get_by_id(reviewer_id)
             if not reviewer:
                 logger.error(f"Reviewer {reviewer_id} not found")
                 return None
-            return RuleValidationTaskRepository.assign_reviewer(task, reviewer)
-        except RuleValidationTask.DoesNotExist:
-            logger.error(f"Validation task {task_id} not found")
-            return None
+            return RuleValidationTaskRepository.assign_reviewer(
+                task,
+                reviewer,
+                version=version if version is not None else getattr(task, "version", None),
+            )
         except Exception as e:
             logger.error(f"Error assigning reviewer to task {task_id}: {e}")
             return None
@@ -96,17 +101,22 @@ class RuleValidationTaskService:
         """Update validation task fields."""
         try:
             task = RuleValidationTaskSelector.get_by_id(task_id)
-            return RuleValidationTaskRepository.update_validation_task(task, **fields)
-        except RuleValidationTask.DoesNotExist:
-            logger.error(f"Validation task {task_id} not found")
-            return None
+            if not task:
+                logger.error(f"Validation task {task_id} not found")
+                return None
+            expected_version = fields.pop("version", None)
+            return RuleValidationTaskRepository.update_validation_task(
+                task,
+                version=expected_version if expected_version is not None else getattr(task, "version", None),
+                **fields
+            )
         except Exception as e:
             logger.error(f"Error updating validation task {task_id}: {e}")
             return None
 
     @staticmethod
     @invalidate_cache(namespace, predicate=lambda t: t is not None)
-    def approve_task(task_id: str, reviewer_notes: str = None, auto_publish: bool = True) -> Optional[RuleValidationTask]:
+    def approve_task(task_id: str, reviewer_notes: str = None, auto_publish: bool = True, version: int = None) -> Optional[RuleValidationTask]:
         """
         Approve a validation task.
         
@@ -128,7 +138,11 @@ class RuleValidationTaskService:
             if reviewer_notes:
                 update_fields['reviewer_notes'] = reviewer_notes
             
-            updated_task = RuleValidationTaskRepository.update_validation_task(task, **update_fields)
+            updated_task = RuleValidationTaskRepository.update_validation_task(
+                task,
+                version=version if version is not None else getattr(task, "version", None),
+                **update_fields
+            )
             
             # Update parsed rule status to approved
             if updated_task and updated_task.parsed_rule:
@@ -161,26 +175,27 @@ class RuleValidationTaskService:
                     # Don't fail the approval if publishing fails
             
             return updated_task
-        except RuleValidationTask.DoesNotExist:
-            logger.error(f"Validation task {task_id} not found")
-            return None
         except Exception as e:
             logger.error(f"Error approving validation task {task_id}: {e}")
             return None
 
     @staticmethod
     @invalidate_cache(namespace, predicate=lambda t: t is not None)
-    def reject_task(task_id: str, reviewer_notes: str = None) -> Optional[RuleValidationTask]:
+    def reject_task(task_id: str, reviewer_notes: str = None, version: int = None) -> Optional[RuleValidationTask]:
         """Reject a validation task."""
         try:
             task = RuleValidationTaskSelector.get_by_id(task_id)
+            if not task:
+                logger.error(f"Validation task {task_id} not found")
+                return None
             update_fields = {'status': 'rejected'}
             if reviewer_notes:
                 update_fields['reviewer_notes'] = reviewer_notes
-            return RuleValidationTaskRepository.update_validation_task(task, **update_fields)
-        except RuleValidationTask.DoesNotExist:
-            logger.error(f"Validation task {task_id} not found")
-            return None
+            return RuleValidationTaskRepository.update_validation_task(
+                task,
+                version=version if version is not None else getattr(task, "version", None),
+                **update_fields
+            )
         except Exception as e:
             logger.error(f"Error rejecting validation task {task_id}: {e}")
             return None
@@ -194,11 +209,8 @@ class RuleValidationTaskService:
             if not task:
                 logger.error(f"Validation task {task_id} not found")
                 return False
-            RuleValidationTaskRepository.delete_validation_task(task)
+            RuleValidationTaskRepository.delete_validation_task(task, version=getattr(task, "version", None))
             return True
-        except RuleValidationTask.DoesNotExist:
-            logger.error(f"Validation task {task_id} not found")
-            return False
         except Exception as e:
             logger.error(f"Error deleting validation task {task_id}: {e}")
             return False

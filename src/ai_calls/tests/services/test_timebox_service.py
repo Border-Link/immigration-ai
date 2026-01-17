@@ -23,7 +23,11 @@ class TestTimeboxService:
 
         # Set started_at such that 4 minutes remain
         started_at = timezone.now() - timedelta(seconds=CALL_DURATION_SECONDS - 240)
-        CallSessionRepository.update_call_session(call_session_in_progress, version=call_session_in_progress.version, started_at=started_at)
+        call_session_in_progress = CallSessionRepository.update_call_session(
+            call_session_in_progress,
+            version=call_session_in_progress.version,
+            started_at=started_at,
+        )
 
         info = TimeboxService.check_time_remaining(str(call_session_in_progress.id))
         assert info["remaining_seconds"] <= 300
@@ -31,7 +35,11 @@ class TestTimeboxService:
 
         # Set started_at such that < 1 minute remains
         started_at2 = timezone.now() - timedelta(seconds=CALL_DURATION_SECONDS - 30)
-        CallSessionRepository.update_call_session(call_session_in_progress, version=call_session_in_progress.version, started_at=started_at2)
+        call_session_in_progress = CallSessionRepository.update_call_session(
+            call_session_in_progress,
+            version=call_session_in_progress.version,
+            started_at=started_at2,
+        )
         info2 = TimeboxService.check_time_remaining(str(call_session_in_progress.id))
         assert info2["warning_level"] == "1min"
 
@@ -39,7 +47,7 @@ class TestTimeboxService:
         from ai_calls.services.timebox_service import TimeboxService, CALL_DURATION_SECONDS
         from ai_calls.repositories.call_session_repository import CallSessionRepository
 
-        CallSessionRepository.update_call_session(
+        call_session_in_progress = CallSessionRepository.update_call_session(
             call_session_in_progress,
             version=call_session_in_progress.version,
             started_at=timezone.now() - timedelta(seconds=CALL_DURATION_SECONDS - 10),
@@ -47,7 +55,7 @@ class TestTimeboxService:
         assert TimeboxService.should_warn(str(call_session_in_progress.id)) is True
         assert TimeboxService.should_terminate(str(call_session_in_progress.id)) is False
 
-        CallSessionRepository.update_call_session(
+        call_session_in_progress = CallSessionRepository.update_call_session(
             call_session_in_progress,
             version=call_session_in_progress.version,
             started_at=timezone.now() - timedelta(seconds=CALL_DURATION_SECONDS + 10),

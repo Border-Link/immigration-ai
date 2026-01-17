@@ -7,48 +7,48 @@ class DocumentCheckSelector:
 
     @staticmethod
     def get_all():
-        """Get all document checks."""
+        """Get all document checks (excluding soft-deleted)."""
         return DocumentCheck.objects.select_related(
             'case_document',
             'case_document__case',
             'case_document__document_type'
-        ).all().order_by('-created_at')
+        ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_case_document(case_document: CaseDocument):
-        """Get checks by case document."""
+        """Get checks by case document (excluding soft-deleted)."""
         return DocumentCheck.objects.select_related(
             'case_document',
             'case_document__case',
             'case_document__document_type'
-        ).filter(case_document=case_document).order_by('-created_at')
+        ).filter(case_document=case_document, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_check_type(check_type: str):
-        """Get checks by check type."""
+        """Get checks by check type (excluding soft-deleted)."""
         return DocumentCheck.objects.select_related(
             'case_document',
             'case_document__case',
             'case_document__document_type'
-        ).filter(check_type=check_type).order_by('-created_at')
+        ).filter(check_type=check_type, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_result(result: str):
-        """Get checks by result."""
+        """Get checks by result (excluding soft-deleted)."""
         return DocumentCheck.objects.select_related(
             'case_document',
             'case_document__case',
             'case_document__document_type'
-        ).filter(result=result).order_by('-created_at')
+        ).filter(result=result, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_id(check_id):
-        """Get document check by ID."""
+        """Get document check by ID (excluding soft-deleted)."""
         return DocumentCheck.objects.select_related(
             'case_document',
             'case_document__case',
             'case_document__document_type'
-        ).get(id=check_id)
+        ).filter(is_deleted=False).get(id=check_id)
 
     @staticmethod
     def get_latest_by_case_document(case_document: CaseDocument, check_type: str = None):
@@ -57,7 +57,7 @@ class DocumentCheckSelector:
             'case_document',
             'case_document__case',
             'case_document__document_type'
-        ).filter(case_document=case_document)
+        ).filter(case_document=case_document, is_deleted=False)
         
         if check_type:
             queryset = queryset.filter(check_type=check_type)
@@ -77,7 +77,7 @@ class DocumentCheckSelector:
             'case_document',
             'case_document__case',
             'case_document__document_type'
-        ).all()
+        ).filter(is_deleted=False)
         
         if case_document_id:
             queryset = queryset.filter(case_document_id=case_document_id)
@@ -102,7 +102,7 @@ class DocumentCheckSelector:
         from django.utils import timezone
         from datetime import timedelta
         
-        queryset = DocumentCheck.objects.all()
+        queryset = DocumentCheck.objects.filter(is_deleted=False)
         
         total_checks = queryset.count()
         checks_by_type = queryset.values('check_type').annotate(

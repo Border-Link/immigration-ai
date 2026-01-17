@@ -87,6 +87,14 @@
             "value": ""
         },
         {
+            "key": "pricingItemId",
+            "value": ""
+        },
+        {
+            "key": "pricingCurrency",
+            "value": "USD"
+        },
+        {
             "key": "caseFactId",
             "value": ""
         },
@@ -3754,6 +3762,114 @@
                                 "method": "POST",
                                 "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}/retry/"
                             }
+                        },
+                        {
+                            "name": "Plans & Add-ons",
+                            "item": [
+                                {
+                                    "name": "Purchase Case Fee Plan (sets paymentId)",
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "type": "text/javascript",
+                                                "exec": [
+                                                    "const json = pm.response.json();",
+                                                    "if (json?.data?.id) pm.collectionVariables.set('paymentId', json.data.id);",
+                                                    "pm.test('plan payment created', function () {",
+                                                    "  pm.expect(json?.data?.id).to.be.ok;",
+                                                    "});"
+                                                ]
+                                            }
+                                        }
+                                    ],
+                                    "request": {
+                                        "method": "POST",
+                                        "url": "{{baseUrl}}/api/v1/payments/plans/case-fee/",
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"plan\": \"basic\",\n  \"payment_provider\": \"stripe\",\n  \"currency\": \"USD\"\n}"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Purchase Reviewer Add-on (sets paymentId)",
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "type": "text/javascript",
+                                                "exec": [
+                                                    "const json = pm.response.json();",
+                                                    "if (json?.data?.id) pm.collectionVariables.set('paymentId', json.data.id);",
+                                                    "pm.test('reviewer add-on payment created', function () {",
+                                                    "  pm.expect(json?.data?.id).to.be.ok;",
+                                                    "});"
+                                                ]
+                                            }
+                                        }
+                                    ],
+                                    "request": {
+                                        "method": "POST",
+                                        "url": "{{baseUrl}}/api/v1/payments/cases/{{caseId}}/reviewer-addon/",
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"payment_provider\": \"stripe\",\n  \"currency\": \"USD\"\n}"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Purchase AI Calls Add-on (sets paymentId)",
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "type": "text/javascript",
+                                                "exec": [
+                                                    "const json = pm.response.json();",
+                                                    "if (json?.data?.id) pm.collectionVariables.set('paymentId', json.data.id);",
+                                                    "pm.test('ai calls add-on payment created', function () {",
+                                                    "  pm.expect(json?.data?.id).to.be.ok;",
+                                                    "});"
+                                                ]
+                                            }
+                                        }
+                                    ],
+                                    "request": {
+                                        "method": "POST",
+                                        "url": "{{baseUrl}}/api/v1/payments/cases/{{caseId}}/ai-calls-addon/",
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"payment_provider\": \"stripe\",\n  \"currency\": \"USD\"\n}"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Get Case Entitlements",
+                                    "request": {
+                                        "method": "GET",
+                                        "url": "{{baseUrl}}/api/v1/payments/cases/{{caseId}}/entitlements/"
+                                    }
+                                }
+                            ]
                         }
                     ]
                 },
@@ -3821,6 +3937,112 @@
                                 "method": "GET",
                                 "url": "{{baseUrl}}/api/v1/payments/admin/statistics/"
                             }
+                        },
+                        {
+                            "name": "Admin: Pricing",
+                            "item": [
+                                {
+                                    "name": "Admin: List Pricing Items",
+                                    "request": {
+                                        "method": "GET",
+                                        "url": "{{baseUrl}}/api/v1/payments/admin/pricing/items/?kind=plan&is_active=true"
+                                    }
+                                },
+                                {
+                                    "name": "Admin: Create Pricing Item (sets pricingItemId)",
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "type": "text/javascript",
+                                                "exec": [
+                                                    "const json = pm.response.json();",
+                                                    "if (json?.data?.id) pm.collectionVariables.set('pricingItemId', json.data.id);",
+                                                    "pm.test('pricing item created', function () {",
+                                                    "  pm.expect(json?.data?.id).to.be.ok;",
+                                                    "});"
+                                                ]
+                                            }
+                                        }
+                                    ],
+                                    "request": {
+                                        "method": "POST",
+                                        "url": "{{baseUrl}}/api/v1/payments/admin/pricing/items/",
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"kind\": \"plan\",\n  \"code\": \"basic\",\n  \"name\": \"Basic Plan\",\n  \"description\": \"Basic plan features\",\n  \"is_active\": true,\n  \"includes_ai_calls\": false,\n  \"includes_human_review\": false\n}"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Admin: Pricing Item Detail",
+                                    "request": {
+                                        "method": "GET",
+                                        "url": "{{baseUrl}}/api/v1/payments/admin/pricing/items/{{pricingItemId}}/"
+                                    }
+                                },
+                                {
+                                    "name": "Admin: Update Pricing Item",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "url": "{{baseUrl}}/api/v1/payments/admin/pricing/items/{{pricingItemId}}/update/",
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"is_active\": true\n}"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Admin: Delete Pricing Item",
+                                    "request": {
+                                        "method": "DELETE",
+                                        "url": "{{baseUrl}}/api/v1/payments/admin/pricing/items/{{pricingItemId}}/delete/"
+                                    }
+                                },
+                                {
+                                    "name": "Admin: List Prices for Item",
+                                    "request": {
+                                        "method": "GET",
+                                        "url": "{{baseUrl}}/api/v1/payments/admin/pricing/items/{{pricingItemId}}/prices/"
+                                    }
+                                },
+                                {
+                                    "name": "Admin: Upsert Price for Item",
+                                    "request": {
+                                        "method": "POST",
+                                        "url": "{{baseUrl}}/api/v1/payments/admin/pricing/items/{{pricingItemId}}/prices/",
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"currency\": \"USD\",\n  \"amount\": \"100.00\"\n}"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Admin: Delete Price for Item",
+                                    "request": {
+                                        "method": "DELETE",
+                                        "url": "{{baseUrl}}/api/v1/payments/admin/pricing/items/{{pricingItemId}}/prices/{{pricingCurrency}}/delete/"
+                                    }
+                                }
+                            ]
                         }
                     ]
                 },

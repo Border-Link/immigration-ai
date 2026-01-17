@@ -153,12 +153,17 @@ class ProcessingJobService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=lambda job: job is not None)
-    def update_processing_job(job_id: str, **fields) -> Optional[ProcessingJob]:
+    def update_processing_job(job_id: str, version: int = None, **fields) -> Optional[ProcessingJob]:
         """
-        Update processing job.
+        Update processing job with optimistic locking.
         
         Requires: Case must have a completed payment before processing jobs can be updated.
         Note: System-initiated updates during processing may bypass this, but user-initiated updates require payment.
+        
+        Args:
+            job_id: ID of the job to update
+            version: Expected version number for optimistic locking (required)
+            **fields: Fields to update
         """
         from django.core.exceptions import ValidationError
         from payments.helpers.payment_validator import PaymentValidator
@@ -178,7 +183,13 @@ class ProcessingJobService:
                 logger.warning(f"Processing job update blocked for case {job.case_document.case.id}: {error}")
                 raise ValidationError(error)
             
-            return ProcessingJobRepository.update_processing_job(job, **fields)
+            # Use version from parameter or from the job
+            update_version = version if version is not None else job.version
+            
+            return ProcessingJobRepository.update_processing_job(job, version=update_version, **fields)
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error updating processing job {job_id}: {e}")
+            raise
         except ProcessingJob.DoesNotExist:
             logger.error(f"Processing job {job_id} not found")
             return None
@@ -188,11 +199,27 @@ class ProcessingJobService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=lambda job: job is not None)
-    def update_status(job_id: str, status: str, error_message: str = None, error_type: str = None) -> Optional[ProcessingJob]:
-        """Update processing job status with optional error information."""
+    def update_status(job_id: str, status: str, version: int = None, error_message: str = None, error_type: str = None) -> Optional[ProcessingJob]:
+        """
+        Update processing job status with optional error information and optimistic locking.
+        
+        Args:
+            job_id: ID of the job to update
+            status: New status
+            version: Expected version number for optimistic locking (required)
+            error_message: Optional error message
+            error_type: Optional error type
+        """
         try:
             job = ProcessingJobSelector.get_by_id(job_id)
-            updated_job = ProcessingJobRepository.update_status(job, status)
+            if not job:
+                logger.error(f"Processing job {job_id} not found")
+                return None
+            
+            # Use version from parameter or from the job
+            update_version = version if version is not None else job.version
+            
+            updated_job = ProcessingJobRepository.update_status(job, status, version=update_version)
             
             # Update error fields if provided
             if error_message or error_type:
@@ -202,9 +229,14 @@ class ProcessingJobService:
                 if error_type:
                     update_fields['error_type'] = error_type
                 if update_fields:
-                    updated_job = ProcessingJobRepository.update_processing_job(updated_job, **update_fields)
+                    # Get updated version after status update
+                    updated_version = updated_job.version
+                    updated_job = ProcessingJobRepository.update_processing_job(updated_job, version=updated_version, **update_fields)
             
             return updated_job
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error updating processing job status {job_id}: {e}")
+            raise
         except ProcessingJob.DoesNotExist:
             logger.error(f"Processing job {job_id} not found")
             return None
@@ -227,12 +259,31 @@ class ProcessingJobService:
 
     @staticmethod
     @invalidate_cache(namespace, predicate=bool)
-    def delete_processing_job(job_id: str) -> bool:
-        """Delete processing job."""
+    def delete_processing_job(job_id: str, version: int = None, deleted_by=None) -> bool:
+        """
+        Soft delete processing job.
+        
+        Args:
+            job_id: ID of the job to delete
+            version: Expected version number for optimistic locking (required)
+            deleted_by: User performing the deletion
+        """
+        from django.core.exceptions import ValidationError
+        
         try:
             job = ProcessingJobSelector.get_by_id(job_id)
-            ProcessingJobRepository.delete_processing_job(job)
+            if not job:
+                logger.error(f"Processing job {job_id} not found")
+                return False
+            
+            # Use version from parameter or from the job
+            delete_version = version if version is not None else job.version
+            
+            ProcessingJobRepository.delete_processing_job(job, version=delete_version, deleted_by=deleted_by)
             return True
+        except ValidationError as e:
+            logger.warning(f"Version conflict or validation error deleting processing job {job_id}: {e}")
+            raise
         except ProcessingJob.DoesNotExist:
             logger.error(f"Processing job {job_id} not found")
             return False
@@ -315,7 +366,9 @@ class ProcessingJobService:
                 update_fields['total_cost_usd'] = total_cost
             
             if update_fields:
-                return ProcessingJobRepository.update_processing_job(job, **update_fields)
+                # Use version from parameter or from the job
+                update_version = version if version is not None else job.version
+                return ProcessingJobRepository.update_processing_job(job, version=update_version, **update_fields)
             
             return job
         except ProcessingJob.DoesNotExist:

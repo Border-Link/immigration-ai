@@ -21,7 +21,7 @@ class TestAIReasoningTasks:
 
     def test_case_not_found(self, monkeypatch):
         monkeypatch.setattr(
-            "ai_decisions.tasks.ai_reasoning_tasks.CaseSelector.get_by_id",
+            "ai_decisions.tasks.ai_reasoning_tasks.CaseService.get_by_id",
             MagicMock(return_value=None),
         )
         out = run_eligibility_check_task.run(case_id=str(uuid.uuid4()), visa_type_id=None)
@@ -31,7 +31,7 @@ class TestAIReasoningTasks:
     def test_payment_blocked(self, monkeypatch):
         fake_case = SimpleNamespace(id=str(uuid.uuid4()), jurisdiction="US")
         monkeypatch.setattr(
-            "ai_decisions.tasks.ai_reasoning_tasks.CaseSelector.get_by_id",
+            "ai_decisions.tasks.ai_reasoning_tasks.CaseService.get_by_id",
             MagicMock(return_value=fake_case),
         )
         monkeypatch.setattr(
@@ -49,7 +49,7 @@ class TestAIReasoningTasks:
         fake_visa_type = SimpleNamespace(id=visa_type_id, code="US_TEST", name="Test Visa")
 
         monkeypatch.setattr(
-            "ai_decisions.tasks.ai_reasoning_tasks.CaseSelector.get_by_id",
+            "ai_decisions.tasks.ai_reasoning_tasks.CaseService.get_by_id",
             MagicMock(return_value=fake_case),
         )
         monkeypatch.setattr(
@@ -57,7 +57,7 @@ class TestAIReasoningTasks:
             MagicMock(return_value=(True, None)),
         )
         monkeypatch.setattr(
-            "ai_decisions.tasks.ai_reasoning_tasks.VisaTypeSelector.get_by_id",
+            "ai_decisions.tasks.ai_reasoning_tasks.VisaTypeService.get_by_id",
             MagicMock(return_value=fake_visa_type),
         )
 
@@ -83,7 +83,7 @@ class TestAIReasoningTasks:
         fake_case = SimpleNamespace(id=case_id, jurisdiction="US")
 
         monkeypatch.setattr(
-            "ai_decisions.tasks.ai_reasoning_tasks.CaseSelector.get_by_id",
+            "ai_decisions.tasks.ai_reasoning_tasks.CaseService.get_by_id",
             MagicMock(return_value=fake_case),
         )
         monkeypatch.setattr(
@@ -99,7 +99,7 @@ class TestAIReasoningTasks:
                 return len(self) > 0
 
         monkeypatch.setattr(
-            "ai_decisions.tasks.ai_reasoning_tasks.VisaTypeSelector.get_by_jurisdiction",
+            "ai_decisions.tasks.ai_reasoning_tasks.VisaTypeService.get_by_jurisdiction",
             MagicMock(return_value=FakeQS([vt1, vt2])),
         )
         monkeypatch.setattr(

@@ -24,8 +24,8 @@ class AdminPermission(BaseModulePermission):
         user = request.user
 
         # If the request isn't authenticated, this should be a 401 (not a 403).
-        if not user or not getattr(user, "is_authenticated", False):
-            raise NotAuthenticated()
+        if not RoleChecker.is_user(user):
+            raise NotAuthenticated("Authentication credentials were not provided.")
         
         # Only staff and superadmin can access admin console
         return RoleChecker.is_staff(user)

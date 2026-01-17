@@ -67,10 +67,11 @@ class DataSourceService:
     def get_by_id(data_source_id):
         """Get data source by ID."""
         try:
-            return DataSourceSelector.get_by_id(data_source_id)
-        except DataSource.DoesNotExist:
-            logger.error(f"Data source {data_source_id} not found")
-            return None
+            ds = DataSourceSelector.get_by_id(data_source_id)
+            if not ds:
+                logger.error(f"Data source {data_source_id} not found")
+                return None
+            return ds
         except Exception as e:
             logger.error(f"Error fetching data source {data_source_id}: {e}")
             return None
@@ -80,7 +81,12 @@ class DataSourceService:
     def update_data_source(data_source, **fields):
         """Update data source fields."""
         try:
-            return DataSourceRepository.update_data_source(data_source, **fields)
+            expected_version = fields.pop("version", None)
+            return DataSourceRepository.update_data_source(
+                data_source,
+                version=expected_version if expected_version is not None else getattr(data_source, "version", None),
+                **fields
+            )
         except Exception as e:
             logger.error(f"Error updating data source {data_source.id}: {e}")
             return None
@@ -128,7 +134,7 @@ class DataSourceService:
             if not data_source:
                 logger.error(f"Data source {data_source_id} not found")
                 return False
-            DataSourceRepository.delete_data_source(data_source)
+            DataSourceRepository.delete_data_source(data_source, version=getattr(data_source, "version", None))
             return True
         except Exception as e:
             logger.error(f"Error deleting data source {data_source_id}: {e}")
@@ -147,6 +153,16 @@ class DataSourceService:
         except Exception as e:
             logger.error(f"Error fetching filtered data sources: {e}")
             return DataSourceSelector.get_none()
+
+    @staticmethod
+    @cache_result(timeout=1800, keys=['base_url'], namespace=namespace)  # 30 minutes
+    def get_by_base_url(base_url: str):
+        """Get data source by base URL."""
+        try:
+            return DataSourceSelector.get_by_base_url(base_url)
+        except Exception as e:
+            logger.error(f"Error fetching data source for base_url {base_url}: {e}")
+            return None
 
     @staticmethod
     @cache_result(timeout=60, keys=[], namespace=namespace, user_scope="global")

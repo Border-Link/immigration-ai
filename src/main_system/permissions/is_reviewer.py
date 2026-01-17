@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from main_system.permissions.role_checker import RoleChecker
 
 
 class IsReviewer(permissions.BasePermission):
@@ -15,24 +16,6 @@ class IsReviewer(permissions.BasePermission):
 
     def has_permission(self, request, view):
         """Check if user is reviewer, staff, or superuser."""
-        if not request.user or not request.user.is_authenticated:
-            return False
-        
-        # Superuser always has reviewer access
-        if request.user.is_superuser:
-            return True
-        
-        # Staff flag grants reviewer access
-        if request.user.is_staff:
-            return True
-        
-        # Admin role grants reviewer access
-        if request.user.role == 'admin':
-            return True
-        
-        # Reviewer role with staff/superuser flag
-        if request.user.role == 'reviewer' and (request.user.is_staff or request.user.is_superuser):
-            return True
-        
-        return False
+        user = getattr(request, 'user', None)
+        return RoleChecker.is_reviewer(user)
 

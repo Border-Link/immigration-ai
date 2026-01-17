@@ -3,9 +3,10 @@ Service for RuleParsingAuditLog business logic.
 """
 import logging
 from typing import Optional
-from main_system.utils.cache_utils import cache_result
+from main_system.utils.cache_utils import cache_result, invalidate_cache
 from data_ingestion.models.audit_log import RuleParsingAuditLog
 from data_ingestion.selectors.audit_log_selector import RuleParsingAuditLogSelector
+from data_ingestion.repositories.audit_log_repository import RuleParsingAuditLogRepository
 
 logger = logging.getLogger('django')
 
@@ -69,10 +70,11 @@ class RuleParsingAuditLogService:
     def get_by_id(audit_log_id: str) -> Optional[RuleParsingAuditLog]:
         """Get audit log by ID."""
         try:
-            return RuleParsingAuditLogSelector.get_by_id(audit_log_id)
-        except RuleParsingAuditLog.DoesNotExist:
-            logger.error(f"Audit log {audit_log_id} not found")
-            return None
+            log = RuleParsingAuditLogSelector.get_by_id(audit_log_id)
+            if not log:
+                logger.error(f"Audit log {audit_log_id} not found")
+                return None
+            return log
         except Exception as e:
             logger.error(f"Error fetching audit log {audit_log_id}: {e}")
             return None
@@ -111,3 +113,35 @@ class RuleParsingAuditLogService:
         except Exception as e:
             logger.error(f"Error getting audit log statistics: {e}")
             return {}
+
+    @staticmethod
+    @invalidate_cache(namespace, predicate=lambda _: True)
+    def create_audit_log(
+        document_version,
+        action: str,
+        status: str,
+        message: str = None,
+        metadata: dict = None,
+        error_type: str = None,
+        error_message: str = None,
+        user=None,
+        ip_address: str = None,
+        user_agent: str = None,
+    ) -> Optional[RuleParsingAuditLog]:
+        """Create a new rule parsing audit log entry."""
+        try:
+            return RuleParsingAuditLogRepository.create_audit_log(
+                document_version=document_version,
+                action=action,
+                status=status,
+                message=message,
+                metadata=metadata,
+                error_type=error_type,
+                error_message=error_message,
+                user=user,
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+        except Exception as e:
+            logger.error(f"Error creating audit log: {e}", exc_info=True)
+            return None
