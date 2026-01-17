@@ -511,6 +511,31 @@ class CallSessionService:
             return None
 
     @staticmethod
+    def get_transcript_turns(session_id: str, include_cold: bool = False):
+        """
+        Get transcript turns for a call session.
+
+        Views must call services only; this wraps selectors.
+        Returns an empty queryset if session not found.
+        """
+        from ai_calls.selectors.call_transcript_selector import CallTranscriptSelector
+
+        call_session = CallSessionSelector.get_by_id(session_id)
+        if not call_session:
+            return CallTranscriptSelector.get_none()
+        return CallTranscriptSelector.get_by_call_session(call_session, include_cold=include_cold)
+
+    @staticmethod
+    def admin_get_sessions_queryset():
+        """Admin helper: base queryset for call sessions (non-deleted)."""
+        return CallSessionSelector.get_all(include_deleted=False)
+
+    @staticmethod
+    def admin_get_by_id(session_id: str, include_deleted: bool = True):
+        """Admin helper: get call session by ID."""
+        return CallSessionSelector.get_by_id(session_id, include_deleted=include_deleted)
+
+    @staticmethod
     @cache_result(timeout=300, keys=['case_id'], namespace=call_sessions_cache_namespace, user_scope="global")
     def get_active_call_for_case(case_id: str) -> Optional[CallSession]:
         """Get active call session for a case (if exists)."""
