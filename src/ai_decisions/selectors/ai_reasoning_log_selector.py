@@ -12,7 +12,7 @@ class AIReasoningLogSelector:
             'case',
             'case__user',
             'case__user__profile'
-        ).all().order_by('-created_at')
+        ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_case(case: Case):
@@ -21,7 +21,7 @@ class AIReasoningLogSelector:
             'case',
             'case__user',
             'case__user__profile'
-        ).filter(case=case).order_by('-created_at')
+        ).filter(case=case, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_model(model_name: str):
@@ -30,7 +30,7 @@ class AIReasoningLogSelector:
             'case',
             'case__user',
             'case__user__profile'
-        ).filter(model_name=model_name).order_by('-created_at')
+        ).filter(model_name=model_name, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_id(log_id):
@@ -39,7 +39,7 @@ class AIReasoningLogSelector:
             'case',
             'case__user',
             'case__user__profile'
-        ).get(id=log_id)
+        ).get(id=log_id, is_deleted=False)
 
     @staticmethod
     def get_none():
@@ -53,7 +53,7 @@ class AIReasoningLogSelector:
         from django.utils import timezone
         from datetime import timedelta
         
-        queryset = AIReasoningLog.objects.all()
+        queryset = AIReasoningLog.objects.filter(is_deleted=False)
         
         total_logs = queryset.count()
         logs_by_model = queryset.values('model_name').annotate(
