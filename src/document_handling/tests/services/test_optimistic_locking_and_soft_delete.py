@@ -79,6 +79,7 @@ class TestCaseDocumentOptimisticLocking:
         
         assert "missing version" in str(exc_info.value).lower()
 
+    @pytest.mark.django_db(transaction=True)
     def test_concurrent_updates_race_condition(self, case_document):
         """Test that concurrent updates are handled correctly."""
         initial_version = case_document.version

@@ -1,5 +1,7 @@
+import time
 from django.db import transaction
 from django.db.models import F
+from django.db.utils import OperationalError
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from human_reviews.models.review import Review
@@ -35,68 +37,83 @@ class ReviewRepository:
         
         Uses a single conditional UPDATE (WHERE id AND version) to prevent last-write-wins overwrites.
         """
-        with transaction.atomic():
-            expected_version = version if version is not None else getattr(review, "version", None)
-            if expected_version is None:
-                raise ValidationError("Missing version for optimistic locking.")
-            
-            # Track status changes
-            previous_status = review.status
-            status_changed = False
-            
-            # Validate status transition if status is being updated
-            if 'status' in fields:
-                is_valid, error = ReviewStatusTransitionValidator.validate_transition(
-                    review.status,
-                    fields['status']
-                )
-                if not is_valid:
-                    raise ValidationError(error)
-                status_changed = True
-            
-            allowed_fields = {f.name for f in Review._meta.fields}
-            protected_fields = {"id", "version", "created_at"}
-            update_fields = {
-                k: v for k, v in fields.items()
-                if k in allowed_fields and k not in protected_fields
-            }
-
-            # QuerySet.update bypasses auto_now; set updated_at explicitly.
-            if "updated_at" in allowed_fields:
-                update_fields["updated_at"] = timezone.now()
-
-            updated_count = Review.objects.filter(
-                id=review.id,
-                version=expected_version,
-                is_deleted=False,
-            ).update(
-                **update_fields,
-                version=F("version") + 1,
+        expected_version = version if version is not None else getattr(review, "version", None)
+        if expected_version is None:
+            raise ValidationError("Missing version for optimistic locking.")
+        
+        # Track status changes
+        previous_status = review.status
+        status_changed = False
+        
+        # Validate status transition if status is being updated
+        if 'status' in fields:
+            is_valid, error = ReviewStatusTransitionValidator.validate_transition(
+                review.status,
+                fields['status']
             )
+            if not is_valid:
+                raise ValidationError(error)
+            status_changed = True
+        
+        allowed_fields = {f.name for f in Review._meta.fields}
+        protected_fields = {"id", "version", "created_at"}
+        update_fields = {
+            k: v for k, v in fields.items()
+            if k in allowed_fields and k not in protected_fields
+        }
 
-            if updated_count != 1:
-                current_version = Review.objects.filter(id=review.id).values_list("version", flat=True).first()
-                if current_version is None:
-                    raise ValidationError("Review not found.")
-                raise ValidationError(
-                    f"Review was modified by another user. Expected version {expected_version}, got {current_version}."
-                )
+        # QuerySet.update bypasses auto_now; set updated_at explicitly.
+        if "updated_at" in allowed_fields:
+            update_fields["updated_at"] = timezone.now()
 
-            # Get the updated review
-            updated_review = Review.objects.get(id=review.id)
-            
-            # Create status history entry if status changed
-            if status_changed:
-                ReviewStatusHistory.objects.create(
-                    review=updated_review,
-                    previous_status=previous_status,
-                    new_status=updated_review.status,
-                    changed_by=changed_by,
-                    reason=reason,
-                    metadata=metadata or {}
-                )
-            
-            return updated_review
+        max_attempts = 20
+        base_sleep_s = 0.02
+        max_sleep_s = 0.2
+        last_exc: Exception | None = None
+
+        for attempt in range(max_attempts):
+            try:
+                with transaction.atomic():
+                    updated_count = Review.objects.filter(
+                        id=review.id,
+                        version=expected_version,
+                        is_deleted=False,
+                    ).update(
+                        **update_fields,
+                        version=F("version") + 1,
+                    )
+
+                    if updated_count != 1:
+                        current_version = Review.objects.filter(id=review.id).values_list("version", flat=True).first()
+                        if current_version is None:
+                            raise ValidationError("Review not found.")
+                        raise ValidationError(
+                            f"Review was modified by another user. Expected version {expected_version}, got {current_version}."
+                        )
+
+                    updated_review = Review.objects.get(id=review.id)
+                    if status_changed:
+                        ReviewStatusHistory.objects.create(
+                            review=updated_review,
+                            previous_status=previous_status,
+                            new_status=updated_review.status,
+                            changed_by=changed_by,
+                            reason=reason,
+                            metadata=metadata or {}
+                        )
+
+                    return updated_review
+            except OperationalError as e:
+                last_exc = e
+                msg = str(e).lower()
+                if ("database table is locked" in msg or "database is locked" in msg) and attempt < (max_attempts - 1):
+                    time.sleep(min(base_sleep_s * (2**attempt), max_sleep_s))
+                    continue
+                raise
+
+        if last_exc:
+            raise last_exc
+        raise ValidationError("Failed to update review due to repeated database lock contention.")
 
     @staticmethod
     def assign_reviewer(review, reviewer, changed_by=None, reason=None):

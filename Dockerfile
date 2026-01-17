@@ -53,10 +53,10 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
 COPY ./src /src
 
 # --------------------------
-# Optional: copy development .env file
+# NOTE: Do not bake `.env` into the image.
+# Runtime configuration should come from environment variables / docker-compose `env_file`.
+# Keeping secrets out of the image also makes CI builds work without a local `.env`.
 # --------------------------
-ARG COPY_ENV=false
-COPY .env .env
 
 # --------------------------
 # Build arguments for runtime config
