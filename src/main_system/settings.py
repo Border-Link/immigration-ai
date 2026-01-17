@@ -35,11 +35,11 @@ if APP_ENV == "production":
     DEBUG = False
     assert not DEBUG, "DEBUG must be False in production"
 
+
 # Helper to split comma-separated env vars
 def get_list_from_env(var_name, default=""):
     value = env(var_name, default=default)
     return [v.strip() for v in value.split(",") if v.strip()]
-
 
 
 # Hosts & CORS
@@ -54,17 +54,10 @@ APP_ENVIRONMENTS = ["local", "dev", "qa"]
 if APP_ENV in APP_ENVIRONMENTS:
     # In non-production, allow all origins but log warning
     CORS_ALLOW_ALL_ORIGINS = True
-    import logging
-    logger = logging.getLogger('django')
-    logger.warning("CORS_ALLOW_ALL_ORIGINS is True in non-production environment")
 
 if APP_ENV == "production":
     CORS_ALLOW_ALL_ORIGINS = False
     # Ensure CORS_ALLOWED_ORIGINS is set in production
-    if not CORS_ALLOWED_ORIGINS:
-        import logging
-        logger = logging.getLogger('django')
-        logger.error("CORS_ALLOWED_ORIGINS is empty in production! This is a security risk.")
 
 CORS_ALLOW_HEADERS = [
     'content-type',
@@ -75,7 +68,6 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'referer',
 ]
-
 
 SITE_NAME = env("SITE_NAME")
 SITE_ID = 1
@@ -100,8 +92,6 @@ SESSION_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = "DENY"
 
 CSRF_COOKIE_DOMAIN = ".borderlink.app"
-
-
 ACCESS_COOKIE_NAME = "access_token"
 SESSION_COOKIE_NAME = "sessionid"
 FINGERPRINT_COOKIE_NAME = "fingerprint"
@@ -192,13 +182,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "django.contrib.sites", #required for email verification links
-    "guardian", # required for Guardian
+    "django.contrib.sites",  # required for email verification links
+    "guardian",  # required for Guardian
     # Django-knox
     "knox",
-    "corsheaders", # for CORS support
+    "corsheaders",  # for CORS support
 
-    #my apps
+    # my apps
     "ai_calls",
     "ai_decisions",
     "compliance",
@@ -212,14 +202,12 @@ INSTALLED_APPS = [
     "users_access",
 ]
 
-
 INSTALLED_APPS += [
     # "django_celery_beat", # Removed - using Redbeat (Redis-based scheduler) instead
     "django_celery_results",
-    "django_extensions", # for development utilities
-    "django_prometheus", # for monitoring
+    "django_extensions",  # for development utilities
+    "django_prometheus",  # for monitoring
 ]
-
 
 if APP_ENV in ["production", "staging"]:
     SENTRY_DSN = env("SENTRY_DSN")
@@ -230,7 +218,7 @@ if APP_ENV in ["production", "staging"]:
             DjangoIntegration(),
             CeleryIntegration(),
             LoggingIntegration(
-                level=logging.INFO, # Capture info and above as breadcrumbs
+                level=logging.INFO,  # Capture info and above as breadcrumbs
                 event_level=logging.ERROR  # Send errors as events
             )
         ],
@@ -244,8 +232,6 @@ if APP_ENV in ["production", "staging"]:
         max_breadcrumbs=200,
         server_name=IMIGRATION_BACKEND,
     )
-
-
 
 # CELERY SETTINGS
 CELERY_BROKER_URL = env("CELERY_BROKER_URL")
@@ -271,8 +257,8 @@ CELERY_REDBEAT_LOCK_TIMEOUT = 30  # Lock timeout in seconds
 # Celery Beat Schedule (imported from celery_beat_schedule.py)
 # This schedule will be loaded into Redbeat on startup
 from main_system.utils.celery_beat_schedule import CELERY_BEAT_SCHEDULE
-CELERY_BEAT_SCHEDULE = CELERY_BEAT_SCHEDULE
 
+CELERY_BEAT_SCHEDULE = CELERY_BEAT_SCHEDULE
 
 CACHE_PREFIX = "imigration_backend"
 CACHES = {
@@ -289,7 +275,6 @@ CACHES = {
 ACCESS_TOKEN_TTL = timedelta(minutes=15)
 ACCESS_TOKEN_REFRESH_GRACE_PERIOD = timedelta(minutes=2)
 ACCESS_COOKIE_NAME = "access_token"
-
 
 # LOGGING SETTINGS
 LOGGING = {
@@ -352,52 +337,33 @@ LOGGING = {
     },
 }
 
-
-
 AUTHENTICATION_BACKENDS = (
-    "django.contrib.auth.backends.ModelBackend", #Default Django backend,
-    "guardian.backends.ObjectPermissionBackend", # Guardian backend
+    "django.contrib.auth.backends.ModelBackend",  # Default Django backend,
+    "guardian.backends.ObjectPermissionBackend",  # Guardian backend
 )
 
 AUTH_MAIN_BACKEND = "django.contrib.auth.backends.ModelBackend"
 
 MIDDLEWARE = [
-    # Django Prometheus before middleware
     "django_prometheus.middleware.PrometheusBeforeMiddleware",
-
-    # 1. CORS should be first
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
-
-    # 2. Security and common Django middlewares
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
 
-    # 3. CSRF and authentication
-    "django.middleware.csrf.CsrfViewMiddleware",
+    # DeviceSessionRefreshMiddleware must run after AuthenticationMiddleware
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    'main_system.middlewares.prevent_back_button.PreventBackButtonMiddleware',
-
-    # 4. Custom middleware
-    "main_system.middlewares.slash_fix.EnforceTrailingSlashMiddleware",
     "main_system.middlewares.device_access_manager.DeviceSessionRefreshMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "main_system.middlewares.prevent_back_button.PreventBackButtonMiddleware",
+    "main_system.middlewares.slash_fix.EnforceTrailingSlashMiddleware",
     "main_system.middlewares.two_factor_auth.TwoFactorAuthMiddleware",
-    
-    # 5. Security headers middleware (add security headers)
     "main_system.middlewares.security_headers.SecurityHeadersMiddleware",
-
-    # 5.1 Performance profiling (no-op unless PERF_PROFILE_REQUESTS=True)
     "main_system.middlewares.performance_profiler.PerformanceProfilerMiddleware",
-
-    # 6. Django final middleware
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-
-    # Django Prometheus after middleware
     "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
-
-
 
 ROOT_URLCONF = "main_system.urls"
 
@@ -419,7 +385,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "main_system.wsgi.application"
 
-
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
@@ -433,9 +398,12 @@ DATABASES = {
         "HOST": env("DB_HOST"),
         "CONN_MAX_AGE": int(env("CONN_MAX_AGE")),
         "CONN_HEALTH_CHECK": True,
+        "OPTIONS": {
+            "sslmode": env("DB_SSL_MODE", default="disable"),
+            "application_name": IMIGRATION_BACKEND,
+        },
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -455,7 +423,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
@@ -466,7 +433,6 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
@@ -483,24 +449,27 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000  # Limit number of form fields
 
-
 # REST FRAMEWORK SETTINGS
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("main_system.middlewares.cookie_access_only.CookieAccessOnlyTokenAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "main_system.middlewares.cookie_access_only.CookieAccessOnlyTokenAuthentication",),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
     # "DEFAULT_AUTHENTICATION_CLASSES": ("knox.auth.TokenAuthentication",),
     "NON_FIELD_ERRORS_KEY": "error",
-    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend",],
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend", ],
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",  # For all unauthenticated requests
         "rest_framework.throttling.UserRateThrottle",  # For all authenticated requests
-        "rest_framework.throttling.ScopedRateThrottle", # For custom scoped throttles
+        "rest_framework.throttling.ScopedRateThrottle",  # For custom scoped throttles
     ],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
 
     # Rate limits - Security: Adjusted for better protection
     "DEFAULT_THROTTLE_RATES": {
         "anon": "5/minute",  # Reduced from 10/min for better brute force protection
-        "user": "300/minute", # Reduced from 500/min for better DoS protection
+        "user": "300/minute",  # Reduced from 500/min for better DoS protection
         "request_rate": "5/minute",
         "otp": "3/minute",  # Reduced from 5/min for OTP endpoints
         "refresh_token": "10/minute",
@@ -511,7 +480,6 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
-
 KNOX_TOKEN_MODEL = "knox.AuthToken"
 
 AUTH_USER_MODEL = "users_access.User"
@@ -521,9 +489,9 @@ USE_X_FORWARDED_HOST = True
 REST_KNOX = {
     'SECURE_HASH_ALGORITHM': 'hashlib.sha512',
     'AUTH_TOKEN_CHARACTER_LENGTH': 255,
-    'TOKEN_TTL': timedelta(minutes=24*60), # 1 day
+    'TOKEN_TTL': timedelta(minutes=24 * 60),  # 1 day
     'USER_SERIALIZER': 'knox.serializers.UserSerializer',
-    'TOKEN_LIMIT_PER_USER': 5, # prevent token sprawl
+    'TOKEN_LIMIT_PER_USER': 5,  # prevent token sprawl
     'AUTO_REFRESH': False,
     'AUTO_REFRESH_MAX_TTL': None,
     'MIN_REFRESH_INTERVAL': 60,
@@ -531,7 +499,6 @@ REST_KNOX = {
     'EXPIRY_DATETIME_FORMAT': api_settings.DATETIME_FORMAT,
     'TOKEN_MODEL': 'knox.AuthToken',
 }
-
 
 # Email settings
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
@@ -553,8 +520,5 @@ else:
     EMAIL_PORT = env("EMAIL_PORT")
     EMAIL_USE_TLS = True
 
-
 ENFORCE_2FA_PATHS = [
 ]
-
-
