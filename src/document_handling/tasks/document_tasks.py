@@ -69,6 +69,12 @@ def process_document_task(self, document_id: str):
         )
         
         if processing_job:
+            # Ensure valid processing job status transitions.
+            # Jobs start as 'pending' by default; since we're already executing, move through:
+            # pending -> queued -> processing
+            ProcessingJobService.update_status(str(processing_job.id), 'queued')
+            ProcessingJobService.update_status(str(processing_job.id), 'processing')
+
             # Log job started
             ProcessingHistoryService.create_history_entry(
                 case_document_id=document_id,

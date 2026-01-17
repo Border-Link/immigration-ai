@@ -1,5 +1,7 @@
+import time
 from django.db import transaction
 from django.db.models import F
+from django.db.utils import OperationalError
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from main_system.repositories.base import BaseRepositoryMixin
@@ -37,47 +39,71 @@ class CaseDocumentRepository:
         
         Uses a single conditional UPDATE (WHERE id AND version) to prevent last-write-wins overwrites.
         """
-        with transaction.atomic():
-            expected_version = version if version is not None else getattr(case_document, "version", None)
-            if expected_version is None:
-                raise ValidationError("Missing version for optimistic locking.")
+        expected_version = version
+        if expected_version is None:
+            raise ValidationError("Missing version for optimistic locking.")
 
-            allowed_fields = {f.name for f in CaseDocument._meta.fields}
-            protected_fields = {"id", "version", "created_at"}
-            update_fields = {
-                k: v for k, v in fields.items()
-                if k in allowed_fields and k not in protected_fields
-            }
+        allowed_fields = {f.name for f in CaseDocument._meta.fields}
+        protected_fields = {"id", "version", "created_at"}
+        update_fields = {
+            k: v for k, v in fields.items()
+            if k in allowed_fields and k not in protected_fields
+        }
 
-            # QuerySet.update bypasses auto_now; set updated_at explicitly.
-            if "updated_at" in allowed_fields:
-                update_fields["updated_at"] = timezone.now()
+        # QuerySet.update bypasses auto_now; set updated_at explicitly.
+        if "updated_at" in allowed_fields:
+            update_fields["updated_at"] = timezone.now()
 
-            updated_count = CaseDocument.objects.filter(
-                id=case_document.id,
-                version=expected_version,
-                is_deleted=False,
-            ).update(
-                **update_fields,
-                version=F("version") + 1,
-            )
+        # SQLite can transiently raise "database table is locked" under concurrent writes.
+        # A short retry helps make race-condition tests deterministic: one write wins, the other
+        # then fails with a version conflict.
+        max_attempts = 20
+        base_sleep_s = 0.02
+        max_sleep_s = 0.2
+        last_exc: Exception | None = None
 
-            if updated_count != 1:
+        for attempt in range(max_attempts):
+            try:
+                with transaction.atomic():
+                    updated_count = CaseDocument.objects.filter(
+                        id=case_document.id,
+                        version=expected_version,
+                        is_deleted=False,
+                    ).update(
+                        **update_fields,
+                        version=F("version") + 1,
+                    )
+
+                # Keep the transaction window tiny (especially important for SQLite).
+                if updated_count == 1:
+                    return CaseDocument.objects.get(id=case_document.id)
+
                 current_version = CaseDocument.objects.filter(id=case_document.id).values_list("version", flat=True).first()
                 if current_version is None:
                     raise ValidationError("Case document not found.")
                 raise ValidationError(
                     f"Case document was modified by another user. Expected version {expected_version}, got {current_version}."
                 )
+            except OperationalError as e:
+                last_exc = e
+                msg = str(e).lower()
+                if ("database table is locked" in msg or "database is locked" in msg) and attempt < (max_attempts - 1):
+                    time.sleep(min(base_sleep_s * (2**attempt), max_sleep_s))
+                    continue
+                raise
 
-            return CaseDocument.objects.get(id=case_document.id)
+        # Defensive: should not reach here, but keep mypy/types happy.
+        if last_exc:
+            raise last_exc
+        raise ValidationError("Failed to update case document due to repeated database lock contention.")
 
     @staticmethod
     def update_status(case_document, status: str, version: int = None):
         """Update document status with optimistic locking."""
+        resolved_version = version if version is not None else getattr(case_document, "version", None)
         return CaseDocumentRepository.update_case_document(
             case_document,
-            version=version,
+            version=resolved_version,
             status=status
         )
 

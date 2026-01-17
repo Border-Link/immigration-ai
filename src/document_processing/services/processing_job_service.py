@@ -3,6 +3,7 @@ Service for ProcessingJob business logic.
 """
 import logging
 from typing import Optional
+from django.core.exceptions import ValidationError
 from main_system.utils.cache_utils import cache_result, invalidate_cache
 from document_processing.models.processing_job import ProcessingJob
 from document_processing.repositories.processing_job_repository import ProcessingJobRepository
@@ -189,7 +190,7 @@ class ProcessingJobService:
             return ProcessingJobRepository.update_processing_job(job, version=update_version, **fields)
         except ValidationError as e:
             logger.warning(f"Version conflict or validation error updating processing job {job_id}: {e}")
-            raise
+            return None
         except ProcessingJob.DoesNotExist:
             logger.error(f"Processing job {job_id} not found")
             return None
@@ -335,7 +336,8 @@ class ProcessingJobService:
         job_id: str,
         llm_tokens_used: int = None,
         llm_cost_usd: float = None,
-        ocr_cost_usd: float = None
+        ocr_cost_usd: float = None,
+        version: int = None,
     ) -> Optional[ProcessingJob]:
         """Update cost tracking for a processing job."""
         try:

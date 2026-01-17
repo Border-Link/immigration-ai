@@ -19,7 +19,7 @@ from human_reviews.services.review_note_service import ReviewNoteService
 from human_reviews.services.decision_override_service import DecisionOverrideService
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestReviewOptimisticLocking:
     """Tests for optimistic locking in Review."""
 
@@ -73,7 +73,7 @@ class TestReviewOptimisticLocking:
             ReviewRepository.update_review(
                 review,
                 version=initial_version,  # Stale version
-                status="completed"
+                status="cancelled"
             )
         
         assert "modified by another user" in str(exc_info.value).lower()
@@ -96,7 +96,7 @@ class TestReviewOptimisticLocking:
                 updated = ReviewRepository.update_review(
                     review,
                     version=initial_version,
-                    status="in_progress" if thread_id == 1 else "completed"
+                    status="in_progress" if thread_id == 1 else "cancelled"
                 )
                 results.append((thread_id, updated.version))
             except ValidationError as e:
@@ -297,20 +297,34 @@ class TestReviewNoteSoftDelete:
 class TestDecisionOverrideOptimisticLocking:
     """Tests for optimistic locking in DecisionOverride."""
 
-    def test_update_decision_override_version_conflict_raises_error(self, decision_override_service, paid_case):
+    def test_update_decision_override_version_conflict_raises_error(
+        self,
+        decision_override_service,
+        paid_case,
+        eligibility_result,
+    ):
         """Updating with wrong version should raise ValidationError."""
-        from ai_decisions.services.eligibility_result_service import EligibilityResultService
-        from ai_decisions.models.eligibility_result import EligibilityResult
+        case, _payment = paid_case
+        override = decision_override_service.create_decision_override(
+            case_id=str(case.id),
+            original_result_id=str(eligibility_result.id),
+            overridden_outcome="eligible",
+            reason="initial override",
+        )
+        assert override is not None
+        initial_version = override.version
         
-        # Create an eligibility result first (simplified)
-        # In real tests, you'd use proper fixtures
-        case, _ = paid_case
+        DecisionOverrideRepository.update_decision_override(
+            override,
+            version=initial_version,
+            reason="updated reason",
+        )
         
-        # For this test, we'll skip if we can't create the dependency
-        # In practice, you'd have proper fixtures
-        pytest.skip("Requires EligibilityResult fixture - add in real implementation")
+        with pytest.raises(ValidationError) as exc_info:
+            DecisionOverrideRepository.update_decision_override(
+                override,
+                version=initial_version,  # Stale version
+                reason="stale update",
+            )
         
-        # This is a template - actual implementation would need proper fixtures
-        # override = DecisionOverrideService.create_decision_override(...)
-        # initial_version = override.version
-        # ... rest of test
+        assert "modified by another user" in str(exc_info.value).lower()
