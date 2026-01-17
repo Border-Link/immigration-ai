@@ -13,7 +13,7 @@ class ReviewNoteSelector:
             'review__case',
             'review__case__user',
             'review__reviewer'
-        ).all().order_by('-created_at')
+        ).filter(is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_review(review: Review):
@@ -23,7 +23,7 @@ class ReviewNoteSelector:
             'review__case',
             'review__case__user',
             'review__reviewer'
-        ).filter(review=review).order_by('-created_at')
+        ).filter(review=review, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_public_by_review(review: Review):
@@ -33,7 +33,7 @@ class ReviewNoteSelector:
             'review__case',
             'review__case__user',
             'review__reviewer'
-        ).filter(review=review, is_internal=False).order_by('-created_at')
+        ).filter(review=review, is_internal=False, is_deleted=False).order_by('-created_at')
 
     @staticmethod
     def get_by_id(note_id):
@@ -43,7 +43,7 @@ class ReviewNoteSelector:
             'review__case',
             'review__case__user',
             'review__reviewer'
-        ).get(id=note_id)
+        ).filter(is_deleted=False).get(id=note_id)
 
     @staticmethod
     def get_by_filters(review_id=None, is_internal=None, date_from=None, date_to=None):
